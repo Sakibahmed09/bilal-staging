@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bilal — Darul Ummah Goresbrook</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#17140f">
+<meta property="og:title" content="bilal">
+<meta property="og:description" content="The screen that calls you to jama'ah, not just to prayer. Live times from your own mosque.">
+<meta property="og:image" content="https://bilalathan.co.uk/og.jpg">
+<meta property="og:url" content="https://bilalathan.co.uk">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="bilal">
+<meta name="twitter:description" content="The screen that calls you to jama'ah, not just to prayer.">
+<meta name="twitter:image" content="https://bilalathan.co.uk/og.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&family=Amiri:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+ * BILAL — always-on jama'ah display
+ *
+ * ANIMATION STORYBOARD  (fires on load, and again on every prayer change)
+ *
+ *     0ms   sky crossfades to the next prayer's light   1200ms
+ *   120ms   wordmark + masjid name settle                 ↑ opacity/translate
+ *   240ms   prayer name rises                             ↑
+ *   360ms   time + countdown rise
+ *   480ms   leave-by line fades in
+ *   600ms   rail items stagger in, 70ms apart
+ *
+ * Every one of these is transform + opacity ONLY. Both are GPU-composited,
+ * so the whole sequence costs a Fire Stick nothing. Anything touching
+ * layout (height, margin, width) would drop frames on that hardware.
+ *
+ * FIRE TV CONSTRAINTS baked into this file:
+ *   · no filter:blur / backdrop-filter   — kills the GPU
+ *   · no CSS min()/clamp()/inset          — Silk can be Chromium ~70
+ *   · hex first, oklch behind @supports   — oklch needs Chromium 111+,
+ *                                           an unparsed colour = no colour
+ *   · --u computed in JS from the viewport
+ *   · overscan margins, no pure black/white
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root{
+  /* Palette from Sakib's own brand poll, 31 Oct 2024 — terracotta + charcoal
+     beat black/white 69.2% to 30.8%. Hex values derived from OKLCH so the
+     lightness steps are perceptually even. */
+  --clay:      #d9a48f;   /* oklch(76% .062 45)  the brand */
+  --clay-lift: #e8b9a3;   /* oklch(82% .058 45)  hover/active lift */
+  --cream:     #f6efe7;   /* oklch(95% .014 70)  carries type on all 5 skies */
+  --char:      #221e1c;   /* oklch(19% .008 45)  neutrals tinted to brand hue */
+  --deep:      #17140f;   /* oklch(13% .006 45) */
+  --veil:      rgba(246,239,231,.46);
+  --hair:      rgba(246,239,231,.16);
+
+  --display: 'Prata', 'Hoefler Text', Georgia, serif;
+  --text:    'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --arabic:  'Amiri', 'Geeza Pro', serif;
+
+  --u: 18px;              /* set from JS */
+  --safe-x: 4.6%;
+  --safe-y: 5.2%;
+}
+@supports (color: oklch(50% 0.1 45)){
+  :root{
+    --clay:      oklch(76% .062 45);
+    --clay-lift: oklch(82% .058 45);
+    --cream:     oklch(95% .014 70);
+    --char:      oklch(19% .008 45);
+    --deep:      oklch(13% .006 45);
+  }
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--deep);color:var(--cream);
+  font-family:var(--text);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+body{cursor:none}
+body.cursor{cursor:auto}
+
+/* ── sky: two stacked layers that crossfade ─────────────────────────────── */
+/* Two stacked skies, always both present. The top one's opacity is driven by
+   how far through the current prayer window we are, so the sky is continuously
+   somewhere between the last prayer's light and the next one's. No transition
+   here on purpose — opacity is written every second and a CSS transition would
+   fight it. */
+.sky{position:fixed;top:0;right:0;bottom:0;left:0;z-index:0;
+  background-position:center;background-size:cover;background-repeat:no-repeat;
+  opacity:0}
+#skyFrom{opacity:1}
+
+/* ── drift: the sky moves ────────────────────────────────────────────────
+   Ported from dhikry's NightSky, including the thing that actually matters:
+   drift ALONE reads as a poster being slid around. Stars have to scintillate
+   or the field looks printed no matter how well it moves. So the baked tiles
+   glide, and ~14 bright heroes flicker on their own clocks on top.
+
+   Speeds are dhikry's, converted from pt/s to time-to-cross-one-screen:
+     far 1054s · mid 506s · heroes 279s.
+   Roughly 3x slower than my first pass, which was visibly sliding.
+
+   Cost control for Fire TV: the baked layers drift on X only. A 200%x200%
+   layer needed for two-axis wrap is ~33MB of texture each, which a Fire Stick
+   should not be asked to hold twice over. The vertical component lives on the
+   heroes instead — 14 tiny DOM nodes — so the diagonal life lands exactly
+   where the eye goes, at almost no cost. */
+/* absolute, not fixed: they sit inside the masked wrapper now, and a masked
+   ancestor can become the containing block for fixed children */
+.drift{position:absolute;top:0;left:0;height:100%;width:200%;
+  pointer-events:none;background-repeat:repeat-x;background-size:50% 100%;
+  opacity:0;-webkit-transition:opacity 1.6s ease;transition:opacity 1.6s ease;
+  -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}
+/* Speeds are set from JS (var(--sp*)) so ?drift= can retune them live.
+   dhikry's originals were 3-5x slower; those were right for a phone 40cm from
+   your face and invisible on a TV across a room. */
+#starFar{-webkit-animation:glide var(--spFar) linear infinite;animation:glide var(--spFar) linear infinite}
+#starMid{-webkit-animation:glideFlip var(--spMid) linear infinite;animation:glideFlip var(--spMid) linear infinite}
+#cloud  {-webkit-animation:glide var(--spCloud) linear infinite;animation:glide var(--spCloud) linear infinite}
+@-webkit-keyframes glide{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-50%,0,0)}}
+@keyframes glide{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+/* mirrored so one tile reads as two different depths */
+@-webkit-keyframes glideFlip{from{-webkit-transform:translate3d(0,0,0) scaleY(-1)}to{-webkit-transform:translate3d(-50%,0,0) scaleY(-1)}}
+@keyframes glideFlip{from{transform:translate3d(0,0,0) scaleY(-1)}to{transform:translate3d(-50%,0,0) scaleY(-1)}}
+
+/* The minaret lives in the photograph again, so the drift has to stop before
+   it — otherwise cloud and stars visibly slide across the tower's face. The
+   wrapper is fixed to the viewport and carries the mask; the layers inside
+   translate, so the fade stays put while the sky moves through it. */
+#driftWrap{position:fixed;top:0;right:0;bottom:0;left:0;z-index:1;overflow:hidden;
+  pointer-events:none;
+  -webkit-mask-image:linear-gradient(to right, #000 0%, #000 58%, transparent 78%);
+  mask-image:linear-gradient(to right, #000 0%, #000 58%, transparent 78%)}
+
+/* heroes: the bright few, each on its own clock */
+#heroes{position:absolute;top:0;left:0;width:200%;height:100%;
+  pointer-events:none;opacity:0;
+  -webkit-transition:opacity 1.6s ease;transition:opacity 1.6s ease;
+  -webkit-animation:heroDrift var(--spHero) linear infinite;animation:heroDrift var(--spHero) linear infinite}
+@-webkit-keyframes heroDrift{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-50%,-2.6vh,0)}}
+@keyframes heroDrift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,-2.6vh,0)}}
+.hero{position:absolute;border-radius:50%}
+/* three depths of flicker, handed out at random — a shared curve makes the
+   whole field breathe in unison, which reads as an effect rather than as sky */
+@-webkit-keyframes tw1{0%,100%{opacity:1}50%{opacity:.30}}
+@keyframes tw1{0%,100%{opacity:1}50%{opacity:.30}}
+@-webkit-keyframes tw2{0%,100%{opacity:1}50%{opacity:.46}}
+@keyframes tw2{0%,100%{opacity:1}50%{opacity:.46}}
+@-webkit-keyframes tw3{0%,100%{opacity:.92}50%{opacity:.58}}
+@keyframes tw3{0%,100%{opacity:.92}50%{opacity:.58}}
+
+@media (prefers-reduced-motion: reduce){
+  .drift,#heroes,.hero{-webkit-animation:none !important;animation:none !important}
+}
+
+/* scrim: pure gradients, no blur. Darkens where type lives. */
+#scrim{position:fixed;top:0;right:0;bottom:0;left:0;z-index:2;pointer-events:none;
+  background:
+    /* A broad wash was flattening a bright midday sky back into dusk. These are
+       tighter and local: protect exactly where type sits, leave the sky open. */
+    radial-gradient(ellipse 58% 42% at 20% 47%, rgba(23,20,15,.52) 0%, rgba(23,20,15,.20) 52%, rgba(23,20,15,0) 78%),
+    linear-gradient(to bottom, rgba(23,20,15,.44) 0%, rgba(23,20,15,.14) 13%, rgba(23,20,15,0) 26%),
+    linear-gradient(to top,    rgba(23,20,15,.90) 0%, rgba(23,20,15,.52) 22%, rgba(23,20,15,0) 46%),
+    linear-gradient(to right,  rgba(23,20,15,.50) 0%, rgba(23,20,15,.14) 42%, rgba(23,20,15,0) 68%)}
+#wash{position:fixed;top:0;right:0;bottom:0;left:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse at 30% 62%, rgba(217,164,143,.30) 0%, rgba(217,164,143,.06) 42%, rgba(23,20,15,0) 72%);
+  opacity:0;-webkit-transition:opacity 1s ease;transition:opacity 1s ease}
+body[data-state="leave"] #wash{opacity:1}
+
+#shell{position:fixed;top:0;right:0;bottom:0;left:0;z-index:3;display:flex;flex-direction:column;
+  padding:var(--safe-y) var(--safe-x);
+  -webkit-transition:-webkit-transform 4s ease-in-out;transition:transform 4s ease-in-out}
+
+/* ── entrance choreography ──────────────────────────────────────────────── */
+.rise{opacity:0;-webkit-transform:translate3d(0,calc(var(--u)*1.1),0);transform:translate3d(0,calc(var(--u)*1.1),0)}
+.go .rise{opacity:1;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);
+  -webkit-transition:opacity .75s cubic-bezier(.16,1,.3,1), -webkit-transform .75s cubic-bezier(.16,1,.3,1);
+  transition:opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1)}
+.go .d1{transition-delay:.12s;-webkit-transition-delay:.12s}
+.go .d2{transition-delay:.24s;-webkit-transition-delay:.24s}
+.go .d3{transition-delay:.36s;-webkit-transition-delay:.36s}
+.go .d4{transition-delay:.48s;-webkit-transition-delay:.48s}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+header{display:flex;justify-content:space-between;align-items:flex-start}
+.mark{display:flex;align-items:baseline}
+.mark .word{font-family:var(--display);font-size:calc(var(--u)*2.1);line-height:1;
+  letter-spacing:-.012em;color:var(--cream)}
+/* Prata's 'l' ascender is ~0.74 of the font size, so the tower is sized to
+   that, not to the em box. As a replaced element its bottom edge IS its
+   baseline, so it sits on the type's baseline on its own. */
+.mark svg{height:calc(var(--u)*1.56);width:auto;display:block;
+  margin:0 calc(var(--u)*.055)}
+.masjid{font-size:calc(var(--u)*.94);letter-spacing:.15em;text-transform:uppercase;
+  color:var(--veil);font-weight:500;margin-top:calc(var(--u)*.62)}
+.right{text-align:right}
+/* Seconds earn their place by proving the screen is alive — an ambient display
+   that never visibly changes reads as crashed. But they must not compete with
+   the prayer, so they sit at 42% the size and drop to the muted colour: a pulse
+   rather than a number you read. Tabular figures stop the clock jittering. */
+.now{font-size:calc(var(--u)*4.4);font-weight:600;letter-spacing:-.028em;line-height:1}
+.now .sec{font-size:.42em;font-weight:500;color:var(--veil);letter-spacing:0;
+  margin-left:calc(var(--u)*.2)}
+/* cream, not clay: terracotta over a warm sky turns to mush. Clay stays
+   reserved for the dark-left column where it always has contrast. */
+.hijri-ar{font-family:var(--arabic);font-size:calc(var(--u)*1.5);color:var(--cream);
+  margin-top:calc(var(--u)*.38);direction:rtl;line-height:1.3;opacity:.92}
+.greg{font-size:calc(var(--u)*.9);letter-spacing:.13em;text-transform:uppercase;
+  color:var(--veil);margin-top:calc(var(--u)*.26);font-weight:500}
+
+/* ── hero ───────────────────────────────────────────────────────────────── */
+main{flex:1;display:flex;flex-direction:column;justify-content:center;
+  max-width:74%}                                  /* keep type off the minaret */
+.eyebrow{font-size:calc(var(--u)*.92);letter-spacing:.24em;text-transform:uppercase;
+  color:var(--clay);font-weight:600}
+/* Prata's descenders are deep and they are not equal. Measured ink below the
+   baseline at display size:  fajr 42.5px · maghrib 37.1px · dhuhr/asr/isha 1.5px.
+   'j' is the deepest, and sizing the gap to maghrib (as I first did) still let
+   fajr collide. The line box now contains the worst case rather than the margin
+   compensating for it, so spacing stays uniform whichever prayer is showing. */
+.prayer{font-family:var(--display);font-size:calc(var(--u)*9.4);line-height:1.14;
+  letter-spacing:-.032em;margin:calc(var(--u)*.16) 0 calc(var(--u)*1.02);color:var(--cream)}
+.line{display:flex;align-items:baseline}
+/* Furquan, 8 Aug: "the hierarchy of the name of the prayer and time is
+   conflicting". He was right — 'asr' and '18:30' were two heavy elements
+   stacked in one block, so the eye could not tell which was the subject. The
+   time is now one subordinate line, and it is no longer duplicating the rail,
+   which already prints 18:30 under ASR. */
+.line .t{font-size:calc(var(--u)*2.2);font-weight:600;letter-spacing:-.022em;line-height:1;
+  color:var(--cream);opacity:.9}
+.line .c{font-size:calc(var(--u)*2.2);color:var(--veil);font-weight:400;
+  margin-left:calc(var(--u)*.7)}
+.leave{margin-top:calc(var(--u)*1.15);display:flex;align-items:center;
+  font-size:calc(var(--u)*1.32);color:var(--clay);font-weight:600;letter-spacing:-.005em}
+.leave i{width:calc(var(--u)*.5);height:calc(var(--u)*.5);border-radius:50%;
+  background:var(--clay);margin-right:calc(var(--u)*.66);font-style:normal;
+  -webkit-animation:breathe 2.6s ease-in-out infinite;animation:breathe 2.6s ease-in-out infinite}
+@-webkit-keyframes breathe{0%,100%{opacity:1}50%{opacity:.26}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.26}}
+
+.big{font-family:var(--display);font-size:calc(var(--u)*8.4);line-height:.88;
+  letter-spacing:-.032em;color:var(--clay)}
+.big-sub{font-size:calc(var(--u)*1.7);color:var(--cream);opacity:.84;
+  margin-top:calc(var(--u)*.8);font-weight:400}
+
+/* ── rail: hairline, no boxes ───────────────────────────────────────────── */
+.rail{border-top:1px solid var(--hair);padding-top:calc(var(--u)*1.05);display:flex}
+.stop{flex:1;position:relative}
+.stop .nm{font-size:calc(var(--u)*.9);letter-spacing:.19em;text-transform:uppercase;
+  color:var(--veil);font-weight:600}
+.stop .jm{font-size:calc(var(--u)*2.25);font-weight:600;letter-spacing:-.022em;
+  margin-top:calc(var(--u)*.28);line-height:1;color:var(--cream)}
+.stop .bg{font-size:calc(var(--u)*.86);color:var(--veil);margin-top:calc(var(--u)*.22);
+  font-weight:400}
+.stop.past .nm,.stop.past .jm,.stop.past .bg{opacity:.3}
+.stop.on .nm{color:var(--clay)}
+.stop.on .jm{color:var(--clay)}
+/* the active marker is a tick on the rule itself, not a box around the item */
+.stop.on:before{content:"";position:absolute;top:calc(var(--u)*-1.05 - 1px);left:0;
+  width:calc(var(--u)*2.4);height:2px;background:var(--clay)}
+
+footer{display:flex;justify-content:space-between;align-items:center;
+  margin-top:calc(var(--u)*1.05);font-size:calc(var(--u)*.82);color:var(--veil);
+  letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+.stat{display:flex;align-items:center}
+.stat i{width:calc(var(--u)*.38);height:calc(var(--u)*.38);border-radius:50%;
+  background:var(--clay);margin-right:calc(var(--u)*.5);font-style:normal}
+.stat.warn i{background:#c8a24a}
+.stat.err i{background:#c4614f}
+
+/* ── audio gate ─────────────────────────────────────────────────────────── */
+
+/* ── pairing ──────────────────────────────────────────────────────────────
+   The first screen a stranger ever sees, so it is the product rather than a
+   utility page: same sky for the actual hour, same Prata, same terracotta.
+   The CODE is the hero because the code is the thing they must carry to their
+   phone; the QR is the shortcut, not the instruction. */
+#pair{position:fixed;top:0;right:0;bottom:0;left:0;z-index:70;display:none;
+  padding:var(--safe-y) var(--safe-x)}
+/* The sky stays — it is the best first impression we have — but the prayer data
+   underneath must go, or the two screens read as one broken one. */
+body.pairing #shell{display:none}
+#pair.show{display:flex;flex-direction:column;justify-content:center}
+#pair .eyebrow{color:var(--clay)}
+#pair .head{font-family:var(--display);font-size:calc(var(--u)*5.4);line-height:1.02;
+  letter-spacing:-.032em;margin:calc(var(--u)*.5) 0 calc(var(--u)*.9);max-width:17ch}
+#pair .cols{display:flex;align-items:flex-end;gap:calc(var(--u)*4)}
+#pair .step{font-size:calc(var(--u)*1.3);color:var(--veil);line-height:1.65;max-width:30ch}
+#pair .step b{color:var(--cream);font-weight:600}
+#pair .code{font-family:var(--text);font-size:calc(var(--u)*5.2);font-weight:700;
+  letter-spacing:.14em;line-height:1;margin-top:calc(var(--u)*1.1);color:var(--clay);
+  font-variant-numeric:tabular-nums}
+#pair .code i{font-style:normal;opacity:.30;margin:0 calc(var(--u)*.5);letter-spacing:0}
+#pair .qr{width:calc(var(--u)*11);height:calc(var(--u)*11);border-radius:calc(var(--u)*.5);
+  background:#f6efe7;padding:calc(var(--u)*.5);flex:none}
+#pair .qr img{width:100%;height:100%;display:block;image-rendering:pixelated}
+#pair .wait{display:flex;align-items:center;margin-top:calc(var(--u)*1.6);
+  font-size:calc(var(--u)*1.05);color:var(--veil);letter-spacing:.1em;text-transform:uppercase}
+#pair .wait i{width:calc(var(--u)*.5);height:calc(var(--u)*.5);border-radius:50%;
+  background:var(--clay);margin-right:calc(var(--u)*.6);font-style:normal;
+  -webkit-animation:breathe 2.6s ease-in-out infinite;animation:breathe 2.6s ease-in-out infinite}
+#pair.done .head{color:var(--clay)}
+
+#gate{position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;display:none;
+  align-items:center;justify-content:center;background:rgba(23,20,15,.97);
+  text-align:center;padding:7%}
+#gate.show{display:flex}
+#gate h2{font-family:var(--display);font-size:calc(var(--u)*3.1);line-height:1.08;
+  letter-spacing:-.028em}
+#gate p{margin:calc(var(--u)*1.1) auto 0;font-size:calc(var(--u)*1.16);color:var(--veil);
+  line-height:1.6;max-width:44ch}
+#gateBtn{margin-top:calc(var(--u)*1.9);padding:calc(var(--u)*.82) calc(var(--u)*2.5);
+  border:0;border-radius:calc(var(--u)*3);background:var(--clay);color:var(--char);
+  font-family:var(--text);font-weight:700;font-size:calc(var(--u)*1.16);
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+#gateBtn:focus{outline:none;background:var(--clay-lift);
+  box-shadow:0 0 0 calc(var(--u)*.28) rgba(217,164,143,.3)}
+
+/* Was 2x2px. A element that small can be skipped by the compositor entirely,
+   which means no real decode and nothing for the OS to treat as playback.
+   Big enough to genuinely decode, faint enough to be invisible on a TV.
+   Best-effort only — Fire OS's 20 min sleep is an OS timer, see README. */
+#keepawake{position:fixed;width:320px;height:180px;bottom:0;left:0;opacity:.014;
+  pointer-events:none;z-index:0}
+
+/* ── mosque wall mode ───────────────────────────────────────────────────── */
+body[data-mode="mosque"] .leave{display:none}
+body[data-mode="mosque"] main{max-width:80%}
+body[data-mode="mosque"] .prayer{font-size:calc(var(--u)*10.4)}
+body[data-mode="mosque"] .stop .jm{font-size:calc(var(--u)*2.8)}
+body[data-mode="mosque"] .now{font-size:calc(var(--u)*5.6)}
+body.dimmed #shell{opacity:.14;-webkit-transition:opacity 2.4s ease;transition:opacity 2.4s ease}
+body.dimmed #scrim{opacity:.5}
+</style>
+</head>
+<body data-state="idle">
+
+<div class="sky" id="skyFrom"></div>
+<div class="sky" id="skyTo"></div>
+<div id="driftWrap">
+  <div class="drift" id="starFar"></div>
+  <div class="drift" id="starMid"></div>
+  <div class="drift" id="cloud"></div>
+  <div id="heroes"></div>
+</div>
+<div id="scrim"></div>
+<div id="wash"></div>
+<video id="keepawake" muted playsinline loop preload="auto" src="keepawake.mp4"></video>
+
+<div id="shell">
+
+  <header>
+    <div>
+      <!-- Placeholder: plain wordmark until Sakib's real mark is dropped in.
+           Swap this span for <img src="logo.svg" class="logo"> when we have it. -->
+      <div class="mark rise d1">
+        <span class="word">bilal</span>
+      </div>
+      <div class="masjid rise d1" id="masjidName">loading</div>
+    </div>
+    <div class="right">
+      <div class="now rise d1" id="clock">--:--</div>
+      <div class="hijri-ar rise d1" id="hijriAr"></div>
+      <div class="greg rise d1" id="greg"></div>
+    </div>
+  </header>
+
+  <main>
+    <div id="hero">
+      <div class="eyebrow rise d2">next jama'ah</div>
+      <div class="prayer rise d2" id="prayerName">—</div>
+      <div class="line rise d3">
+        <span class="t" id="prayerTime">--:--</span>
+        <span class="c" id="countdown"></span>
+      </div>
+      <div class="leave rise d4" id="leaveRow" style="display:none">
+        <i></i><span id="leaveText"></span>
+      </div>
+    </div>
+    <div id="takeover" style="display:none">
+      <div class="big rise d2" id="bigTitle"></div>
+      <div class="big-sub rise d3" id="bigSub"></div>
+    </div>
+  </main>
+
+  <div class="rail" id="rail"></div>
+
+  <footer>
+    <div class="stat rise d4" id="stat"><i></i><span id="statText">connecting</span></div>
+    <div class="rise d4" id="audioState"></div>
+  </footer>
+
+</div>
+
+<div id="pair">
+  <div class="eyebrow">Set up</div>
+  <div class="head" id="pairHead">Point your phone at this screen.</div>
+  <div class="cols">
+    <div>
+      <div class="step">Open <b id="setupUrl">bilalathan.co.uk/s</b> on your phone,<br>or scan the code, then enter:</div>
+      <div class="code" id="pairCode">– – –<i>·</i>– – –</div>
+      <div class="wait" id="pairWait"><i></i><span>waiting for your phone</span></div>
+    </div>
+    <div class="qr"><img src="pair-qr.png" alt=""></div>
+  </div>
+</div>
+
+<div id="gate"><div>
+  <h2 id="gateTitle">Press OK to let the athan play</h2>
+  <p id="gateBody">Browsers keep sound locked until someone presses a button. Do it once and this screen can call you to jama'ah for as long as it stays on.</p>
+  <button id="gateBtn">Press OK</button>
+</div></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var Q=new URLSearchParams(location.search);
+  /* Config resolves URL > paired > default. The default mosque only applies when
+     a URL names none, so every existing bookmark keeps working untouched. */
+  var SAVED={};
+  try{ SAVED=JSON.parse(localStorage.getItem('bilal.config')||'{}')||{}; }catch(e){}
+  var NEEDS_PAIRING = (!Q.get('masjid') && !SAVED.slug) || Q.get('setup')==='1';
+
+  var CFG={
+    slug: Q.get('masjid')||SAVED.slug||'darul-ummah-goresbrook-1649608083137',
+    key:  Q.get('key')||'JejYcMS7hsOsZTPDk2ZhKOAlW9IyQ6Px',
+    walk: parseInt(Q.get('walk')||SAVED.walk||'15',10),
+    mode: Q.get('mode')||'home',
+    athan:Q.get('athan')||'athan.mp3',
+    quiet:Q.get('quiet')==='1',
+    dim:  Q.get('dim')!=='0',
+    at:   Q.get('at')||''          // ?at=17:40 to preview any hour
+  };
+
+  // Time override for previewing. Real clock unless ?at= is given.
+  var SHIFT=0;
+  if(/^\d{1,2}:\d{2}$/.test(CFG.at)){
+    var hm=CFG.at.split(':'), t=new Date();
+    t.setHours(parseInt(hm[0],10), parseInt(hm[1],10), 0, 0);
+    SHIFT = t.getTime() - Date.now();
+  }
+  function nowDate(){ return new Date(Date.now()+SHIFT); }
+  document.body.setAttribute('data-mode',CFG.mode);
+
+  var API='https://api.masjidbox.com/1.0/masjidbox/landing/athany/';
+  var ORDER=['fajr','dhuhr','asr','maghrib','isha'];
+  var LABEL={fajr:"fajr",dhuhr:"dhuhr",asr:"asr",maghrib:"maghrib",isha:"isha"};
+  var CAP={fajr:"Fajr",dhuhr:"Dhuhr",asr:"Asr",maghrib:"Maghrib",isha:"Isha"};
+  var CACHE='bilal.tt.'+CFG.slug;
+
+  var data=null,lastFetch=0,fired={},athanReady=false,armed=false;
+  var audioEl=null,cueEl=null,ctx=null,skyFromKey=null,skyToKey=null,lastKey=null;
+
+  function $(i){return document.getElementById(i);}
+  function pad(n){return (n<10?'0':'')+n;}
+  function hhmm(d){return pad(d.getHours())+':'+pad(d.getMinutes());}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+
+  function scale(){
+    var w=window.innerWidth||1280,h=window.innerHeight||720;
+    var u=Math.min(w*0.0122,h*0.0215);
+    if(u<9) u=9;
+    document.documentElement.style.setProperty('--u',u.toFixed(2)+'px');
+  }
+  scale();
+  window.addEventListener('resize',scale);
+  window.addEventListener('orientationchange',scale);
+
+  ORDER.forEach(function(k){ var i=new Image(); i.src='sky/'+k+'.jpg'; });
+  ['stars','clouds'].forEach(function(k){ var i=new Image(); i.src='sky/'+k+'.png'; });
+
+  // Every layer's weight at each prayer. Written out per-layer rather than as
+  // "stars or clouds" so the whole lot can be interpolated between two windows
+  // — that's what lets Maghrib's cloud slowly hand over to Isha's stars instead
+  // of one snapping off as the other snaps on.
+  // Daylight cloud was at .16-.20 — too faint to notice on a TV, which is half
+  // of why "I don't see anything". Lifted so there's actually something moving
+  // during the hours the screen is mostly looked at.
+  var DRIFT={
+    fajr:    {starFar:.34, starMid:.18, cloud:.14, heroes:.55},
+    dhuhr:   {starFar:0,   starMid:0,   cloud:.38, heroes:0},
+    asr:     {starFar:0,   starMid:0,   cloud:.42, heroes:0},
+    maghrib: {starFar:.08, starMid:.04, cloud:.46, heroes:.14},
+    isha:    {starFar:.62, starMid:.34, cloud:.10, heroes:1}
+  };
+  var LAYERS=['starFar','starMid','cloud'];
+  function lerp(a,b,t){ return a+(b-a)*t; }
+
+  /* Seconds to cross one screen width. dhikry's numbers (far 1054 / mid 506 /
+     hero 279) were tuned for a phone held close in a dark room; on a TV across
+     a living room nothing at that rate registers as moving at all. ?drift=2
+     halves the speed again, ?drift=0.5 doubles it. */
+  var SPEED={ spFar:330, spMid:205, spCloud:190, spHero:150 };
+  (function(){
+    var m=parseFloat(Q.get('drift')||'1');
+    if(!(m>0.05 && m<40)) m=1;
+    for(var k in SPEED){
+      document.documentElement.style.setProperty('--'+k, (SPEED[k]*m).toFixed(0)+'s');
+    }
+  })();
+
+  /* The five skies are one photograph graded five ways. Because every version
+     is driven by the same luminance channel, they are structurally identical
+     (measured correlation 0.996, the remainder being JPEG noise) — which is
+     what lets them crossfade with no ghost minaret. Grading beats generating
+     five separate photos: those had the tower in five slightly different
+     places and the blend showed two of them. */
+  function grad(key){ return "url('sky/"+key+".jpg')"; }
+
+  // The bright few. Seeded once so the sky is the same every boot, and laid
+  // out to avoid the vertical middle-left where the prayer name sits — that
+  // should be the only bright thing there.
+  function buildHeroes(){
+    var s=20260808;
+    function rnd(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }
+    var u=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--u'))||18;
+    var html='',i,n=14;
+    var stars=[];
+    for(i=0;i<n;i++){
+      var band=rnd();
+      var y=band<0.55 ? rnd()*0.28 : 0.64+rnd()*0.28;
+      stars.push({
+        x:rnd(), y:y,
+        size:(0.17+rnd()*0.22)*u,
+        warm:rnd()>0.78,
+        tw:1+Math.floor(rnd()*3),
+        period:(3400+rnd()*4200),
+        delay:(rnd()*4000)
+      });
+    }
+    // drawn twice, half a container apart, so the field wraps with the drift
+    for(var copy=0;copy<2;copy++){
+      for(i=0;i<n;i++){
+        var st=stars[i];
+        var col=st.warm?'#ffd0a2':'#f2f7ff';
+        html+='<div class="hero" style="'
+           +  'left:'+(st.x*50+copy*50).toFixed(3)+'%;'
+           +  'top:'+(st.y*100).toFixed(3)+'%;'
+           +  'width:'+st.size.toFixed(2)+'px;height:'+st.size.toFixed(2)+'px;'
+           +  'background:'+col+';'
+           +  'box-shadow:0 0 '+(st.size*2.4).toFixed(2)+'px '+col+';'
+           +  '-webkit-animation:tw'+st.tw+' '+Math.round(st.period)+'ms ease-in-out '+Math.round(st.delay)+'ms infinite;'
+           +  'animation:tw'+st.tw+' '+Math.round(st.period)+'ms ease-in-out '+Math.round(st.delay)+'ms infinite;'
+           +  '"></div>';
+      }
+    }
+    $('heroes').innerHTML=html;
+  }
+
+  /**
+   * The sky is never "at" a prayer, it's always on the way to the next one.
+   *
+   * p is how far through the current window we are, so the incoming sky fades
+   * up across the entire gap between two jama'ahs. Between Maghrib and Isha
+   * that's about 90 minutes of sunset slowly becoming night; between Isha and
+   * Fajr it's seven hours of almost nothing happening, which is correct.
+   *
+   * Before the day's first prayer there is no previous entry in the list, so
+   * Isha stands in as the "from" — at 3am the sky behind you is night.
+   */
+  function paintSky(now, prev, next){
+    var fromKey = prev ? prev.key : 'isha';
+    var toKey   = next.key;
+
+    var p;
+    if(!prev){ p = 1; }
+    else {
+      var span = next.jamaah - prev.jamaah;
+      p = span > 0 ? (now - prev.jamaah) / span : 1;
+      if(p < 0) p = 0; if(p > 1) p = 1;
+    }
+
+    // gradient strings only get rewritten when the window turns over (a few
+    // times a day); the per-second work is opacity alone, which is composited
+    if(fromKey !== skyFromKey){
+      $('skyFrom').style.backgroundImage = grad(fromKey);
+      skyFromKey = fromKey;
+    }
+    if(toKey !== skyToKey){
+      $('skyTo').style.backgroundImage = grad(toKey);
+      skyToKey = toKey;
+    }
+    $('skyTo').style.opacity = p.toFixed(4);
+
+    var A = DRIFT[fromKey] || DRIFT.isha;
+    var B = DRIFT[toKey]   || DRIFT.isha;
+    for(var i=0;i<LAYERS.length;i++){
+      var id=LAYERS[i];
+      $(id).style.opacity = lerp(A[id], B[id], p).toFixed(4);
+    }
+    $('heroes').style.opacity = lerp(A.heroes, B.heroes, p).toFixed(4);
+  }
+
+  // replay the entrance choreography
+  function choreograph(){
+    var s=$('shell');
+    s.classList.remove('go');
+    /* force reflow so the transition restarts */
+    void s.offsetWidth;
+    s.classList.add('go');
+  }
+
+  // ---------- data ----------
+  function load(){
+    return fetch(API+CFG.slug+'?get=at&days=7&begin='+iso(new Date()),{headers:{'apikey':CFG.key}})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(j){
+        if(!j||!j.timetable||!j.timetable.length) throw new Error('empty');
+        data=j; lastFetch=Date.now();
+        try{ localStorage.setItem(CACHE,JSON.stringify({t:lastFetch,j:j})); }catch(e){}
+        stat('','live · synced '+hhmm(new Date()));
+        if(j.name) $('masjidName').textContent=j.name;
+      })
+      .catch(function(){
+        try{
+          var c=JSON.parse(localStorage.getItem(CACHE)||'null');
+          if(c&&c.j){ data=c.j;
+            stat('warn','offline · cached '+Math.round((Date.now()-c.t)/3600000)+'h ago');
+            if(c.j.name) $('masjidName').textContent=c.j.name; return; }
+        }catch(e){}
+        stat('err','no connection');
+      });
+  }
+
+  function stat(k,t){ $('stat').className='stat rise d4'+(k?' '+k:''); $('statText').textContent=t; }
+
+  function rowFor(d){
+    if(!data) return null;
+    var k=iso(d);
+    for(var i=0;i<data.timetable.length;i++)
+      if(data.timetable[i].date.slice(0,10)===k) return data.timetable[i];
+    return null;
+  }
+
+  function upcoming(now){
+    var out=[];
+    for(var off=0;off<2;off++){
+      var d=new Date(now.getTime()); d.setDate(d.getDate()+off);
+      var row=rowFor(d); if(!row) continue;
+      for(var i=0;i<ORDER.length;i++){
+        var k=ORDER[i],jt=row.iqamah&&row.iqamah[k]; if(!jt) continue;
+        out.push({key:k,label:LABEL[k],cap:CAP[k],jamaah:new Date(jt),
+                  begins:row[k]?new Date(row[k]):null,day:row.date.slice(0,10)});
+      }
+    }
+    out.sort(function(a,b){return a.jamaah-b.jamaah;});
+    return out;
+  }
+
+  // ---------- audio ----------
+  function arm(evt){
+    if(armed||CFG.quiet) return;
+    if(evt&&evt.isTrusted===false) return;
+
+    /* TWO bugs lived here, and both only showed on the TV.
+     *
+     * 1. The unlocking play() used to run inside ctx.resume().then(), i.e. a
+     *    microtask AFTER the gesture had ended. Desktop Chrome is lenient about
+     *    that; Fire TV's Silk is not, so the athan was silent on the TV while
+     *    testing clean on my machine. It is now the first thing that happens,
+     *    synchronously, inside the handler.
+     * 2. It unlocked with muted=true. On Android a muted unlock only buys you
+     *    muted playback. Unmuted-at-volume-0 is what actually grants audio.
+     */
+    /* REVERTED to the shape Sakib confirmed working on the TV.
+     *
+     * He reported a wrong LABEL — a cosmetic bug — and I responded by changing
+     * the MECHANISM: DOM elements, a separate probe, and a play() followed
+     * synchronously by pause(). That last one aborts the play before the
+     * permission can take, and it stopped the athan sounding at all. Changing
+     * load-bearing behaviour to fix a cosmetic bug is how working things break.
+     *
+     * So: exactly the original recipe. Detached element, unmuted at volume 0,
+     * play() first and synchronously inside the gesture, and NOTHING pauses it
+     * until its own promise resolves.
+     */
+    var a=new Audio(CFG.athan);
+    a.preload='auto'; a.muted=false; a.volume=0;
+    a.addEventListener('canplaythrough',function(){athanReady=true;audioState();});
+    a.addEventListener('error',function(){athanReady=false;audioEl=null;audioState();});
+
+    armed=true;
+    $('gate').classList.remove('show');
+    audioEl=a;
+    window.__bilal={audio:a, cue:cueEl, calls:0, cues:0, lastError:null, unlock:'pending'};
+
+    var p=a.play();                                  // must be in the gesture
+
+    /* The cue unlocks SECOND, and that ordering is the whole bug.
+       Silk grants one media unlock per gesture. When the cue was added it went
+       in above the athan and quietly ate the grant, so the athan — the one that
+       matters — was refused. It sounded fine on desktop, which grants freely.
+       If the cue misses out, cue() degrades to the Web Audio beeps; if the
+       athan misses out, the product does not work. */
+    cueEl=new Audio('cue.mp3');
+    cueEl.preload='auto'; cueEl.muted=false; cueEl.volume=0;
+    var cp=cueEl.play();
+    if(cp&&cp.then) cp.then(function(){ try{cueEl.pause();cueEl.currentTime=0;}catch(e){} cueEl.volume=1; })
+                     .catch(function(){ cueEl.volume=1; });
+    else cueEl.volume=1;
+    function settle(state, err){
+      try{ a.pause(); a.currentTime=0; }catch(e){}
+      a.volume=1;
+      /* The prime is ADVISORY ONLY. It races a 3.7MB download, so its failure
+         says nothing about permission — that is what printed "blocked" over a
+         screen whose audio was fine. Only real playback sets the truth, in
+         call(). */
+      window.__bilal.unlock = (state==='ok') ? 'ok' : 'unproven';
+      if(err) window.__bilal.lastError=String(err);
+      audioState();
+      keepAwake();
+      var t=Q.get('test');
+      if(t==='athan') setTimeout(function(){ call(); }, 1200);
+      // ?test=cue hears the leave-cue alone; ?test=maghrib plays the real
+      // sequence compressed so Maghrib can be checked without waiting for sunset
+      if(t==='cue')     setTimeout(function(){ cue(); }, 1200);
+      if(t==='maghrib'){ setTimeout(function(){ cue(); }, 1200);
+                         setTimeout(function(){ call(); }, 5200); }
+    }
+    if(p&&p.then) p.then(function(){ settle('ok'); })
+                   .catch(function(e){ settle('unproven', e); });
+    else settle('ok');
+
+    // The AudioContext only backs the fallback tone, so it can come after the
+    // element unlock rather than stealing the gesture from it.
+    try{ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    if(ctx&&ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+  }
+
+  // The TV has no console, so the footer has to be able to say why it is silent.
+  function audioState(){
+    if(CFG.quiet){ $('audioState').textContent='silent'; return; }
+    if(!armed){ $('audioState').textContent='athan not armed'; return; }
+    var u=window.__bilal&&window.__bilal.unlock;
+    // 'unproven' means the silent prime lost a race with a 3.7MB download. It is
+    // NOT a permission failure and must never be shown as one — that false alarm
+    // is exactly what made a working screen look broken.
+    if(u&&u.indexOf('BLOCKED')===0){ $('audioState').textContent='athan blocked by browser'; return; }
+    if(!athanReady && u!=='unproven'){ $('audioState').textContent='no athan.mp3 — tone only'; return; }
+    var played=window.__bilal&&window.__bilal.calls>0;
+    $('audioState').textContent=played?'athan played':'athan ready';
+  }
+
+  function beeps(notes, dur, peak){
+    if(!ctx) return;
+    var t0=ctx.currentTime;
+    for(var i=0;i<notes.length;i++){
+      var o=ctx.createOscillator(),g=ctx.createGain(),s=t0+i*dur;
+      o.type='sine'; o.frequency.value=notes[i];
+      g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(peak,s+.1);
+      g.gain.exponentialRampToValueAtTime(.0001,s+dur*0.95);
+      o.connect(g); g.connect(ctx.destination); o.start(s); o.stop(s+dur);
+    }
+  }
+  // fallback only, when there's no athan.mp3
+  function tone(){ beeps([392,523.25,392], 1.05, .5); }
+  // "leave now" — deliberately NOT the athan. Rising, ~2s, a summons rather
+  // than a call to prayer, because at Maghrib this fires before Maghrib exists.
+  // Media element first (same unlock as the athan); Web Audio only as a fallback.
+  function cue(){
+    if(CFG.quiet||!armed) return;
+    if(window.__bilal) window.__bilal.cues++;
+    if(cueEl){
+      try{ cueEl.currentTime=0; }catch(e){}
+      cueEl.volume=1;
+      var p=cueEl.play();
+      if(p&&p.catch) p.catch(function(){ beeps([523.25,659.25,783.99],0.42,.55); });
+    } else beeps([523.25,659.25,783.99],0.42,.55);
+  }
+
+  /* Attempt the real file even if canplaythrough has not fired — waiting on that
+     flag is another way to fall back to a beep when the athan would have played
+     perfectly well. Only an actual rejection counts as failure, and only an
+     actual outcome moves the reported state. */
+  function call(){
+    if(CFG.quiet||!armed) return;
+    if(window.__bilal) window.__bilal.calls++;
+    if(!audioEl){ tone(); return; }
+    try{ audioEl.currentTime=0; }catch(e){}
+    audioEl.volume=1;
+    var p=audioEl.play();
+    if(p&&p.then){
+      p.then(function(){
+        if(window.__bilal) window.__bilal.unlock='ok';   // proof beats a probe
+        athanReady=true; audioState();
+      }).catch(function(e){
+        if(window.__bilal){ window.__bilal.lastError=String(e);
+                            window.__bilal.unlock='BLOCKED:'+(e&&e.name||'?'); }
+        audioState(); tone();
+      });
+    }
+  }
+
+  // ---------- render ----------
+  function gap(m){
+    var x=Math.max(0,Math.round(m));
+    if(x<60) return x+' min';
+    var h=Math.floor(x/60),r=x%60;
+    return h+'h'+(r?' '+r+'m':'');
+  }
+
+  function paint(){
+    var now=nowDate();
+    // innerHTML, not textContent, so the seconds can carry their own style
+    $('clock').innerHTML=hhmm(now)+'<span class="sec">'+pad(now.getSeconds())+'</span>';
+
+    var row=rowFor(now);
+    if(row&&row.hijri){
+      $('hijriAr').textContent=row.hijri.formatted||'';
+      $('greg').textContent=row.hijri.dayOfMonth+' '+row.hijri.monthISO+' '+row.hijri.year;
+    }
+
+    var list=upcoming(now); if(!list.length) return;
+    var next=null,prev=null,i;
+    for(i=0;i<list.length;i++) if(list[i].jamaah>now){ next=list[i]; prev=(i>0?list[i-1]:null); break; }
+    var started=null;
+    for(i=0;i<list.length;i++){ var s=(now-list[i].jamaah)/60000; if(s>=0&&s<13) started=list[i]; }
+    if(!next) return;
+
+    var toJamaah=(next.jamaah-now)/60000;
+    var leaveAt=new Date(next.jamaah.getTime()-CFG.walk*60000);
+    var toLeave=(leaveAt-now)/60000;
+
+    var state='idle';
+    if(started) state='jamaah';
+    else if(toLeave<=0&&toJamaah>0) state='leave';
+    if(CFG.mode==='mosque'&&state==='leave') state='idle';
+    document.body.setAttribute('data-state',state);
+    if(CFG.dim&&state==='jamaah') document.body.classList.add('dimmed');
+    else document.body.classList.remove('dimmed');
+
+    // sky drifts continuously toward the prayer we're counting down to
+    paintSky(now, prev, next);
+
+    // re-run the choreography whenever the headline prayer changes
+    var key=(started?'j-'+started.key:state+'-'+next.key)+'-'+next.day;
+    if(key!==lastKey){ lastKey=key; choreograph(); }
+
+    /* THE trigger. Normally the athan fires at LEAVE time, not at begins —
+       hearing it means "go now and you make the jama'ah", which was the 2024
+       thesis.
+
+       Except when leave-time lands BEFORE the prayer has begun. Maghrib's
+       jama'ah is only ~5 min after the adhan (20:39 -> 20:44 today), so a 10 min
+       walk means leaving at 20:34, when Maghrib does not exist yet. Playing the
+       adhan then would be calling a prayer before its time.
+
+       There they split: a short rising cue at leave-time, the adhan at its
+       proper start. Written as a condition, not "if maghrib", because the gaps
+       move through the year — at a 15 min walk Asr crosses the same line today,
+       and that should correct itself without a code change. */
+    var tight = next.begins && (leaveAt < next.begins);
+    if(CFG.mode==='home'){
+      var kLeave=next.day+':'+next.key+':leave';
+      var kAthan=next.day+':'+next.key+':athan';
+      var due=function(m){ return m<=0 && m>-1.5; };
+      if(tight){
+        if(!fired[kLeave] && due(toLeave)){ fired[kLeave]=1; cue(); }
+        if(!fired[kAthan] && due((next.begins-now)/60000)){ fired[kAthan]=1; call(); }
+      } else {
+        if(!fired[kAthan] && due(toLeave)){ fired[kAthan]=1; call(); }
+      }
+    }
+
+    var hero=$('hero'),take=$('takeover');
+    if(state==='jamaah'){
+      hero.style.display='none'; take.style.display='block';
+      $('bigTitle').textContent=started.label;
+      $('bigSub').textContent="jama'ah in progress";
+    } else if(state==='leave'){
+      hero.style.display='none'; take.style.display='block';
+      $('bigTitle').textContent='leave now';
+      $('bigSub').textContent=next.cap+" jama'ah at "+hhmm(next.jamaah)
+        +' · '+Math.max(0,Math.round(toJamaah))+' min to get there';
+    } else {
+      take.style.display='none'; hero.style.display='block';
+      $('prayerName').textContent=next.label;
+      /* Separation of concerns. The rail answers "what is the schedule today"
+         and already prints 20:44 under MAGHRIB. The hero answers "what do I do
+         next" — and that is leaving, not the prayer time. So it counts down to
+         the moment you act and says nothing the rail has already said.
+         Three overlapping lines (20:44 / in 1h51m / leave by 20:29) became one. */
+      if(CFG.mode==='home'){
+        $('prayerTime').textContent='leave in '+gap(toLeave>0?toLeave:0);
+      } else {
+        $('prayerTime').textContent=hhmm(next.jamaah);   // the wall wants the time
+      }
+      $('countdown').textContent='';
+      $('leaveRow').style.display='none';
+    }
+
+    rail(now,next,started);
+  }
+
+  function rail(now,next,started){
+    var row=rowFor(now); if(!row) return;
+    var head=started||next, html='';
+    for(var i=0;i<ORDER.length;i++){
+      var k=ORDER[i];
+      var jt=row.iqamah&&row.iqamah[k]?new Date(row.iqamah[k]):null;
+      var bt=row[k]?new Date(row[k]):null;
+      var cls='stop';
+      if(head&&head.key===k&&head.day===row.date.slice(0,10)) cls+=' on';
+      else if(jt&&jt<now) cls+=' past';
+      html+='<div class="'+cls+'"><div class="nm">'+CAP[k]+'</div>'
+          + '<div class="jm">'+(jt?hhmm(jt):'--:--')+'</div>'
+          + '<div class="bg">begins '+(bt?hhmm(bt):'--:--')+'</div></div>';
+    }
+    $('rail').innerHTML=html;
+  }
+
+  function drift(){
+    var x=(Math.random()*18-9).toFixed(1),y=(Math.random()*12-6).toFixed(1);
+    var t='translate('+x+'px,'+y+'px)';
+    $('shell').style.webkitTransform=t; $('shell').style.transform=t;
+  }
+
+  // A muted element often is not counted as playback. Once the gate has given
+  // us a gesture we can run a genuinely-playing, inaudible audio loop, which is
+  // far more likely to hold a media session open on Fire OS.
+  var hum=null;
+  function keepAwake(){
+    var v=$('keepawake'); if(v){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); }
+    if(armed){
+      if(!hum){ hum=new Audio('keepawake.mp3'); hum.loop=true; hum.volume=0.02; }
+      if(hum.paused){ var q=hum.play(); if(q&&q.catch) q.catch(function(){}); }
+      if(window.__bilal) window.__bilal.hum=hum;
+    }
+    if('wakeLock' in navigator){ try{ navigator.wakeLock.request('screen').catch(function(){}); }catch(e){} }
+  }
+
+  // ---------- pairing ----------
+  /* The phone does the thinking; this screen only holds a code and waits.
+     Alphabet excludes O/0 and I/1 — somebody is reading this off a TV from a
+     sofa and typing it with their thumbs. */
+  var SB  = 'https://vstfgrlkwqevonrznzwm.supabase.co/rest/v1/bilal_pairings';
+  var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzdGZncmxrd3Fldm9ucnpuendtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDAwOTUsImV4cCI6MjA4OTk3NjA5NX0.IjPhlACgy3xslF9EvhKeIemoobHKR02LXcEgiKYHdYg';
+  var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function sbHeaders(extra){
+    var h = {'apikey': SBK, 'Authorization': 'Bearer ' + SBK};
+    for (var k in (extra||{})) h[k] = extra[k];
+    return h;
+  }
+
+  function newCode(){
+    var c = '';
+    for (var i = 0; i < 6; i++) c += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+    return c;
+  }
+
+  function showCode(c){
+    $('pairCode').innerHTML = c.slice(0,3) + '<i>·</i>' + c.slice(3);
+  }
+
+  function startPairing(){
+    // show the host we are actually on: staging must not point at production
+    try{
+      var base=location.host+location.pathname.replace(/\/[^/]*$/,'');
+      $('setupUrl').textContent=(base+'/s').replace(/\/+$/,'').replace(/\/\//g,'/');
+    }catch(e){}
+    document.body.setAttribute('data-state','idle');
+    document.body.classList.add('pairing');
+    $('pair').classList.add('show');
+    var code = newCode();
+    showCode(code);
+
+    fetch(SB, {method:'POST',
+      headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body: JSON.stringify({code: code})
+    }).catch(function(){});
+
+    var tries = 0;
+    var poll = setInterval(function(){
+      tries++;
+      if (tries > 450) { clearInterval(poll); location.reload(); return; }  // code expired, get a fresh one
+      fetch(SB + '?code=eq.' + encodeURIComponent(code) + '&select=config',
+            {headers: sbHeaders()})
+        .then(function(r){ return r.json(); })
+        .then(function(rows){
+          var cfg = rows && rows[0] && rows[0].config;
+          if (!cfg || !cfg.slug) return;
+          clearInterval(poll);
+          try{ localStorage.setItem('bilal.config', JSON.stringify(cfg)); }catch(e){}
+          /* Acknowledge before switching. Jumping straight to the display makes
+             a stranger wonder whether it worked; a beat of confirmation is the
+             difference between "it changed" and "it heard me". */
+          $('pairHead').textContent = (cfg.name || 'Your mosque') + ' is set.';
+          $('pair').classList.add('done');
+          $('pairWait').style.display = 'none';
+          setTimeout(function(){ location.href = location.pathname; }, 1600);
+        })
+        .catch(function(){});
+    }, 2000);
+  }
+
+  // ---------- boot ----------
+  $('gateBtn').addEventListener('click',arm);
+  $('gate').addEventListener('click',arm);
+  document.addEventListener('click',arm);
+  document.addEventListener('touchstart',arm);
+  document.addEventListener('keydown',arm);
+  document.addEventListener('mousemove',function(){
+    document.body.classList.add('cursor');
+    clearTimeout(window.__c);
+    window.__c=setTimeout(function(){document.body.classList.remove('cursor');},3000);
+  });
+
+  if(NEEDS_PAIRING){
+    startPairing();
+  } else if(!CFG.quiet){
+    $('gate').classList.add('show'); try{$('gateBtn').focus();}catch(e){}
+  }
+  audioState();
+  buildHeroes();
+  window.addEventListener('resize',buildHeroes);
+  $('starFar').style.backgroundImage="url('sky/stars.png')";
+  $('starMid').style.backgroundImage="url('sky/stars.png')";
+  $('cloud').style.backgroundImage="url('sky/clouds.png')";
+
+  load().then(function(){ paint(); choreograph(); });
+  setInterval(function(){ paint(); if(Date.now()-lastFetch>3*3600*1000) load(); },1000);
+  setInterval(drift,60000);
+  setInterval(keepAwake,240000);
+  keepAwake();
+})();
+</script>
+</body>
+</html>

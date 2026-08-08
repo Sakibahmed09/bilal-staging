@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bilal — the day</title>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--clay:#d9a48f;--cream:#f6efe7;--deep:#17140f;--veil:rgba(246,239,231,.44)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--deep);color:var(--cream);font-family:'Archivo',system-ui,sans-serif;
+       padding:48px 40px 64px}
+  h1{font-family:'Prata',Georgia,serif;font-size:38px;letter-spacing:-.02em;font-weight:400}
+  .sub{color:var(--veil);margin-top:10px;font-size:15px;line-height:1.6;max-width:70ch}
+  .sub b{color:var(--clay);font-weight:600}
+  .grid{margin-top:40px;display:grid;gap:34px;
+        grid-template-columns:repeat(auto-fit,minmax(460px,1fr))}
+  .cell{}
+  .lab{display:flex;align-items:baseline;justify-content:space-between;
+       margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(246,239,231,.14)}
+  .lab .n{font-family:'Prata',Georgia,serif;font-size:22px}
+  .lab .t{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);font-weight:600}
+  .lab .d{font-size:13px;color:var(--veil);margin-left:14px}
+  .frame{position:relative;width:100%;padding-top:56.25%;overflow:hidden;
+         border-radius:4px;background:#000}
+  .frame iframe{position:absolute;top:0;left:0;width:1920px;height:1080px;border:0;
+                transform-origin:top left}
+</style>
+</head>
+<body>
+  <h1>bilal, across one day</h1>
+  <p class="sub">Every panel is the real display running live, with the clock overridden.
+     All five skies are <b>one photograph</b> graded five ways off a shared luminance
+     channel, so the minaret never shifts and the blend between them has nothing to ghost.
+     The sky moves <b>continuously</b> through each window rather than snapping — the last
+     panel catches it mid-handover.<br>
+     Preview any moment yourself by adding <b>?at=HH:MM</b> to the display URL.</p>
+
+  <div class="grid" id="grid"></div>
+
+<script>
+  var HOURS=[
+    {n:'fajr',    at:'04:20', d:'before first light'},
+    {n:'dhuhr',   at:'12:30', d:'high and open'},
+    {n:'asr',     at:'17:45', d:'long gold'},
+    {n:'maghrib', at:'20:20', d:'ember'},
+    {n:'isha',    at:'22:00', d:'night, stars drifting'},
+    {n:'mid-handover', at:'19:40', d:'asr becoming maghrib'}
+  ];
+  var g=document.getElementById('grid');
+  g.innerHTML=HOURS.map(function(h){
+    return '<div class="cell">'
+      + '<div class="lab"><span><span class="n">'+h.n+'</span>'
+      + '<span class="d">'+h.d+'</span></span><span class="t">'+h.at+'</span></div>'
+      + '<div class="frame"><iframe scrolling="no" loading="lazy" '
+      + 'src="index.html?quiet=1&at='+h.at+'"></iframe></div></div>';
+  }).join('');
+
+  // scale each 1920x1080 frame down to whatever width the column ended up
+  function fit(){
+    var frames=document.querySelectorAll('.frame');
+    for(var i=0;i<frames.length;i++){
+      var w=frames[i].clientWidth;
+      frames[i].querySelector('iframe').style.transform='scale('+(w/1920)+')';
+    }
+  }
+  window.addEventListener('resize',fit);
+  window.addEventListener('load',fit);
+  fit();
+</script>
+</body>
+</html>

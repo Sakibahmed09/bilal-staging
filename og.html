@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>bilal — social card</title>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@500;600;700&family=Amiri&display=swap" rel="stylesheet">
+<style>
+  /* Composed from the product's own assets rather than generated fresh: same
+     graded sky, same Prata, same terracotta. A card that drifts from the thing
+     it advertises is worse than no card. */
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#17140f}
+  #card{position:relative;width:1200px;height:630px;overflow:hidden;
+        font-family:'Archivo',system-ui,sans-serif;color:#f6efe7}
+  #sky{position:absolute;inset:0;background:url('sky/maghrib.jpg') center/cover no-repeat}
+  #scrim{position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse 62% 50% at 22% 52%, rgba(23,20,15,.62) 0%, rgba(23,20,15,.22) 55%, rgba(23,20,15,0) 80%),
+      linear-gradient(to right, rgba(23,20,15,.72) 0%, rgba(23,20,15,.20) 52%, rgba(23,20,15,0) 78%),
+      linear-gradient(to top,   rgba(23,20,15,.80) 0%, rgba(23,20,15,.10) 38%, rgba(23,20,15,0) 62%)}
+  #inner{position:absolute;inset:0;padding:74px 84px;display:flex;flex-direction:column;justify-content:center}
+  .word{font-family:'Prata',Georgia,serif;font-size:132px;line-height:1;letter-spacing:-.035em}
+  .rule{width:96px;height:3px;background:#d9a48f;margin:30px 0 26px}
+  .line{font-size:34px;line-height:1.42;max-width:19ch;font-weight:500}
+  .line em{font-style:normal;color:#d9a48f}
+  .foot{position:absolute;left:84px;bottom:62px;display:flex;align-items:center;gap:22px;
+        font-size:19px;letter-spacing:.19em;text-transform:uppercase;color:rgba(246,239,231,.62);font-weight:600}
+  .foot b{color:#d9a48f;font-weight:600}
+  .times{position:absolute;right:84px;bottom:62px;display:flex;gap:34px;text-align:right}
+  .t .n{font-size:14px;letter-spacing:.17em;text-transform:uppercase;color:rgba(246,239,231,.5);font-weight:600}
+  .t .v{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .t.on .n,.t.on .v{color:#d9a48f}
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="sky"></div>
+  <div id="scrim"></div>
+  <div id="inner">
+    <div class="word">bilal</div>
+    <div class="rule"></div>
+    <div class="line">The screen that calls you to <em>jama'ah</em>, not just to prayer.</div>
+  </div>
+  <div class="foot"><span>bilalathan.co.uk</span></div>
+  <div class="times">
+    <div class="t"><div class="n">Asr</div><div class="v">18:30</div></div>
+    <div class="t on"><div class="n">Maghrib</div><div class="v">20:44</div></div>
+    <div class="t"><div class="n">Isha</div><div class="v">22:15</div></div>
+  </div>
+</div>
+</body>
+</html>
