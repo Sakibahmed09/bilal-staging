@@ -199,7 +199,7 @@ a{color:var(--clay)}
     <p class="sub r r3">Bilal only shows jama'ah times a mosque publishes itself. We won't guess them, because a guessed time makes you late.</p>
     <div class="step r r4">
       <div class="note">Tell me which mosque and I'll ask them to publish theirs. It's free for the mosque, and it fixes it for everyone who prays there.</div>
-      <a class="btn tweet" id="tweetReq" target="_blank" rel="noopener">Request it on X →</a>
+      <a class="btn tweet" id="tweetReq" target="_blank" rel="noopener">Reply with your mosque →</a>
       <button class="btn ghost" id="back2">Back to search</button>
     </div>
   </section>
@@ -350,13 +350,19 @@ a{color:var(--clay)}
        '<a href="#" id="reportLink">Tell them on X →</a></div>':'');
     var rl=$('reportLink');
     if(rl) rl.onclick=function(e){ e.preventDefault();
-      window.open(tweet('@mertesakib '+picked.n+' on bilal is showing prayer start times, not their jama\'ah times. Can they publish the real ones?'),'_blank'); };
+      window.open(tweet(picked.n+' is showing prayer start times, not its jama\'ah times.'),'_blank'); };
   }
 
-  function tweet(t){ return 'https://x.com/intent/tweet?text='+encodeURIComponent(t); }
+  /* Replies to one post rather than scattered new tweets: requests collect in a
+     single visible thread, which is both the demand list and social proof on the
+     post itself. */
+  var REQ_TWEET = '2086140712693764552';
+  function tweet(t){
+    return 'https://x.com/intent/tweet?in_reply_to='+REQ_TWEET+'&text='+encodeURIComponent(t);
+  }
 
   function notListed(term){
-    $('tweetReq').href=tweet('@mertesakib can you add '+(term||'my mosque')+' to bilal? bilalathan.co.uk');
+    $('tweetReq').href=tweet('Can you add '+(term||'my mosque')+'?');
     show('s5');
   }
 
