@@ -425,6 +425,19 @@ body.dimmed #scrim{opacity:.5}
   try{ SAVED=JSON.parse(localStorage.getItem('bilal.config')||'{}')||{}; }catch(e){}
   var NEEDS_PAIRING = (!Q.get('masjid') && !SAVED.slug) || Q.get('setup')==='1';
 
+  /* A URL that names a mosque configures the screen permanently. Without this,
+     anyone handed a ?masjid= link would be asked to pair again on every reload,
+     and a TV is the worst possible place to keep re-entering a URL. */
+  if(Q.get('masjid')){
+    try{
+      localStorage.setItem('bilal.config', JSON.stringify({
+        slug: Q.get('masjid'),
+        walk: parseInt(Q.get('walk')||SAVED.walk||'15',10),
+        name: SAVED.name || ''
+      }));
+    }catch(e){}
+  }
+
   var CFG={
     slug: Q.get('masjid')||SAVED.slug||'darul-ummah-goresbrook-1649608083137',
     key:  Q.get('key')||'JejYcMS7hsOsZTPDk2ZhKOAlW9IyQ6Px',
