@@ -10,108 +10,156 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Phone-first. This is a stranger's first contact with Bilal, so it carries the
-   same palette and type as the screen it configures — a setup flow that looks
-   like a different product makes the product feel unfinished. */
+/* ─────────────────────────────────────────────────────────────────────────
+ * SETUP — phone
+ *
+ * STORYBOARD (each step entrance)
+ *     0ms   step fades in, rises 14px
+ *    90ms   eyebrow
+ *   180ms   headline
+ *   270ms   supporting line
+ *   360ms   controls
+ *
+ * transform + opacity only. Steps move as a unit rather than snapping, so the
+ * flow reads as one thing with a sequence, not four unrelated screens.
+ *
+ * The sky is the same photograph the TV is showing right now. A setup flow that
+ * looks like a different product makes the product feel unfinished — and this is
+ * a stranger's first contact with Bilal.
+ * ───────────────────────────────────────────────────────────────────────── */
 :root{
   --clay:#d9a48f; --clay-lift:#e8b9a3; --cream:#f6efe7;
   --char:#221e1c; --deep:#17140f;
-  --veil:rgba(246,239,231,.46); --hair:rgba(246,239,231,.13);
+  --veil:rgba(246,239,231,.50); --hair:rgba(246,239,231,.14);
   --ok:#7fb08a; --warn:#d8a24a; --bad:#c4614f;
   --display:'Prata',Georgia,serif;
   --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
-  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
-body{padding:34px 22px 64px;max-width:560px;margin:0 auto;min-height:100vh}
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;min-height:100%}
 
-h1{font-family:var(--display);font-size:33px;line-height:1.14;letter-spacing:-.02em;font-weight:400}
-.sub{color:var(--veil);font-size:15px;line-height:1.6;margin-top:11px}
+/* sky + scrim, fixed so content scrolls over it like the TV */
+#sky{position:fixed;top:0;left:0;right:0;height:62vh;z-index:0;
+  background-position:center 30%;background-size:cover;
+  opacity:0;transition:opacity 1.4s ease}
+#sky.on{opacity:1}
+#scrim{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(to bottom, rgba(23,20,15,.42) 0%, rgba(23,20,15,.30) 22%,
+                    rgba(23,20,15,.86) 52%, var(--deep) 68%, var(--deep) 100%)}
+
+#app{position:relative;z-index:2;padding:calc(env(safe-area-inset-top) + 30px) 22px 72px;
+  max-width:560px;margin:0 auto;min-height:100vh}
+
+.brand{font-family:var(--display);font-size:23px;letter-spacing:-.01em;opacity:.9;
+  margin-bottom:38px}
+
+h1{font-family:var(--display);font-size:35px;line-height:1.12;letter-spacing:-.022em;font-weight:400}
+.sub{color:var(--veil);font-size:15.5px;line-height:1.62;margin-top:12px}
 .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);
-  font-weight:700;margin-bottom:12px}
+  font-weight:700;margin-bottom:13px}
 
-.step{margin-top:34px;padding-top:26px;border-top:1px solid var(--hair)}
-.step:first-of-type{border-top:0;padding-top:0}
+/* ── entrance choreography ─────────────────────────────────────────────── */
+section{display:none}
+section.on{display:block}
+section.on .r{opacity:0;transform:translate3d(0,14px,0);
+  animation:rise .62s cubic-bezier(.16,1,.3,1) forwards}
+section.on .r1{animation-delay:.09s} section.on .r2{animation-delay:.18s}
+section.on .r3{animation-delay:.27s} section.on .r4{animation-delay:.36s}
+@keyframes rise{to{opacity:1;transform:translate3d(0,0,0)}}
+@media (prefers-reduced-motion: reduce){
+  section.on .r{animation:none;opacity:1;transform:none}
+  #sky{transition:none}
+}
+
+.step{margin-top:30px;padding-top:26px;border-top:1px solid var(--hair)}
 
 button,input{font-family:inherit;font-size:16px}
-.btn{width:100%;padding:16px 20px;border:0;border-radius:12px;background:var(--clay);
-  color:var(--char);font-weight:700;font-size:16px;letter-spacing:.01em;margin-top:14px}
-.btn:active{background:var(--clay-lift)}
-.btn.ghost{background:transparent;border:1px solid var(--hair);color:var(--cream);font-weight:600}
-.btn[disabled]{opacity:.4}
+.btn{width:100%;padding:17px 20px;border:0;border-radius:14px;background:var(--clay);
+  color:var(--char);font-weight:700;font-size:16.5px;margin-top:13px;
+  transition:transform .18s cubic-bezier(.16,1,.3,1), background .18s ease}
+.btn:active{transform:scale(.978);background:var(--clay-lift)}
+.btn.ghost{background:rgba(246,239,231,.06);border:1px solid var(--hair);color:var(--cream);font-weight:600}
+.btn[disabled]{opacity:.45}
 
-input[type=text],input[type=search]{width:100%;padding:15px 16px;border-radius:12px;
-  border:1px solid var(--hair);background:var(--char);color:var(--cream);outline:none}
+input[type=text],input[type=search]{width:100%;padding:16px;border-radius:14px;
+  border:1px solid var(--hair);background:rgba(34,30,28,.72);color:var(--cream);outline:none;
+  transition:border-color .2s ease}
 input:focus{border-color:var(--clay)}
+::placeholder{color:rgba(246,239,231,.34)}
 
-.hint{font-size:13px;color:var(--veil);margin-top:10px;line-height:1.55}
+.hint{font-size:13.5px;color:var(--veil);margin-top:11px;line-height:1.58}
+.hint b{color:var(--cream);font-weight:600}
 
-/* results */
-.list{margin-top:14px;display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;
-  -webkit-overflow-scrolling:touch}
-.item{width:100%;text-align:left;padding:14px 15px;border-radius:12px;border:1px solid var(--hair);
-  background:rgba(246,239,231,.03);color:var(--cream);display:block}
-.item:active{border-color:var(--clay)}
-.item .n{font-weight:600;font-size:15px;line-height:1.3}
-.item .a{font-size:13px;color:var(--veil);margin-top:4px;line-height:1.4}
-.item .m{font-size:13px;color:var(--clay);margin-top:5px;font-weight:600}
+.list{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.item{width:100%;text-align:left;padding:15px;border-radius:14px;border:1px solid var(--hair);
+  background:rgba(34,30,28,.66);color:var(--cream);display:block;
+  transition:transform .18s cubic-bezier(.16,1,.3,1), border-color .18s ease;
+  opacity:0;animation:rise .5s cubic-bezier(.16,1,.3,1) forwards}
+.item:active{transform:scale(.985);border-color:var(--clay)}
+.item .n{font-weight:600;font-size:15.5px;line-height:1.32}
+.item .a{font-size:13px;color:var(--veil);margin-top:4px;line-height:1.42}
+.item .m{font-size:13px;color:var(--clay);margin-top:6px;font-weight:600}
 
-/* the honesty badge — a mosque that has not set real jama'ah times must say so */
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
-  margin-top:8px;padding:5px 10px;border-radius:999px;letter-spacing:.02em}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+  margin-top:10px;padding:6px 11px;border-radius:999px}
 .badge b{width:7px;height:7px;border-radius:50%;display:block}
-.badge.ok  {background:rgba(127,176,138,.13);color:#a6ceac} .badge.ok  b{background:var(--ok)}
-.badge.warn{background:rgba(216,162,74,.13);color:#e0bd7d}  .badge.warn b{background:var(--warn)}
-.badge.bad {background:rgba(196,97,79,.14);color:#dd9384}   .badge.bad  b{background:var(--bad)}
+.badge.ok  {background:rgba(127,176,138,.14);color:#a6ceac} .badge.ok  b{background:var(--ok)}
+.badge.warn{background:rgba(216,162,74,.14);color:#e0bd7d}  .badge.warn b{background:var(--warn)}
+.badge.bad {background:rgba(196,97,79,.15);color:#dd9384}   .badge.bad  b{background:var(--bad)}
 
-.picked{padding:16px;border-radius:14px;background:rgba(217,164,143,.09);
-  border:1px solid rgba(217,164,143,.28)}
-.picked .n{font-family:var(--display);font-size:22px;line-height:1.2}
-.picked .a{font-size:13px;color:var(--veil);margin-top:5px}
+.picked{padding:18px;border-radius:16px;background:rgba(217,164,143,.10);
+  border:1px solid rgba(217,164,143,.30)}
+.picked .n{font-family:var(--display);font-size:23px;line-height:1.22}
+.picked .a{font-size:13px;color:var(--veil);margin-top:6px}
 
-.walk{display:flex;align-items:center;gap:14px;margin-top:14px}
-.walk input{width:88px;text-align:center;font-size:22px;font-weight:700;padding:13px 8px}
-.walk span{color:var(--veil);font-size:14px;line-height:1.5}
+.walk{display:flex;align-items:center;gap:15px;margin-top:16px}
+.walk input{width:92px;text-align:center;font-size:24px;font-weight:700;padding:14px 8px}
+.walk span{color:var(--veil);font-size:14px;line-height:1.52}
+.walk b{color:var(--cream)}
 
-.code-in{letter-spacing:.34em;text-align:center;font-size:27px;font-weight:700;
-  text-transform:uppercase;padding:17px 10px}
+.code-in{letter-spacing:.36em;text-align:center;font-size:28px;font-weight:700;
+  text-transform:uppercase;padding:18px 10px}
 
-.note{margin-top:16px;padding:15px;border-radius:12px;background:rgba(246,239,231,.04);
-  font-size:14px;line-height:1.6;color:var(--veil)}
+.note{margin-top:17px;padding:16px;border-radius:14px;background:rgba(246,239,231,.05);
+  font-size:14px;line-height:1.62;color:var(--veil)}
 .note b{color:var(--cream)}
 a{color:var(--clay)}
 .tweet{display:block;text-align:center;text-decoration:none;margin-top:12px}
-.done{text-align:center;padding:52px 0}
-.done .tick{font-family:var(--display);font-size:44px;color:var(--clay)}
-.hide{display:none}
+
+.done{text-align:center;padding:64px 0 40px}
+.done .tick{font-family:var(--display);font-size:46px;color:var(--clay);line-height:1.1}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--hair);
   border-top-color:var(--clay);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+<div id="sky"></div>
+<div id="scrim"></div>
 
 <div id="app">
-  <!-- 1. choose -->
-  <section id="s1">
-    <div class="eyebrow">Set up</div>
-    <h1>Which mosque do you pray at?</h1>
-    <p class="sub">Bilal shows your mosque's own jama'ah times and calls you when it's time to leave.</p>
+  <div class="brand">bilal</div>
 
-    <div class="step">
+  <!-- 1. choose -->
+  <section id="s1" class="on">
+    <div class="eyebrow r r1">Set up</div>
+    <h1 class="r r2">Which mosque do you pray at?</h1>
+    <p class="sub r r3">Bilal shows your mosque's own jama'ah times, and calls you when it's time to leave.</p>
+    <div class="step r r4">
       <button class="btn" id="near">Find mosques near me</button>
       <input type="search" id="q" placeholder="or search by name or town" autocomplete="off" style="margin-top:12px">
-      <div class="hint" id="hint">Nearby results can only include mosques whose address has a postcode, so search if yours isn't listed.</div>
+      <div class="hint" id="hint">Search works for every mosque we have. Nearby needs a location.</div>
       <div class="list" id="results"></div>
     </div>
   </section>
 
   <!-- 2. confirm + walk -->
-  <section id="s2" class="hide">
-    <div class="eyebrow">Step 2 of 3</div>
-    <h1>How far is it?</h1>
-    <div class="step">
+  <section id="s2">
+    <div class="eyebrow r r1">Step 2 of 3</div>
+    <h1 class="r r2">How far is it?</h1>
+    <div class="step r r3">
       <div class="picked"><div class="n" id="pName"></div><div class="a" id="pAddr"></div>
         <div id="pBadge"></div></div>
       <div class="walk">
@@ -125,11 +173,11 @@ a{color:var(--clay)}
   </section>
 
   <!-- 3. pair -->
-  <section id="s3" class="hide">
-    <div class="eyebrow">Step 3 of 3</div>
-    <h1>Enter the code on your TV.</h1>
-    <p class="sub">Open <b>bilalathan.co.uk</b> on the TV. It shows six characters.</p>
-    <div class="step">
+  <section id="s3">
+    <div class="eyebrow r r1">Step 3 of 3</div>
+    <h1 class="r r2">Enter the code on your TV.</h1>
+    <p class="sub r r3">Open Bilal on the TV. It shows six characters.</p>
+    <div class="step r r4">
       <input type="text" id="code" class="code-in" maxlength="7" placeholder="ABC123" autocomplete="off" autocapitalize="characters">
       <button class="btn" id="send">Send to my TV</button>
       <div class="hint" id="sendMsg"></div>
@@ -137,19 +185,19 @@ a{color:var(--clay)}
   </section>
 
   <!-- done -->
-  <section id="s4" class="hide">
+  <section id="s4">
     <div class="done">
-      <div class="tick">Done.</div>
-      <p class="sub" id="doneMsg" style="margin-top:14px"></p>
+      <div class="tick r r1">Done.</div>
+      <p class="sub r r2" id="doneMsg" style="margin-top:14px"></p>
     </div>
   </section>
 
   <!-- not listed -->
-  <section id="s5" class="hide">
-    <div class="eyebrow">Not yet</div>
-    <h1>We don't have your mosque yet.</h1>
-    <p class="sub">Bilal only shows jama'ah times a mosque publishes itself. We won't guess them — a guessed time makes you late.</p>
-    <div class="step">
+  <section id="s5">
+    <div class="eyebrow r r1">Not yet</div>
+    <h1 class="r r2">We don't have your mosque yet.</h1>
+    <p class="sub r r3">Bilal only shows jama'ah times a mosque publishes itself. We won't guess them, because a guessed time makes you late.</p>
+    <div class="step r r4">
       <div class="note">Tell me which mosque and I'll ask them to publish theirs. It's free for the mosque, and it fixes it for everyone who prays there.</div>
       <a class="btn tweet" id="tweetReq" target="_blank" rel="noopener">Request it on X →</a>
       <button class="btn ghost" id="back2">Back to search</button>
@@ -171,9 +219,26 @@ a{color:var(--clay)}
   fetch('mosques.json').then(function(r){return r.json();}).then(function(d){ MOSQUES=d; });
 
   function show(id){
-    ['s1','s2','s3','s4','s5'].forEach(function(s){ $(s).classList.toggle('hide', s!==id); });
+    ['s1','s2','s3','s4','s5'].forEach(function(x){ $(x).classList.remove('on'); });
+    var el=$(id);
+    void el.offsetWidth;            // restart the entrance rather than skipping it
+    el.classList.add('on');
     window.scrollTo(0,0);
   }
+
+  /* Same sky the TV is showing right now, chosen from the clock rather than a
+     fixed image, so the phone and the screen are in the same hour. */
+  (function(){
+    var h=new Date().getHours(), k='isha';
+    if(h>=4&&h<11)       k='fajr';
+    else if(h>=11&&h<16) k='dhuhr';
+    else if(h>=16&&h<19) k='asr';
+    else if(h>=19&&h<21) k='maghrib';
+    var img=new Image();
+    img.onload=function(){ var s=$('sky');
+      s.style.backgroundImage="url('sky/"+k+".jpg')"; s.classList.add('on'); };
+    img.src='sky/'+k+'.jpg';
+  })();
 
   // ---------- search ----------
   function render(list, withDist){
@@ -184,7 +249,7 @@ a{color:var(--clay)}
       return;
     }
     $('results').innerHTML=list.map(function(m,i){
-      return '<button class="item" data-i="'+i+'">'+
+      return '<button class="item" data-i="'+i+'" style="animation-delay:'+Math.min(i*45,360)+'ms">'+
         '<div class="n">'+esc(m.n)+'</div><div class="a">'+esc(m.a)+'</div>'+
         (withDist&&m._d!=null?'<div class="m">'+walkMins(m._d)+' min walk · '+m._d.toFixed(1)+' km</div>':'')+
       '</button>';
