@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>bilal — the day</title>
+<title>bilal, across one day</title>
 <link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{--clay:#d9a48f;--cream:#f6efe7;--deep:#17140f;--veil:rgba(246,239,231,.44)}
@@ -32,7 +32,7 @@
   <p class="sub">Every panel is the real display running live, with the clock overridden.
      All five skies are <b>one photograph</b> graded five ways off a shared luminance
      channel, so the minaret never shifts and the blend between them has nothing to ghost.
-     The sky moves <b>continuously</b> through each window rather than snapping — the last
+     The sky moves <b>continuously</b> through each window rather than snapping. The last
      panel catches it mid-handover.<br>
      Preview any moment yourself by adding <b>?at=HH:MM</b> to the display URL.</p>
 
@@ -53,7 +53,7 @@
       + '<div class="lab"><span><span class="n">'+h.n+'</span>'
       + '<span class="d">'+h.d+'</span></span><span class="t">'+h.at+'</span></div>'
       + '<div class="frame"><iframe scrolling="no" loading="lazy" '
-      + 'src="index.html?quiet=1&at='+h.at+'"></iframe></div></div>';
+      + 'src="index.html?quiet=1&nodiag=1&at='+h.at+'"></iframe></div></div>';
   }).join('');
 
   // scale each 1920x1080 frame down to whatever width the column ended up

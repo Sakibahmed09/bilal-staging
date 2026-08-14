@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Report a problem with bilal</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<meta name="theme-color" content="#17140f">
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+ * REPORT A PROBLEM
+ *
+ * Written on the assumption that the person filling this in is annoyed and
+ * possibly standing in a hallway, so: one box, one button, and everything the
+ * machine can work out for itself is already attached.
+ *
+ * The attached state is shown rather than hidden. Someone reporting a fault
+ * deserves to see exactly what they are sending, and on a product that sits in
+ * a house watching prayer times, quietly collecting anything unexplained would
+ * be the wrong trade whatever the debugging benefit.
+ * ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --clay:#d9a48f; --clay-lift:#e8b9a3; --cream:#f6efe7;
+  --char:#221e1c; --deep:#17140f;
+  --veil:rgba(246,239,231,.50); --hair:rgba(246,239,231,.14);
+  --display:'Prata',Georgia,serif;
+  --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
+  -webkit-font-smoothing:antialiased;min-height:100%}
+#app{padding:calc(env(safe-area-inset-top) + 28px) 22px 72px;max-width:560px;margin:0 auto}
+.brand{font-family:var(--display);font-size:22px;opacity:.9;margin-bottom:30px}
+h1{font-family:var(--display);font-size:32px;line-height:1.14;letter-spacing:-.022em;font-weight:400}
+.sub{color:var(--veil);font-size:15.5px;line-height:1.62;margin-top:12px}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);
+  font-weight:700;margin-bottom:12px}
+.step{margin-top:28px;padding-top:24px;border-top:1px solid var(--hair)}
+label{display:block;font-size:13.5px;color:var(--veil);margin-bottom:9px}
+textarea,input{width:100%;padding:15px;border-radius:14px;border:1px solid var(--hair);
+  background:rgba(34,30,28,.72);color:var(--cream);outline:none;
+  font-family:inherit;font-size:16px;line-height:1.5}
+textarea{min-height:132px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--clay)}
+::placeholder{color:rgba(246,239,231,.32)}
+.code-in{text-transform:uppercase;letter-spacing:.28em;text-align:center;font-weight:700;font-size:20px}
+.btn{width:100%;padding:17px 20px;border:0;border-radius:14px;background:var(--clay);
+  color:var(--char);font-weight:700;font-size:16.5px;margin-top:14px;font-family:inherit;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),background .18s}
+.btn:active{transform:scale(.978);background:var(--clay-lift)}
+.btn[disabled]{opacity:.45}
+.btn.ghost{background:rgba(246,239,231,.06);border:1px solid var(--hair);color:var(--cream);font-weight:600}
+.hint{font-size:13.5px;color:var(--veil);margin-top:10px;line-height:1.58}
+.msg{font-size:14px;margin-top:12px;min-height:1.2em}
+.msg.bad{color:#e8a99b}
+
+/* The four complaints this product actually generates. Free text alone cannot
+   be sorted, and a pile of unsorted prose is how a bug queue dies. Picking one
+   also decides which diagnostics matter, so the category is doing real work
+   rather than being a tidy label. */
+.cats{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.cat{width:100%;text-align:left;padding:14px 15px;border-radius:13px;
+  border:1px solid var(--hair);background:rgba(34,30,28,.6);color:var(--cream);
+  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),border-color .18s,background .18s}
+.cat:active{transform:scale(.985)}
+.cat.on{border-color:var(--clay);background:rgba(217,164,143,.10)}
+.cat small{display:block;font-weight:400;font-size:13px;color:var(--veil);margin-top:3px}
+.attached{margin-top:20px;border:1px solid var(--hair);border-radius:14px;overflow:hidden}
+.attached summary{padding:14px 16px;font-size:13.5px;color:var(--veil);cursor:pointer;
+  list-style:none;display:flex;justify-content:space-between;gap:12px}
+.attached summary::-webkit-details-marker{display:none}
+.attached summary b{color:var(--cream);font-weight:600}
+.attached .rows{padding:2px 16px 14px;font-size:13px;color:var(--veil)}
+.attached .r{display:flex;gap:12px;padding:7px 0;border-top:1px solid rgba(246,239,231,.07)}
+.attached .r span:first-child{flex:none;width:38%;color:rgba(246,239,231,.38)}
+.attached .r span:last-child{word-break:break-word;font-variant-numeric:tabular-nums}
+
+.done{text-align:center;padding:60px 0 30px}
+.done .tick{font-family:var(--display);font-size:44px;color:var(--clay)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--hair);
+  border-top-color:var(--clay);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+section{display:none} section.on{display:block}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="brand">bilal</div>
+
+  <section id="s1" class="on">
+    <div class="eyebrow">Report a problem</div>
+    <h1>What went wrong?</h1>
+    <p class="sub">Bilal is experimental and things will break. Rough notes are more useful than
+      no notes.</p>
+
+    <div class="step">
+      <label>Which is it?</label>
+      <div class="cats" id="cats">
+        <button class="cat" data-k="athan">I couldn't hear the athan
+          <small>It stayed silent, or played too quietly to notice</small></button>
+        <button class="cat" data-k="asleep">The screen went blank or went to sleep
+          <small>Dark when it should have been on</small></button>
+        <button class="cat" data-k="times">The times are wrong
+          <small>Not my mosque's jama'ah times, or out by a few minutes</small></button>
+        <button class="cat" data-k="other">Something else
+          <small>Anything that doesn't fit above</small></button>
+      </div>
+
+      <label for="what" style="margin-top:20px">What happened</label>
+      <textarea id="what" placeholder="The screen went black overnight. It was fine at Isha."></textarea>
+
+      <div style="margin-top:18px">
+        <label for="code">Code shown on the screen, if this is about a TV</label>
+        <input id="code" class="code-in" maxlength="7" placeholder="ABC123"
+               autocomplete="off" autocapitalize="characters" inputmode="text">
+        <div class="hint">It sits in the bottom corner of the display. It links your note to
+          what that screen was actually doing.</div>
+      </div>
+
+      <details class="attached">
+        <summary><span>What gets sent with this</span><b id="attCount">…</b></summary>
+        <div class="rows" id="attRows"></div>
+      </details>
+
+      <button class="btn" id="send">Send it</button>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <section id="s2">
+    <div class="done">
+      <div class="tick">Sent.</div>
+      <p class="sub" style="margin-top:12px">Thank you. This is how it gets fixed.</p>
+    </div>
+    <a class="btn ghost" href="tv.html" style="display:block;text-align:center;
+       text-decoration:none;line-height:1.2">Back</a>
+  </section>
+</div>
+
+<script src="diag.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $=function(i){return document.getElementById(i);};
+
+  /* diag.js supplies both the attachment and the transport. This page is the
+     escape hatch, so if diag ever fails to load it must degrade to a visible
+     smaller report, never to a healthy-looking form whose buttons are dead —
+     that was exactly the shape of failure it exists to catch. */
+  var DIAG = window.BilalDiag || null;
+
+  /* Show the person exactly what is attached. Flattened to plain rows rather
+     than a wall of JSON, because a list somebody can actually read is the point
+     of showing it at all. */
+  function rows(){
+    if(!DIAG){
+      return [
+        ['Your device', (navigator.userAgent||'').slice(0,80)],
+        ['Time', new Date().toLocaleString('en-GB')],
+        ['Note', 'diagnostics failed to load on this visit']
+      ];
+    }
+    var d=DIAG.snapshot();
+    var out=[
+      ['Your device', d.device],
+      ['Screen size', d.viewport],
+      ['Page', location.pathname.replace(/^.*\//,'') || 'index.html'],
+      ['Time', new Date().toLocaleString('en-GB')],
+      ['Online', d.online ? 'yes' : 'no']
+    ];
+    if(d.mosque && d.mosque.slug) out.push(['Mosque set up here', d.mosque.name || d.mosque.slug]);
+    if(d.status) out.push(['Status line', d.status]);
+    /* the verdict sentence, not the object — ['Athan state', d.audio] printed
+       "[object Object]" on every single report */
+    if(d.audio)  out.push(['Athan state', d.audio.verdict || d.audio.line || 'unknown']);
+    if(d.errors && d.errors.length) out.push(['Errors caught', d.errors.length + ' on this page']);
+    out.push(['This browser’s id', DIAG.id()]);
+    return out;
+  }
+
+  var R=rows();
+  $('attCount').textContent=R.length+' things';
+  $('attRows').innerHTML=R.map(function(r){
+    return '<div class="r"><span>'+r[0]+'</span><span>'+
+      String(r[1]).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+
+      '</span></div>';
+  }).join('');
+
+  // A code may be passed in, so a QR on a screen can carry its own id here.
+  var q=new URLSearchParams(location.search).get('c');
+  if(q) $('code').value=q.toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+  var kind=null;
+  Array.prototype.forEach.call(document.querySelectorAll('.cat'),function(b){
+    b.onclick=function(){
+      kind=b.dataset.k;
+      Array.prototype.forEach.call(document.querySelectorAll('.cat'),function(o){
+        o.classList.toggle('on', o===b);
+      });
+      /* Aim the box at the thing they picked. A blank textarea gets "it's
+         broken"; a pointed one gets the detail that decides the diagnosis. */
+      var ph={
+        athan:"Maghrib came and went and nothing played. The screen showed the right time.",
+        asleep:"Dark when I came down for Fajr. It was on when I went to bed.",
+        times:"It says Asr 18:30 but the card at my mosque says 18:45.",
+        other:"What you expected, and what happened instead."
+      }[kind];
+      if(ph) $('what').setAttribute('placeholder', ph);
+      $('msg').textContent=''; $('msg').className='msg';
+    };
+  });
+
+  $('send').onclick=function(){
+    var what=($('what').value||'').trim();
+    if(!kind){
+      $('msg').className='msg bad';
+      $('msg').textContent='Pick which one it is first, so it reaches the right pile.';
+      return;
+    }
+    if(what.length<3){
+      $('msg').className='msg bad';
+      $('msg').textContent='Tell us what happened first, even just a few words.';
+      $('what').focus(); return;
+    }
+    var code=($('code').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    var btn=this, label=btn.innerHTML;
+    btn.innerHTML='<span class="spin"></span> Sending…'; btn.disabled=true;
+    $('msg').textContent=''; $('msg').className='msg';
+
+    if(!DIAG){
+      btn.innerHTML=label; btn.disabled=false;
+      $('msg').className='msg bad';
+      $('msg').textContent='This page could not load its sender. Reload and try again.';
+      return;
+    }
+    /* File it against the screen when one is quoted, so the words land beside
+       that screen's own heartbeats and errors rather than beside this phone's. */
+    DIAG.send('manual', '[' + kind + '] ' + what, code || null)
+      .then(function(r){
+        /* "Sent." must mean sent. r is undefined when the transport threw
+           synchronously, and ok:false when the server refused — both used to
+           slip past `r && r.ok===false` and show the thank-you screen over a
+           report that went nowhere. */
+        if(!r || !r.ok) throw new Error('http');
+        $('s1').classList.remove('on'); $('s2').classList.add('on');
+        window.scrollTo(0,0);
+      })
+      .catch(function(){
+        btn.innerHTML=label; btn.disabled=false;
+        $('msg').className='msg bad';
+        $('msg').textContent='That did not send. Check your connection and try again.';
+      });
+  };
+})();
+</script>
+</body>
+</html>

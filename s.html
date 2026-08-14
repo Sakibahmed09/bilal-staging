@@ -40,7 +40,11 @@ html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
   font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;min-height:100%}
 
 /* sky + scrim, fixed so content scrolls over it like the TV */
-#sky{position:fixed;top:0;left:0;right:0;height:62vh;z-index:0;
+/* 72vh, not 62vh. The scrim below only reaches full --deep at 68%, so a sky
+   that stopped at 62% left its bottom edge sitting in the part of the gradient
+   that is still translucent — a visible horizontal seam across the page. The
+   sky has to end underneath opaque scrim, never inside the ramp. */
+#sky{position:fixed;top:0;left:0;right:0;height:72vh;z-index:0;
   background-position:center 30%;background-size:cover;
   opacity:0;transition:opacity 1.4s ease}
 #sky.on{opacity:1}
@@ -63,13 +67,14 @@ h1{font-family:var(--display);font-size:35px;line-height:1.12;letter-spacing:-.0
 /* ── entrance choreography ─────────────────────────────────────────────── */
 section{display:none}
 section.on{display:block}
-section.on .r{opacity:0;transform:translate3d(0,14px,0);
+section.on .r{opacity:0;transform:translate3d(0,14px,0)}
+section.on.go .r{opacity:0;transform:translate3d(0,14px,0);
   animation:rise .62s cubic-bezier(.16,1,.3,1) forwards}
-section.on .r1{animation-delay:.09s} section.on .r2{animation-delay:.18s}
-section.on .r3{animation-delay:.27s} section.on .r4{animation-delay:.36s}
+section.on.go .r1{animation-delay:.09s} section.on.go .r2{animation-delay:.18s}
+section.on.go .r3{animation-delay:.27s} section.on.go .r4{animation-delay:.36s}
 @keyframes rise{to{opacity:1;transform:translate3d(0,0,0)}}
 @media (prefers-reduced-motion: reduce){
-  section.on .r{animation:none;opacity:1;transform:none}
+  section.on .r,section.on.go .r{animation:none;opacity:1;transform:none}
   #sky{transition:none}
 }
 
@@ -143,7 +148,7 @@ a{color:var(--clay)}
   <div class="brand">bilal</div>
 
   <!-- 1. choose -->
-  <section id="s1" class="on">
+  <section id="s1" class="on go">
     <div class="eyebrow r r1">Set up</div>
     <h1 class="r r2">Which mosque do you pray at?</h1>
     <p class="sub r r3">Bilal shows your mosque's own jama'ah times, and calls you when it's time to leave.</p>
@@ -157,14 +162,14 @@ a{color:var(--clay)}
 
   <!-- 2. confirm + walk -->
   <section id="s2">
-    <div class="eyebrow r r1">Step 2 of 3</div>
+    <div class="eyebrow r r1" id="walkStep">Step 2 of 3</div>
     <h1 class="r r2">How far is it?</h1>
     <div class="step r r3">
       <div class="picked"><div class="n" id="pName"></div><div class="a" id="pAddr"></div>
         <div id="pBadge"></div></div>
       <div class="walk">
         <input type="text" id="walk" inputmode="numeric" value="15">
-        <span><b>minutes' walk</b><br>Bilal calls you this far before jama'ah, so you arrive in time.</span>
+        <span><b>minutes' walk</b><br>Bilal calls you this far before jama'ah.</span>
       </div>
       <div id="walkNote" class="hint"></div>
       <button class="btn" id="toCode">Continue</button>
@@ -192,14 +197,23 @@ a{color:var(--clay)}
       <!-- Every TV has a 4-hour auto-off mandated by energy rules, on a timer the
            Fire Stick cannot reach. Without this line, every user concludes Bilal
            is broken overnight and blames us for the television's setting. -->
-      <div class="note r r3" style="text-align:left">
+      <div class="note r r3" id="doneTv" style="text-align:left">
         <b>One thing on the TV itself.</b> Nearly every television switches off
-        after about four hours with no button pressed — it's an energy-saving
-        rule, and it's a setting on the TV, not on the streaming stick.
+        after about four hours with no button pressed. The setting lives on the
+        TV, not the streaming stick.
         <br><br>
         Turn it off under <b>Eco</b>, <b>Energy Saving</b>, or
-        <b>no-operation off timer</b> in your TV's own menu. Otherwise Bilal
-        goes dark overnight and misses Fajr.
+        <b>no-operation off timer</b>. Otherwise Bilal goes dark overnight and
+        misses Fajr.
+      </div>
+      <!-- Same machine: the screen is the tab behind this one, so the telly
+           timer above is not the risk and the sound press is one tab away. -->
+      <div class="note r r3" id="doneHere" style="text-align:left;display:none">
+        <b>Two things back in the other tab.</b> Press once for sound, then press
+        <b>F</b> to fill the screen.
+        <br><br>
+        Keep that tab open, and stop the computer sleeping if you want Fajr. A
+        sleeping screen calls nothing, and it won't tell you it missed one.
       </div>
     </div>
   </section>
@@ -208,33 +222,87 @@ a{color:var(--clay)}
   <section id="s5">
     <div class="eyebrow r r1">Not yet</div>
     <h1 class="r r2">We don't have your mosque yet.</h1>
-    <p class="sub r r3">Bilal only shows jama'ah times a mosque publishes itself. We won't guess them, because a guessed time makes you late.</p>
+    <p class="sub r r3">Bilal only shows jama'ah times a mosque publishes itself. A guessed time makes you late.</p>
     <div class="step r r4">
-      <div class="note">Tell me which mosque and I'll ask them to publish theirs. It's free for the mosque, and it fixes it for everyone who prays there.</div>
-      <a class="btn tweet" id="tweetReq" target="_blank" rel="noopener">Reply with your mosque →</a>
+      <div class="note">Point us at the building and we'll find its timetable. A couple
+        of minutes at your end, a little longer at ours while this is still new. Once it
+        is in, everyone who prays there gets it.</div>
+      <!-- The route out of the dead end. It genuinely submits, so it belongs
+           here, and it goes first because it is the one that actually fixes
+           anything. -->
+      <!-- The label describes what the person does NOW (drop a pin), not what
+           happens afterwards. add.html asks "Where is it?" and never asks for
+           the wall timetable, so "Send us its timetable" promised an exchange
+           the next screen immediately contradicted. The turnaround is manual
+           until the extraction backend lands, and promising that on the
+           strength of the submission is exactly the lie this product refuses. -->
+      <a class="btn" id="addOwn" style="display:block;text-align:center;
+         text-decoration:none;line-height:1.2">Tell us where it is</a>
+      <a class="btn ghost tweet" id="tweetReq" target="_blank" rel="noopener">Ask them to publish it instead</a>
+      <a class="btn ghost" href="bug.html" style="display:block;text-align:center;text-decoration:none;line-height:1.2;font-size:14px;padding:13px">Something not working? Tell us</a>
       <button class="btn ghost" id="back2">Back to search</button>
     </div>
   </section>
 </div>
 
+<script src="diag.js"></script>
 <script>
 (function(){
   "use strict";
   var SB  = 'https://vstfgrlkwqevonrznzwm.supabase.co/rest/v1/bilal_pairings';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzdGZncmxrd3Fldm9ucnpuendtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDAwOTUsImV4cCI6MjA4OTk3NjA5NX0.IjPhlACgy3xslF9EvhKeIemoobHKR02LXcEgiKYHdYg';
-  var MB  = 'https://api.masjidbox.com/1.0/masjidbox/landing/athany/';
-  var MBK = 'JejYcMS7hsOsZTPDk2ZhKOAlW9IyQ6Px';
+  /* Every time request goes through our own endpoint, which fronts the
+     directories this list is merged from and returns each one's reply
+     unchanged. mosques.json carries no marker of which directory a row came
+     from: the id's own shape says that, the same rule index.html uses to fetch
+     the television's times. These two tests must stay identical to the
+     endpoint's own routing. The digit-or-capital lookahead is load bearing, a
+     handful of dashed-directory slugs are exactly 8 lowercase letters and a
+     bare {8} test would hand every one of them to the wrong parser. */
+  var TIMES='https://bilal-times.ahmed-sakib.workers.dev/v1';
+  var NUM_ID_RE=/^mosque-\d+$/i;
+  var CODE_ID_RE=/^(?=.*[A-Z0-9])[A-Za-z0-9]{8}$/;
 
   var $=function(i){return document.getElementById(i);};
   var MOSQUES=[], picked=null, here=null;
 
-  fetch('mosques.json').then(function(r){return r.json();}).then(function(d){ MOSQUES=d; });
+  /* The directory is 122KB gzipped, and a fast thumb beats it. While it is
+     still in flight an empty search result means NOTHING YET, and saying
+     "we don't have that one" over a list that has not arrived is a confident
+     lie — the exact failure this codebase keeps having to unlearn. So the
+     load carries a state, empty results speak to that state, and whatever is
+     in the box re-runs the moment the list lands. */
+  var DIR_STATE='loading';   // loading | ready | failed
+  function loadDirectory(){
+    DIR_STATE='loading';
+    fetch('mosques.json')
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(d){
+        MOSQUES=d;
+        /* lowercase haystack once, not per keystroke: the search loop used to
+           re-lowercase 2,362 names and addresses on every input event */
+        MOSQUES.forEach(function(m){ m._n=m.n.toLowerCase(); m._h=m._n+' '+(m.a||'').toLowerCase(); });
+        DIR_STATE='ready';
+        refreshSearch();
+      })
+      .catch(function(){ DIR_STATE='failed'; refreshSearch(); });
+  }
+  function refreshSearch(){
+    var q=$('q');
+    if(q && q.value.trim().length>=2) runSearch(q.value);
+  }
+  loadDirectory();
 
   function show(id){
-    ['s1','s2','s3','s4','s5'].forEach(function(x){ $(x).classList.remove('on'); });
+    ['s1','s2','s3','s4','s5'].forEach(function(x){ $(x).classList.remove('on','go'); });
     var el=$(id);
-    void el.offsetWidth;            // restart the entrance rather than skipping it
+    /* Order matters. Forcing the reflow BEFORE the element is displayed meant the
+       animation was assigned to a display:none element and never ran — every step
+       after the first rendered at opacity 0. Display first, reflow, then animate. */
+    el.classList.remove('go');
     el.classList.add('on');
+    void el.offsetWidth;
+    el.classList.add('go');
     window.scrollTo(0,0);
   }
 
@@ -254,16 +322,36 @@ a{color:var(--clay)}
 
   // ---------- search ----------
   function render(list, withDist){
+    /* An empty result is not "try again", it is the moment the self-serve route
+       exists for. Offering a softer version of the same search is how somebody
+       leaves; naming what happens next is how they stay. */
     if(!list.length){
-      $('results').innerHTML='<button class="item" id="none"><div class="n">Not finding it?</div>'+
-        '<div class="a">Bilal only covers mosques that publish their own jama\'ah times.</div></button>';
+      /* "We don't have that one" is only true once the list has ARRIVED. */
+      if(DIR_STATE!=='ready'){
+        $('results').innerHTML='<button class="item" id="none">'+
+          (DIR_STATE==='loading'
+            ? '<div class="n">Still fetching the mosque list</div>'+
+              '<div class="a">A couple of seconds on a slow connection. Your search runs by itself when it lands.</div>'
+            : '<div class="n">Could not load the mosque list</div>'+
+              '<div class="a">Check your connection, then tap here to try again.</div>')+
+          '</button>';
+        $('none').onclick=function(){ if(DIR_STATE==='failed') loadDirectory(); };
+        return;
+      }
+      $('results').innerHTML='<button class="item" id="none">'+
+        '<div class="n">We don\'t have that one</div>'+
+        '<div class="a">Tell us where it is and we\'ll add it. '+
+        'A couple of minutes of your time fixes it for everyone who prays there.</div></button>';
       $('none').onclick=function(){ notListed($('q').value); };
       return;
     }
     $('results').innerHTML=list.map(function(m,i){
       return '<button class="item" data-i="'+i+'" style="animation-delay:'+Math.min(i*45,360)+'ms">'+
         '<div class="n">'+esc(m.n)+'</div><div class="a">'+esc(m.a)+'</div>'+
-        (withDist&&m._d!=null?'<div class="m">'+walkMins(m._d)+' min walk · '+m._d.toFixed(1)+' km</div>':'')+
+        /* Beyond about an hour's drive the distance stops being information and
+           starts being noise: "811.8 km away" on a name search only means the
+           last postcode you typed was somewhere else. */
+        (withDist&&m._d!=null&&m._d<100?'<div class="m">'+dist(m._d)+'</div>':'')+
       '</button>';
     }).join('') +
     '<button class="item" id="none"><div class="n">Mine isn\'t here</div>'+
@@ -275,16 +363,117 @@ a{color:var(--clay)}
   }
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
 
-  $('q').addEventListener('input', function(){
-    var v=this.value.trim().toLowerCase();
+  /* Ranked, not filtered. A plain substring filter answers "masjid" with forty
+     mosques in alphabetical order beginning with Adam masjid, which is every
+     mosque except the one you want. Name beats address, a name that starts with
+     what you typed beats one that merely contains it, and once we know where you
+     are, distance breaks every remaining tie. Someone who has already tapped
+     "near me" and then searches should see their own neighbourhood first. */
+  /* A postcode is not a name, so matching it against names finds nothing and
+     looks like we have no mosques there. It is also the most natural thing to
+     type when you are setting up a screen for a house that is not the one you
+     are standing in, or when the phone will not share a location. So a postcode
+     resolves to a point and sorts every mosque we hold by distance from it. */
+  var PC_FULL = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+  // Outcode alone (E1, RM8, IV27) and outcode plus sector digit (IV27 4), which
+  // is what people type when they know the area but not the whole thing.
+  var PC_OUT  = /^[A-Z]{1,2}\d[A-Z\d]?(\s*\d)?$/i;
+  var pcSeq = 0;
+
+  function postcodeLookup(raw){
+    var trimmed = raw.trim().toUpperCase();
+    var q = trimmed.replace(/\s+/g,''), mine = ++pcSeq;
+    var outcode = (trimmed.match(/^[A-Z]{1,2}\d[A-Z\d]?/) || [q])[0];
+    $('hint').textContent = 'Looking up ' + trimmed + '…';
+
+    function ask(url){ return fetch(url).then(function(r){ return r.json(); }); }
+
+    /* Try the full postcode, then fall back to its outcode. A postcode with a
+       typo in the last two letters is not found at all, and giving up there
+       sends someone away when we can still place them inside a couple of
+       kilometres, which is more than close enough to list nearby mosques. */
+    var first = PC_FULL.test(trimmed)
+      ? ask('https://api.postcodes.io/postcodes/' + encodeURIComponent(q))
+      : Promise.resolve(null);
+
+    first.then(function(j){
+      if(j && j.result && j.result.latitude != null) return j;
+      return ask('https://api.postcodes.io/outcodes/' + encodeURIComponent(outcode));
+    }).then(function(j){
+      if(mine !== pcSeq) return;                    // a newer keystroke won
+      var r = j && j.result;
+      if(!r || r.latitude == null) throw 0;
+      here = { lat: r.latitude, lng: r.longitude };
+      if(!MOSQUES.length){
+        $('hint').textContent = DIR_STATE==='failed'
+          ? 'Could not load the mosque list. Check your connection and try again.'
+          : 'Still fetching the mosque list, one moment.';
+        return;
+      }
+      var located = MOSQUES.filter(function(m){ return m.y != null; });
+      located.forEach(function(m){ m._d = hav(here.lat, here.lng, m.y, m.x); });
+      var near = located.sort(function(a,b){ return a._d - b._d; }).slice(0, 8);
+      /* Nothing within a sensible distance is not an empty result, it is a
+         different answer: we have nothing near you, so add it yourself. */
+      if(!near.length || near[0]._d > 12){
+        $('hint').textContent = 'Nothing we know of near ' + trimmed + '.';
+        notListed(trimmed);
+        return;
+      }
+      $('hint').innerHTML = 'Nearest to <b>' + esc(trimmed) + '</b>.';
+      render(near, true);
+    }).catch(function(){
+      if(mine !== pcSeq) return;
+      $('hint').textContent = "Couldn't look that postcode up. Try the mosque's name.";
+    });
+  }
+
+  $('q').addEventListener('input', function(){ runSearch(this.value); });
+  function runSearch(raw){
+    raw=raw.trim();
+    var v=raw.toLowerCase();
     if(v.length<2){ $('results').innerHTML=''; return; }
-    render(MOSQUES.filter(function(m){
-      return (m.n+' '+m.a).toLowerCase().indexOf(v)>-1;
-    }).slice(0,40), false);
-  });
+    if(PC_FULL.test(raw) || PC_OUT.test(raw)){ postcodeLookup(raw); return; }
+    // A postcode leaves its own hint behind; a name search must not inherit it.
+    $('hint').textContent = 'Search works for every mosque we have. Nearby needs a location.';
+    /* Every word has to appear, but not next to each other. People type the
+       name they know plus the town, "abu bakr reading", and the real listing is
+       "Abu Bakr Islamic Centre Reading". A contiguous substring match finds
+       nothing there and looks like we don't have the mosque at all. */
+    var words=v.split(/\s+/).filter(Boolean);
+    var hits=[];
+    MOSQUES.forEach(function(m){
+      var n=m._n, hay=m._h;
+      for(var i=0;i<words.length;i++) if(hay.indexOf(words[i])===-1) return;
+      var rank;
+      if(n.indexOf(v)===0)                              rank=0;  // typed its name
+      else if(n.indexOf(v)>-1)                          rank=1;
+      else if(words.every(function(w){return n.indexOf(w)>-1;})) rank=2;  // all in the name
+      else                                              rank=3;  // town came from the address
+      hits.push({m:m, rank:rank});
+    });
+    hits.sort(function(a,b){
+      if(a.rank!==b.rank) return a.rank-b.rank;
+      var ad=a.m._d, bd=b.m._d;
+      if(ad!=null && bd!=null) return ad-bd;
+      if(ad!=null) return -1;
+      if(bd!=null) return 1;
+      return a.m.n.localeCompare(b.m.n);
+    });
+    render(hits.slice(0,25).map(function(h){return h.m;}), here!=null);
+  }
 
   // ---------- nearby ----------
-  function walkMins(km){ return Math.max(1, Math.round(km*1.3/0.08/60*60)); } // 4.8 km/h, 1.3x detour
+  // 4.8 km/h, and 1.3x for the fact that streets are not straight lines
+  function walkMins(km){ return Math.max(1, Math.round(km*1.3/0.08)); }
+  /* Quote a walk only where walking is the thing being described. "87 min walk"
+     is technically the output of the formula and nobody has ever done it; past
+     half an hour the distance is the honest fact and how they get there is
+     theirs to know. */
+  function dist(km){
+    var w=walkMins(km);
+    return w<=30 ? (w+' min walk · '+km.toFixed(1)+' km') : (km.toFixed(1)+' km away');
+  }
   function hav(a,b,c,d){
     var R=6371,p=Math.PI/180,x=(c-a)*p,y=(d-b)*p;
     var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)*Math.sin(y/2);
@@ -299,6 +488,12 @@ a{color:var(--clay)}
 
     navigator.geolocation.getCurrentPosition(function(pos){
       here={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      if(!MOSQUES.length){
+        fail(DIR_STATE==='failed'
+          ? 'Could not load the mosque list. Check your connection and try again.'
+          : 'Still fetching the mosque list. Try again in a couple of seconds.');
+        return;
+      }
       /* Coordinates ship inside mosques.json, geocoded once offline. The old
          version resolved postcodes at runtime through postcodes.io: four network
          round-trips, and blind to the 35% of addresses with no postcode in them.
@@ -312,12 +507,106 @@ a{color:var(--clay)}
         fail('No mosques we know of are near you. Try searching by name.');
         return;
       }
-      var missing = MOSQUES.length - located.length;
-      $('hint').innerHTML='Nearest first. <b>'+missing+' mosques we know of have no location</b>, so search if yours is missing.';
+      /* Clear the box. Leaving an old query sitting above a list it did not
+         produce makes the list look like the answer to the wrong question. */
+      $('q').value='';
+      /* Lead with what worked. This used to open on the number of mosques we
+         have no location for, so the first thing anyone read after a successful
+         search was a statistic about our gaps. Keep the caveat, stop opening
+         with it. */
+      $('hint').innerHTML='Nearest first. If yours is missing, search for it by name.';
       render(near, true);
     }, function(){ fail('Location was declined. Search by name or town instead.'); },
        {enableHighAccuracy:false, timeout:12000, maximumAge:600000});
   };
+
+  /* Both directories get reduced to the same three values the classifier below
+     reads: `offs` (minutes between a prayer starting and its jama'ah), `mins`
+     (the minute-hand of each start time), and `nq` (how many jama'ah times
+     exist at all). Everything the badge decides is a judgement about those, so
+     neither API's own shape reaches it.
+
+     `nq` is counted separately from `offs` and that separation is the whole
+     point. An offset needs BOTH a start and a jama'ah, so a mosque that
+     publishes five jama'ah times and no start times produces an empty `offs`
+     — indistinguishable, on offsets alone, from a mosque that published
+     nothing. Measured on the numbered directory: 84 mosques are in exactly
+     that state, and they are the single most useful kind of listing this
+     product can get. Judging them on `offs` called all 84 "no jama'ah times
+     published", which is the opposite of the truth. */
+  function checkDashed(slug, iso){
+    return fetch(TIMES+'/times?id='+encodeURIComponent(slug)+'&from='+iso)
+      .then(function(r){return r.json();})
+      .then(function(j){
+        var row=j.timetable&&j.timetable[0]; if(!row) throw 0;
+        var offs=[], mins=[], nq=0;
+        ['fajr','dhuhr','asr','maghrib','isha'].forEach(function(k){
+          var b=row[k], q=(row.iqamah||{})[k];
+          if(q) nq++;
+          if(b&&q) offs.push(Math.round((new Date(q)-new Date(b))/60000));
+          if(b) mins.push(new Date(b).getMinutes());
+        });
+        return {offs:offs, mins:mins, nq:nq};
+      });
+  }
+
+  /* The numbered directory serves bare "HH:MM" strings, and the top-level
+     field is the jama'ah while row.begin holds the start, the opposite nesting
+     to the dashed one. The offset is minute arithmetic on the strings
+     themselves, so no Date is built and no timezone can be misread. */
+  function checkNumbered(id, iso){
+    return fetch(TIMES+'/times?id='+encodeURIComponent(id)+'&from='+iso+'&to='+iso)
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(days){
+        var row=days&&days[0]; if(!row) throw 0;
+        var begin=row.begin||{}, offs=[], mins=[], nq=0;
+        function toMin(hm){
+          if(!hm) return null;
+          var p=String(hm).split(':');
+          if(p.length!==2) return null;
+          var h=parseInt(p[0],10), m=parseInt(p[1],10);
+          return (isNaN(h)||isNaN(m)) ? null : h*60+m;
+        }
+        ['fajr','dhuhr','asr','maghrib','isha'].forEach(function(k){
+          var b=toMin(begin[k]), q=toMin(row[k]);
+          if(q!=null) nq++;
+          if(b!=null&&q!=null) offs.push(q-b);
+          if(b!=null) mins.push(b%60);
+        });
+        return {offs:offs, mins:mins, nq:nq};
+      });
+  }
+
+  /* The coded directory nests it the same way round as the dashed one, salah
+     is the start and iqamah is the jama'ah, but serves 12-hour strings
+     ("4:56AM"), calls dhuhr "zuhr", and dates the rows as "Tuesday, Aug 11,
+     2026". Reduced to minutes here so the offset maths downstream is identical
+     for all three sources. */
+  function checkCoded(id, isoDate){
+    return fetch(TIMES+'/times?id='+encodeURIComponent(id)+'&from='+isoDate+'&to='+isoDate)
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(res){
+        if(!res||res.status!=='success'||!res.data) throw 0;
+        var s=(res.data.salah||[])[0], q=(res.data.iqamah||[])[0];
+        if(!s) throw 0;
+        function toMin(v){
+          var m=/^(\d{1,2}):(\d{2})\s*([AaPp])/.exec(String(v||'').trim());
+          if(!m) return null;
+          var h=parseInt(m[1],10)%12;
+          if(m[3].toLowerCase()==='p') h+=12;
+          return h*60+parseInt(m[2],10);
+        }
+        var KEY={fajr:'fajr',dhuhr:'zuhr',asr:'asr',maghrib:'maghrib',isha:'isha'};
+        var offs=[], mins=[], nq=0;
+        ['fajr','dhuhr','asr','maghrib','isha'].forEach(function(k){
+          var b=toMin(s[KEY[k]]), iq=q?toMin(q[KEY[k]]):null;
+          if(iq!=null) nq++;
+          if(b!=null&&iq!=null) offs.push(iq-b);
+          if(b!=null) mins.push(b%60);
+        });
+        return {offs:offs, mins:mins, nq:nq};
+      });
+  }
 
   // ---------- pick, and classify live ----------
   function choose(m){
@@ -326,9 +615,19 @@ a{color:var(--clay)}
     $('pBadge').innerHTML='<div class="badge warn"><b></b><span class="spin"></span> checking their times…</div>';
     show('s2');
 
-    if(m._d!=null){
-      $('walk').value=walkMins(m._d);
-      $('walkNote').textContent='Estimated from the distance. Change it if you know better — this is the number everything hangs on.';
+    /* Only pre-fill from distance when the answer is a plausible walk. Picking a
+       mosque 7 km away used to pre-fill 89 minutes, and this number is what the
+       athan fires on, so the screen would have called them to leave an hour and
+       a half early and been confident about it. Past about half an hour nobody
+       is walking, and we have no idea whether they drive, get a lift, or are
+       simply setting this up from somewhere else. Say we don't know. */
+    var est = m._d!=null ? walkMins(m._d) : null;
+    if(est!=null && est<=30){
+      $('walk').value=est;
+      $('walkNote').textContent='Estimated from the distance. Everything hangs on this number.';
+    } else if(est!=null){
+      $('walkNote').textContent='This one is too far to walk, so we have not guessed. '+
+        'Set how long it actually takes you to get there.';
     } else {
       $('walkNote').textContent='Set how long it takes you to walk there.';
     }
@@ -336,19 +635,45 @@ a{color:var(--clay)}
     /* Classified live rather than from a stored snapshot: mosques fix their
        listings, and a cached verdict starts rotting the day it is written. */
     var today=new Date(), iso=today.getFullYear()+'-'+p2(today.getMonth()+1)+'-'+p2(today.getDate());
-    fetch(MB+m.g+'?get=at&days=1&begin='+iso,{headers:{'apikey':MBK}})
-      .then(function(r){return r.json();})
-      .then(function(j){
-        var row=j.timetable&&j.timetable[0]; if(!row) throw 0;
-        var P=['fajr','dhuhr','asr','maghrib','isha'], offs=[];
-        P.forEach(function(k){
-          var b=row[k], q=(row.iqamah||{})[k];
-          if(b&&q) offs.push(Math.round((new Date(q)-new Date(b))/60000));
-        });
+    var check = NUM_ID_RE.test(m.g) ? checkNumbered(m.g, iso)
+              : CODE_ID_RE.test(m.g) ? checkCoded(m.g, iso)
+              : checkDashed(m.g, iso);
+    check
+      .then(function(r){
+        var offs=r.offs, mins=r.mins;
         var uniq={}; offs.forEach(function(o){uniq[o]=1;});
         var n=Object.keys(uniq).length;
-        if(offs.length<5)          badge('bad','No jama\'ah times published');
-        else if(offs.every(function(o){return o===0;})) badge('bad','No jama\'ah times — these are start times');
+        /* A zero offset everywhere has two opposite meanings and calling them
+           both bad is wrong about most of them.
+
+           Astronomical times land on any minute. Jama'ah times land on :00 :15
+           :30 :45, because a human chose them. So a mosque whose "begins" are
+           all round has entered its jama'ah times into both fields: the times
+           are real and usable, it just has not filled in the start times.
+           A mosque whose "begins" are irregular and whose iqamah merely mirrors
+           them has set no jama'ah times at all, and that one is unusable.
+
+           Measured on 26 random UK mosques: of the zero-offset ones, two in
+           three were round, i.e. perfectly usable. Romford Mosque is one of
+           them (05:00 13:30 19:00 20:50 22:00), so the old wording called its
+           genuine jama'ah times "start times" and warned people off. */
+        var round = mins.length===5 && mins.filter(function(m){return m%5===0;}).length>=4;
+        /* Five jama'ah times and no start times is a COMPLETE listing for this
+           product — the whole thesis is that jama'ah is the time that matters.
+           Checked before the offset tests, because with no starts there are no
+           offsets to test and every one of them would otherwise fall through to
+           "No jama'ah times published". */
+        if(r.nq===0)               badge('bad','No jama\'ah times published');
+        /* ANY jama'ah times with no start times is the no-separate-starts
+           case, not just the full five. The old `nq===5` guard let a mosque
+           with three jama'ah times fall through to "No jama'ah times
+           published" — the exact opposite of what it had done. */
+        else if(offs.length===0)   badge('warn','Jama\'ah times, but no separate start times');
+        else if(r.nq<5)            badge('warn','Only a partial listing published');
+        else if(offs.length<5)     badge('warn','Times not confirmed by the mosque');
+        else if(offs.every(function(o){return o===0;}))
+          round ? badge('warn','Jama\'ah times, but no separate start times')
+                : badge('bad','No jama\'ah times, only start times');
         else if(n===1)             badge('bad','Times look automatic, not set by the mosque');
         else if(n===2)             badge('warn','Times not confirmed by the mosque');
         else                       badge('ok','Real jama\'ah times, set by the mosque');
@@ -373,41 +698,122 @@ a{color:var(--clay)}
     return 'https://x.com/intent/tweet?in_reply_to='+REQ_TWEET+'&text='+encodeURIComponent(t);
   }
 
+  var PREVIEW = /[?&]preview=1(&|$)/.test(location.search);
+
   function notListed(term){
     $('tweetReq').href=tweet('Can you add '+(term||'my mosque')+'?');
+    /* Carry the code and what they typed through, so adding a mosque is a
+       continuation of setting one up rather than a separate errand. */
+    var qs=[];
+    if(PREVIEW) qs.push('preview=1');
+    if(CODE) qs.push('c='+encodeURIComponent(CODE));
+    if(term) qs.push('name='+encodeURIComponent(term));
+    $('addOwn').href='add.html'+(qs.length?'?'+qs.join('&'):'');
     show('s5');
   }
 
   $('back').onclick=function(){ show('s1'); };
   $('back2').onclick=function(){ show('s1'); };
-  $('toCode').onclick=function(){ show('s3'); $('code').focus(); };
 
-  // ---------- send to TV ----------
-  $('send').onclick=function(){
-    var code=($('code').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-    if(code.length!==6){ $('sendMsg').textContent='That code should be six characters.'; return; }
-    var walk=parseInt($('walk').value,10); if(!(walk>0&&walk<120)) walk=15;
-    this.innerHTML='<span class="spin"></span> Sending…'; this.disabled=true;
-    var btn=this;
+  /* ---------- the code ----------
+     Scanning the QR on the television lands here with ?c=. That is the whole
+     reason the QR is worth having: without it a scan only opens this page and
+     the six characters still have to be read off a TV and typed in by thumb.
+     With it, this step disappears and setting up is choose a mosque, set a walk,
+     done. Typing the code by hand is still supported for anyone whose camera
+     will not oblige. */
+  var CODE=(new URLSearchParams(location.search).get('c')||'')
+             .toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var SCANNED = CODE.length===6;
+  /* Set by the display when it hands this page a link on the same machine. The
+     screen being configured is then a tab behind this one rather than a
+     television across the room, which changes what the last screen should say:
+     the four-hour telly timer is not the risk, and the press for sound is
+     waiting in a tab the reader has just navigated away from. */
+  var HERE = SCANNED && /[?&]here=1(&|$)/.test(location.search);
 
-    fetch(SB+'?code=eq.'+code,{
+  function patch(code, body){
+    return fetch(SB+'?code=eq.'+encodeURIComponent(code),{
       method:'PATCH',
       headers:{'apikey':SBK,'Authorization':'Bearer '+SBK,
                'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify({config:{slug:picked.g,walk:walk,name:picked.n},claimed_at:new Date().toISOString()})
-    }).then(function(r){return r.json();}).then(function(rows){
-      btn.innerHTML='Send to my TV'; btn.disabled=false;
-      if(!rows||!rows.length){
-        $('sendMsg').textContent='No TV is waiting on that code. Check it, or reload the TV to get a new one.';
-        return;
-      }
-      $('doneMsg').textContent=picked.n+' is on your TV. It will remember, so you only do this once.';
-      show('s4');
-    }).catch(function(){
-      btn.innerHTML='Send to my TV'; btn.disabled=false;
-      $('sendMsg').textContent='Could not reach your TV. Check your connection and try again.';
+      body:JSON.stringify(body)
+    }).then(function(r){
+      /* Three shapes come back and they mean three different things. Collapsing
+         them into "rows or not" reported a broken backend as "code expired",
+         which sends a person around a loop of fresh codes that all "expire".
+         - !ok: OUR side refused (policy, outage). Not stale, not their fault.
+         - ok + array: the rows the update touched. Empty = genuinely stale.
+         - ok + no JSON body (204): the write landed without an echo. Success. */
+      if(!r.ok){ var e=new Error('backend '+r.status); e.ours=true; throw e; }
+      if(r.status===204) return [{}];
+      return r.json().then(
+        function(rows){ return Array.isArray(rows)?rows:[{}]; },
+        function(){ return [{}]; }
+      );
     });
+  }
+
+  if(SCANNED){
+    $('walkStep').textContent='Step 2 of 2';
+    // "my TV" is wrong when the screen is the tab behind this one.
+    $('toCode').textContent=HERE ? 'Send to the screen' : 'Send to my TV';
+    /* Tell the television the scan landed, so it can stop saying "waiting for
+       your phone" while the person is already choosing a mosque. A config with
+       no slug was already ignored by the TV's poll, so this needs no new column
+       and cannot be mistaken for a finished setup. */
+    patch(CODE, {config:{claimed:true}}).catch(function(){});
+  }
+
+  $('toCode').onclick=function(){
+    if(SCANNED){ sendTo(CODE, this); return; }
+    show('s3'); $('code').focus();
   };
+
+  $('send').onclick=function(){
+    var code=($('code').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(code.length!==6){ $('sendMsg').textContent='That code should be six characters.'; return; }
+    sendTo(code, this);
+  };
+
+  function sendTo(code, btn){
+    var walk=parseInt($('walk').value,10); if(!(walk>0&&walk<120)) walk=15;
+    var label=btn.innerHTML;
+    btn.innerHTML='<span class="spin"></span> Sending…'; btn.disabled=true;
+
+    patch(code, {config:{slug:picked.g,walk:walk,name:picked.n},
+                 claimed_at:new Date().toISOString()})
+      .then(function(rows){
+        btn.innerHTML=label; btn.disabled=false;
+        if(!rows||!rows.length){ stale(code); return; }
+        $('doneMsg').textContent=picked.n+(HERE
+          ? ' is on your screen. It will remember.'
+          : ' is on your TV. It will remember.');
+        if(HERE){
+          $('doneTv').style.display='none';
+          $('doneHere').style.display='block';
+        }
+        show('s4');
+      }).catch(function(e){
+        btn.innerHTML=label; btn.disabled=false;
+        var msg=(e&&e.ours)
+          ? 'Something went wrong at our end, not with your code. Give it a minute and try again.'
+          : 'Could not reach your TV. Check your connection and try again.';
+        if(SCANNED){ $('walkNote').textContent=msg; } else { $('sendMsg').textContent=msg; }
+      });
+  }
+
+  /* A code goes stale when the TV reloads and draws a new one, which it does
+     every fifteen minutes. Someone who scanned an hour ago has to be handed a
+     way forward rather than an error, so they get the manual step. */
+  function stale(code){
+    SCANNED=false;
+    show('s3');
+    $('code').value='';
+    $('sendMsg').textContent='That code has expired. Your TV shows a new one, and it is '+
+      'underneath the square you scanned.';
+    $('code').focus();
+  }
 })();
 </script>
 </body>

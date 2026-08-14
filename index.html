@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>bilal — Darul Ummah Goresbrook</title>
+<title>bilal</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -17,6 +17,64 @@
 <meta name="twitter:title" content="bilal">
 <meta name="twitter:description" content="The screen that calls you to jama'ah, not just to prayer.">
 <meta name="twitter:image" content="https://bilalathan.co.uk/og.jpg">
+<script>
+/* Device routing. One URL has to serve a wall display, a Fire Stick, an Echo
+   Show and a phone, so this runs in <head> — before a megabyte of sky images
+   gets pulled down onto a handset that is about to leave.
+
+   The trap: an Echo Show is ALSO a small touchscreen. Routing on viewport size
+   alone would send Echo Shows to the phone page and break the one device that
+   needs nothing configured. So Amazon hardware is identified explicitly, and
+   anything we are unsure about gets the display — a phone seeing the display is
+   merely untidy, a TV seeing the phone page is broken.
+
+   ?display=1 is the escape hatch, and it sticks: tv.html itself recommends
+   using a spare phone as a screen, so a handset must always be able to get here
+   and stay here. */
+(function(){
+  try{
+    /* The way back out. ?display=1 sticks by design, which locked anyone who
+       ever tried display mode out of the landing page forever, with devtools
+       as the only key. ?landing=1 unsticks it and shows the pitch. A saved
+       pairing is deliberately left alone: a kitchen display should not lose
+       its mosque because somebody typed a parameter. */
+    if(/[?&]landing=1/.test(location.search)){
+      try{ localStorage.removeItem('bilal.display'); }catch(e){}
+      location.replace('tv.html');
+      return;
+    }
+    if(/[?&](display|masjid|test|at|mode|walk|drift|quiet|lite|demo)=/.test(location.search)){
+      if(/[?&]display=1/.test(location.search)){
+        try{ localStorage.setItem('bilal.display','1'); }catch(e){}
+      }
+      return;
+    }
+    try{ if(localStorage.getItem('bilal.display')==='1') return; }catch(e){}
+
+    var ua = navigator.userAgent || '';
+    if(/Silk|AFT[A-Z0-9]|Echo|KF[A-Z]{2}|Fire ?TV/i.test(ua)) return;   // Amazon: always the display
+
+    var handset = /iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|Opera Mini/i.test(ua);
+    var w = (screen && screen.width) || 9999, h = (screen && screen.height) || 9999;
+    if(handset && Math.min(w,h) < 520){ location.replace('tv.html' + location.search); return; }
+
+    /* Desktops get the landing too, by the same philosophy pointed the other
+       way: only what is CERTAINLY a desk browser is sent away, because a TV
+       mistaken for a desktop boots into a marketing page it cannot navigate.
+       So: positive identification only, a saved pairing keeps you here, and
+       any TV marker vetoes (several smart TVs carry Linux in their UA, which
+       is why the X11 arm requires a desktop chip too). iPads say Macintosh
+       and go: the spare-tablet card documents ?display=1, which returns
+       above. A visitor who was merely curious sees the pitch; a display that
+       has ever been paired never leaves this page. */
+    var saved = false;
+    try{ saved = !!((JSON.parse(localStorage.getItem('bilal.config')||'{}')||{}).slug); }catch(e){}
+    var desk = /Macintosh|Windows NT|CrOS|X11; Linux (x86_64|i686|amd64)/i.test(ua)
+            && !/CrKey|Tizen|Web0S|WebOS|SMART-TV|SmartTV|BRAVIA|Roku|PlayStation|Xbox|GoogleTV|HbbTV|Viera|NetCast/i.test(ua);
+    if(desk && !saved) location.replace('tv.html');
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&family=Amiri:wght@400&display=swap" rel="stylesheet">
@@ -262,6 +320,8 @@ main{flex:1;display:flex;flex-direction:column;justify-content:center;
 .stop.on:before{content:"";position:absolute;top:calc(var(--u)*-1.05 - 1px);left:0;
   width:calc(var(--u)*2.4);height:2px;background:var(--clay)}
 
+#devId{font-size:calc(var(--u)*.62);letter-spacing:.22em;opacity:.30;
+  font-variant-numeric:tabular-nums;text-transform:uppercase}
 footer{display:flex;justify-content:space-between;align-items:center;
   margin-top:calc(var(--u)*1.05);font-size:calc(var(--u)*.82);color:var(--veil);
   letter-spacing:.1em;text-transform:uppercase;font-weight:500}
@@ -276,38 +336,124 @@ footer{display:flex;justify-content:space-between;align-items:center;
 /* ── pairing ──────────────────────────────────────────────────────────────
    The first screen a stranger ever sees, so it is the product rather than a
    utility page: same sky for the actual hour, same Prata, same terracotta.
-   The CODE is the hero because the code is the thing they must carry to their
-   phone; the QR is the shortcut, not the instruction. */
+
+   The QR is the hero, and that is a change. It used to be a small square beside
+   a large code, because the QR was built at deploy time and could only point at
+   the setup page: you scanned it and then still had to read six characters off
+   a television and thumb them into a phone. The code is now inside the QR, so
+   scanning is the whole of pairing and the characters are what you fall back on
+   when the camera will not play. Hero what does the work. */
 #pair{position:fixed;top:0;right:0;bottom:0;left:0;z-index:70;display:none;
   padding:var(--safe-y) var(--safe-x)}
 /* The sky stays — it is the best first impression we have — but the prayer data
    underneath must go, or the two screens read as one broken one. */
 body.pairing #shell{display:none}
-#pair.show{display:flex;flex-direction:column;justify-content:center}
+/* Reported by a real user on an Echo Show 8: the QR was clipped off the bottom
+   and swiping did nothing. Two causes stacked.
+
+   1. This screen needs ~606px of height at 1280 wide. The Show 8's panel is
+      800px but Silk's address bar eats enough to push the usable area under
+      that, so it overflowed.
+   2. A CENTRED flex column splits its overflow top AND bottom, and with
+      html/body at overflow:hidden the top half is unreachable as well. So it
+      was not merely cut off, it was cut off at both ends with no way to move.
+
+   The ::before/::after auto-margin trick centres the content while there is
+   room and collapses to zero when there is not, so it starts at the top and
+   scrolls like a normal document instead of clipping. Belt and braces with the
+   compact sizing below: make it fit, AND guarantee a way out if it still does
+   not on a device neither of us has. */
+#pair.show{display:flex;flex-direction:column;overflow-y:auto;
+  -webkit-overflow-scrolling:touch}
+#pair.show:before,#pair.show:after{content:'';margin:auto}
+#pair.show>*{flex-shrink:0}
 #pair .eyebrow{color:var(--clay)}
 #pair .head{font-family:var(--display);font-size:calc(var(--u)*5.4);line-height:1.02;
   letter-spacing:-.032em;margin:calc(var(--u)*.5) 0 calc(var(--u)*.9);max-width:17ch}
-#pair .cols{display:flex;align-items:flex-end;gap:calc(var(--u)*4)}
-#pair .step{font-size:calc(var(--u)*1.3);color:var(--veil);line-height:1.65;max-width:30ch}
+/* Wraps, because this screen is not only ever seen on a television: loading it
+   on a phone to check something used to push the code off the right edge. */
+#pair .cols{display:flex;align-items:center;gap:calc(var(--u)*3.4);flex-wrap:wrap}
+#pair .step{font-size:calc(var(--u)*1.3);color:var(--veil);line-height:1.65;max-width:26ch}
 #pair .step b{color:var(--cream);font-weight:600}
-#pair .code{font-family:var(--text);font-size:calc(var(--u)*5.2);font-weight:700;
-  letter-spacing:.14em;line-height:1;margin-top:calc(var(--u)*1.1);color:var(--clay);
+/* Demoted from 5.2u to 2.9u. Still readable across a room, no longer competing
+   with the QR for the eye of someone who can just point their camera. */
+#pair .code{font-family:var(--text);font-size:calc(var(--u)*2.9);font-weight:700;
+  letter-spacing:.14em;line-height:1;margin-top:calc(var(--u)*.5);color:var(--clay);
   font-variant-numeric:tabular-nums}
-#pair .code i{font-style:normal;opacity:.30;margin:0 calc(var(--u)*.5);letter-spacing:0}
-#pair .qr{width:calc(var(--u)*11);height:calc(var(--u)*11);border-radius:calc(var(--u)*.5);
-  background:#f6efe7;padding:calc(var(--u)*.5);flex:none}
-#pair .qr img{width:100%;height:100%;display:block;image-rendering:pixelated}
+#pair .code i{font-style:normal;opacity:.30;margin:0 calc(var(--u)*.4);letter-spacing:0}
+/* 16u, up from 11u. This is scanned from a sofa, and the quiet zone is drawn
+   into the canvas so the light padding here is presentation only. */
+#pair .qr{width:calc(var(--u)*16);height:calc(var(--u)*16);border-radius:calc(var(--u)*.6);
+  background:#f6efe7;padding:calc(var(--u)*.45);flex:none;
+  box-shadow:0 calc(var(--u)*.5) calc(var(--u)*2) rgba(0,0,0,.28)}
+#pair .qr canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+#pair .fallback{margin-top:calc(var(--u)*1.5);padding-top:calc(var(--u)*1.2);
+  border-top:1px solid rgba(246,239,231,.16)}
+#pair .fallback .lead{font-size:calc(var(--u)*1.12);color:var(--veil);line-height:1.6}
+#pair .fallback .lead b{color:var(--cream);font-weight:600}
+/* The one-click path for a machine that has a keyboard. display:none is the
+   default so the TV never shows it, and the script turns it on only after the
+   same positive identification the routing in <head> uses. */
+#pair .here{display:none;font-size:calc(var(--u)*1.12);color:var(--veil);
+  line-height:1.6;margin-bottom:calc(var(--u)*.7)}
+#pair .here a{color:var(--clay);font-weight:600;text-decoration:none;
+  border-bottom:1px solid rgba(217,164,143,.42)}
+#pair .here a:hover{color:var(--cream);border-bottom-color:rgba(246,239,231,.6)}
 #pair .wait{display:flex;align-items:center;margin-top:calc(var(--u)*1.6);
   font-size:calc(var(--u)*1.05);color:var(--veil);letter-spacing:.1em;text-transform:uppercase}
 #pair .wait i{width:calc(var(--u)*.5);height:calc(var(--u)*.5);border-radius:50%;
   background:var(--clay);margin-right:calc(var(--u)*.6);font-style:normal;
   -webkit-animation:breathe 2.6s ease-in-out infinite;animation:breathe 2.6s ease-in-out infinite}
 #pair.done .head{color:var(--clay)}
+/* Connected: the QR and the instructions have done their job. They fade rather
+   than vanish, so the screen reads as one thing progressing. */
+body.claimed #pair .step,
+body.claimed #pair .fallback{opacity:0;transition:opacity .5s ease}
+body.claimed #pair .qr{opacity:.18;transition:opacity .7s ease}
+
+/* ── the screen asking for help ────────────────────────────────────────────
+   A footer link is fine on a phone, where somebody is already holding the
+   device and looking at a page. It is close to useless on a wall: the serious
+   faults happen at Fajr, the person is across the room, and they are not going
+   to open a browser and type a URL to tell us something is wrong.
+
+   So the screen watches itself, and when it has been genuinely unhealthy for
+   several minutes it asks. The QR carries this screen's own id, so a scan lands
+   on the report form with the machine's side of the story already attached.
+
+   It appears only on a sustained real fault and never on a healthy screen. A
+   wall display that nags is worse than one that stays quiet. */
+#fault{position:fixed;right:var(--safe-x);bottom:var(--safe-y);z-index:55;
+  display:none;align-items:center;gap:calc(var(--u)*1.1);
+  padding:calc(var(--u)*.9) calc(var(--u)*1.2);border-radius:calc(var(--u)*.9);
+  background:rgba(34,30,28,.92);border:1px solid rgba(216,162,74,.42);
+  max-width:calc(var(--u)*26)}
+#fault.show{display:flex}
+#fault canvas{width:calc(var(--u)*6.4);height:calc(var(--u)*6.4);display:block;
+  border-radius:calc(var(--u)*.3);background:#f6efe7;padding:calc(var(--u)*.25);flex:none;
+  image-rendering:pixelated}
+#fault .t{font-size:calc(var(--u)*1.02);line-height:1.45;color:var(--cream)}
+#fault .t b{color:#e0bd7d;font-weight:700;display:block;margin-bottom:calc(var(--u)*.3)}
+#fault .t span{color:var(--veil);font-size:calc(var(--u)*.9)}
 
 #gate{position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;display:none;
   align-items:center;justify-content:center;background:rgba(23,20,15,.97);
   text-align:center;padding:7%}
-#gate.show{display:flex}
+/* Same shape as the bug that stopped a real user on an Echo Show 8: a centred
+   flex box with no escape if its content ever exceeds the viewport. It is
+   currently safe only because the copy is short, which is not protection, it is
+   luck. The other session measured it at 256-361px against 540-800 and flagged
+   that one more sentence in here reproduces the bug with no way out. Two lines
+   now, rather than after someone cannot press the button that turns the athan on. */
+/* Column, not the row it was. #gate centres with align-items:center on a flex
+   ROW, and an overflowing row clips both ends exactly like the centred column in
+   #pair did. Auto margins on pseudo-elements only centre along the main axis, so
+   the direction has to change for the trick to do anything vertically. It looks
+   identical when the content fits, which is every case today. */
+#gate.show{display:flex;flex-direction:column;overflow-y:auto;
+  -webkit-overflow-scrolling:touch}
+#gate.show:before,#gate.show:after{content:'';margin:auto;flex:0 0 auto}
+#gate.show>div{flex-shrink:0}
 #gate h2{font-family:var(--display);font-size:calc(var(--u)*3.1);line-height:1.08;
   letter-spacing:-.028em}
 #gate p{margin:calc(var(--u)*1.1) auto 0;font-size:calc(var(--u)*1.16);color:var(--veil);
@@ -334,6 +480,104 @@ body[data-mode="mosque"] .stop .jm{font-size:calc(var(--u)*2.8)}
 body[data-mode="mosque"] .now{font-size:calc(var(--u)*5.6)}
 body.dimmed #shell{opacity:.14;-webkit-transition:opacity 2.4s ease;transition:opacity 2.4s ease}
 body.dimmed #scrim{opacity:.5}
+
+/* ── compact: Echo Show and other small panels ───────────────────────────
+   The whole composition assumes a 16:9 TV four metres away. On an Echo Show 5
+   or 8 that reads as cramped: five rail columns each carrying a name, a time
+   and a "begins" line is far too much information for a 5-inch screen you look
+   at from two feet.
+
+   So the small layout is not a scaled-down TV, it is a different edit. Rail
+   loses its "begins" sub-line, the Arabic date and the wordmark tagline go, the
+   hero comes down hard, and the type block takes the full width because there
+   is no room to compose around the minaret. Overscan margins also shrink — a
+   Show has no overscan, that padding was purely a TV concession. */
+body.compact{--safe-x:3.2%;--safe-y:3.6%}
+body.compact .masjid{display:none}
+body.compact .hijri-ar{display:none}
+body.compact .mark .word{font-size:calc(var(--u)*1.5)}
+body.compact .now{font-size:calc(var(--u)*3.1)}
+body.compact .greg{font-size:calc(var(--u)*.85)}
+body.compact main{max-width:100%}
+body.compact .eyebrow{font-size:calc(var(--u)*.82);letter-spacing:.16em}
+body.compact .prayer{font-size:calc(var(--u)*5.6);margin:calc(var(--u)*.2) 0 calc(var(--u)*.1)}
+body.compact .line .t{font-size:calc(var(--u)*1.9)}
+body.compact .line .c{font-size:calc(var(--u)*1.9)}
+body.compact .leave{font-size:calc(var(--u)*1.15);margin-top:calc(var(--u)*.5)}
+body.compact .big{font-size:calc(var(--u)*4.4)}
+body.compact .big-sub{font-size:calc(var(--u)*1.4)}
+body.compact .rail{padding-top:calc(var(--u)*.7)}
+/* The begins times come BACK on small screens, which is the opposite of what I
+   first assumed. A TV is 3m away, an Echo Show is 60cm. Angular size is what
+   governs legibility, so the Show can carry MORE detail than the TV, not less.
+   Hiding them was treating "small screen" as "less room for content" when the
+   real constraint at 960x480 is vertical space, not information. */
+body.compact .stop .bg{display:block;font-size:calc(var(--u)*.72);
+  margin-top:calc(var(--u)*.12);opacity:.8}
+body.compact .stop .nm{font-size:calc(var(--u)*.78);letter-spacing:.1em}
+body.compact .stop .jm{font-size:calc(var(--u)*1.7)}
+body.compact .stop{padding:calc(var(--u)*.3) calc(var(--u)*.3)}
+body.compact footer{font-size:calc(var(--u)*.7);margin-top:calc(var(--u)*.45)}
+/* Pairing had zero compact rules, which is why it never fitted a Show. Target
+   is roughly 430px of content so it survives even a greedy browser chrome. */
+body.compact #pair .head{font-size:calc(var(--u)*3.1);margin:calc(var(--u)*.3) 0 calc(var(--u)*.55);
+  max-width:20ch}
+body.compact #pair .cols{gap:calc(var(--u)*1.9)}
+body.compact #pair .qr{width:calc(var(--u)*10.5);height:calc(var(--u)*10.5)}
+body.compact #pair .step{font-size:calc(var(--u)*1.05);line-height:1.5;max-width:24ch}
+body.compact #pair .code{font-size:calc(var(--u)*2.1);margin-top:calc(var(--u)*.35)}
+body.compact #pair .fallback{margin-top:calc(var(--u)*.8);padding-top:calc(var(--u)*.7)}
+body.compact #pair .fallback .lead{font-size:calc(var(--u)*.95);line-height:1.45}
+body.compact #pair .wait{margin-top:calc(var(--u)*.85);font-size:calc(var(--u)*.9)}
+/* 960x480 is a cinema strip, not a small television. Centring the hero in a
+   flex:1 column left a dead band through the middle of the screen; pushing it
+   down against the rail closes that and gives the sky the top third, which is
+   where the sky is actually worth looking at. */
+body.compact main{justify-content:flex-end;padding-bottom:calc(var(--u)*1.15)}
+/* Sakib, reading his own Show from across the room: "fajr in 10 mins, I can see
+   that from far away". He reads it as ONE PHRASE, and the design had it as a
+   hero plus a footnote — name at 5.2u against a countdown at 1.9u.
+
+   That is the hierarchy inverted. The prayer name does not tell you to move;
+   the countdown does. So they now sit on one baseline at comparable weight,
+   which also spends the axis this screen actually has: 960x480 is starved of
+   height and rich in width. */
+body.compact #hero{display:flex;flex-wrap:wrap;align-items:baseline;
+  column-gap:calc(var(--u)*.55)}
+/* Scoped to #hero, and that scope is the whole bug. flex:0 0 100% is right
+   here, where #hero is a wrapping ROW and this forces the label onto its own
+   line above the prayer name. Unscoped it also matched the pairing screen's
+   eyebrow, and #pair is a COLUMN, where a 100% basis means 100% of the HEIGHT.
+   So the word "Set up" claimed 708px of an 800px panel and pushed the QR off
+   the bottom. That is what stopped Sakib's sister setting hers up. */
+body.compact #hero .eyebrow{flex:0 0 100%;font-size:calc(var(--u)*.74);
+  letter-spacing:.2em;margin-bottom:calc(var(--u)*.05)}
+body.compact .prayer{font-size:calc(var(--u)*4.5);margin:0}
+body.compact .line{align-items:baseline}
+body.compact .line .t{font-size:calc(var(--u)*2.6);color:var(--cream);opacity:1}
+body.compact .line .c{font-size:calc(var(--u)*2.6)}
+body.compact #hero .leave{flex:0 0 100%;margin-top:calc(var(--u)*.35)}
+body.compact #hero .eyebrow{margin-bottom:calc(var(--u)*.1)}
+body.compact .prayer{font-size:calc(var(--u)*5.2);margin:calc(var(--u)*.12) 0 calc(var(--u)*.18)}
+body.compact .rail{padding-top:calc(var(--u)*.85)}
+/* a bright grade (dhuhr) put cream on near-white sky in Sakib's photo, so the
+   local darkening behind type is stronger here than on the TV, not weaker */
+body.compact #scrim{background:
+  radial-gradient(ellipse 66% 52% at 22% 62%, rgba(23,20,15,.62) 0%, rgba(23,20,15,.26) 54%, rgba(23,20,15,0) 80%),
+  linear-gradient(to bottom, rgba(23,20,15,.58) 0%, rgba(23,20,15,.2) 16%, rgba(23,20,15,0) 36%),
+  linear-gradient(to top,    rgba(23,20,15,.92) 0%, rgba(23,20,15,.58) 30%, rgba(23,20,15,0) 62%),
+  linear-gradient(to right,  rgba(23,20,15,.62) 0%, rgba(23,20,15,.3) 58%, rgba(23,20,15,.08) 100%)}
+/* the scrim was tuned to protect type on a wide frame; on a narrow one the
+   type fills the width, so it needs to be flatter and more even */
+body.compact #scrim{background:
+  linear-gradient(to bottom, rgba(23,20,15,.55) 0%, rgba(23,20,15,.2) 18%, rgba(23,20,15,0) 40%),
+  linear-gradient(to top,    rgba(23,20,15,.88) 0%, rgba(23,20,15,.5) 30%, rgba(23,20,15,0) 60%),
+  linear-gradient(to right,  rgba(23,20,15,.55) 0%, rgba(23,20,15,.3) 60%, rgba(23,20,15,.1) 100%)}
+/* nothing should slide across the tower, but on a narrow frame the tower is
+   most of the picture, so let the drift run wider */
+body.compact #driftWrap{
+  -webkit-mask-image:linear-gradient(to right, #000 0%, #000 74%, transparent 94%);
+  mask-image:linear-gradient(to right, #000 0%, #000 74%, transparent 94%)}
 </style>
 </head>
 <body data-state="idle">
@@ -371,7 +615,7 @@ body.dimmed #scrim{opacity:.5}
   <main>
     <div id="hero">
       <div class="eyebrow rise d2">next jama'ah</div>
-      <div class="prayer rise d2" id="prayerName">—</div>
+      <div class="prayer rise d2" id="prayerName">&nbsp;</div>
       <div class="line rise d3">
         <span class="t" id="prayerTime">--:--</span>
         <span class="c" id="countdown"></span>
@@ -390,6 +634,11 @@ body.dimmed #scrim{opacity:.5}
 
   <footer>
     <div class="stat rise d4" id="stat"><i></i><span id="statText">connecting</span></div>
+    <!-- The screen's own id, dim and small. It exists so somebody standing in a
+         hallway can quote it into the report form and have their words land next
+         to what this screen was actually doing. Bilal is experimental and will
+         break; the id is what makes a report solvable rather than a shrug. -->
+    <div class="rise d4" id="devId" title="Quote this when reporting a problem"></div>
     <div class="rise d4" id="audioState"></div>
   </footer>
 
@@ -399,13 +648,30 @@ body.dimmed #scrim{opacity:.5}
   <div class="eyebrow">Set up</div>
   <div class="head" id="pairHead">Point your phone at this screen.</div>
   <div class="cols">
+    <div class="qr"><canvas id="pairQr"></canvas></div>
     <div>
-      <div class="step">Open <b id="setupUrl">bilalathan.co.uk/s</b> on your phone,<br>or scan the code, then enter:</div>
-      <div class="code" id="pairCode">– – –<i>·</i>– – –</div>
+      <div class="step">Open the camera and hold it up to the code. Everything
+        it needs is in there.</div>
+      <div class="fallback">
+        <!-- Shown only on something positively identified as a desk browser, and
+             hidden by default so a television can never reach a state where it
+             is telling someone to click a link at it. -->
+        <div class="here" id="pairHere">Running this on a computer?
+          <a id="pairHereLink" href="#" target="_blank" rel="noopener">Set it up on this screen</a>
+        </div>
+        <div class="lead">No camera? Go to <b id="setupUrl">bilalathan.co.uk/s</b>
+          and type</div>
+        <div class="code" id="pairCode">&nbsp;</div>
+      </div>
       <div class="wait" id="pairWait"><i></i><span>waiting for your phone</span></div>
     </div>
-    <div class="qr"><img src="pair-qr.png" alt=""></div>
   </div>
+</div>
+
+<div id="fault">
+  <canvas id="faultQr"></canvas>
+  <div class="t"><b id="faultWhat">This screen isn't right.</b>
+    <span>Scan to tell us. It takes a sentence.</span></div>
 </div>
 
 <div id="gate"><div>
@@ -414,11 +680,18 @@ body.dimmed #scrim{opacity:.5}
   <button id="gateBtn">Press OK</button>
 </div></div>
 
+<script src="qr.js"></script>
+<script src="diag.js"></script>
 <script>
 (function(){
   "use strict";
 
   var Q=new URLSearchParams(location.search);
+  /* tv.html's desktop hero embeds this page as a living demo. A demo never
+     writes config (the visitor's browser must not quietly become a paired
+     display) and never makes sound. Everything else runs exactly as the TV
+     runs it, which is the point of showing it. */
+  var DEMO = Q.get('demo')==='1';
   /* Config resolves URL > paired > default. The default mosque only applies when
      a URL names none, so every existing bookmark keeps working untouched. */
   var SAVED={};
@@ -428,7 +701,7 @@ body.dimmed #scrim{opacity:.5}
   /* A URL that names a mosque configures the screen permanently. Without this,
      anyone handed a ?masjid= link would be asked to pair again on every reload,
      and a TV is the worst possible place to keep re-entering a URL. */
-  if(Q.get('masjid')){
+  if(Q.get('masjid') && !DEMO){
     try{
       localStorage.setItem('bilal.config', JSON.stringify({
         slug: Q.get('masjid'),
@@ -440,12 +713,13 @@ body.dimmed #scrim{opacity:.5}
 
   var CFG={
     slug: Q.get('masjid')||SAVED.slug||'darul-ummah-goresbrook-1649608083137',
-    key:  Q.get('key')||'JejYcMS7hsOsZTPDk2ZhKOAlW9IyQ6Px',
     walk: parseInt(Q.get('walk')||SAVED.walk||'15',10),
     mode: Q.get('mode')||'home',
     athan:Q.get('athan')||'athan.mp3',
-    quiet:Q.get('quiet')==='1',
+    quiet:Q.get('quiet')==='1' || DEMO,
     dim:  Q.get('dim')!=='0',
+    lite: Q.get('lite')==='1',   // no drift, no heroes: isolates GPU flicker
+
     at:   Q.get('at')||''          // ?at=17:40 to preview any hour
   };
 
@@ -459,14 +733,34 @@ body.dimmed #scrim{opacity:.5}
   function nowDate(){ return new Date(Date.now()+SHIFT); }
   document.body.setAttribute('data-mode',CFG.mode);
 
-  var API='https://api.masjidbox.com/1.0/masjidbox/landing/athany/';
+  /* Every time request goes through our own endpoint, which fronts the
+     directories this display draws on and returns each one's reply unchanged.
+     The id's shape still decides which parser reads that reply, so these two
+     tests must stay identical to the endpoint's own routing. The
+     digit-or-capital lookahead is load bearing — a handful of dashed-directory
+     slugs are exactly 8 lowercase letters, and a bare {8} test would hand
+     every one of them to the wrong parser. */
+  var TIMES='https://bilal-times.ahmed-sakib.workers.dev/v1';
+  var NUM_ID_RE=/^mosque-\d+$/i;
+  var CODE_ID_RE=/^(?=.*[A-Z0-9])[A-Za-z0-9]{8}$/;
   var ORDER=['fajr','dhuhr','asr','maghrib','isha'];
   var LABEL={fajr:"fajr",dhuhr:"dhuhr",asr:"asr",maghrib:"maghrib",isha:"isha"};
   var CAP={fajr:"Fajr",dhuhr:"Dhuhr",asr:"Asr",maghrib:"Maghrib",isha:"Isha"};
   var CACHE='bilal.tt.'+CFG.slug;
+  /* A screen that changes mosque leaves the old timetable behind forever —
+     ~40KB each on devices where localStorage is not a bottomless pit. Keep
+     only the cache for the mosque this screen actually shows. */
+  try{
+    for(var ci=localStorage.length-1;ci>=0;ci--){
+      var ck=localStorage.key(ci);
+      if(ck && ck.indexOf('bilal.tt.')===0 && ck!==CACHE) localStorage.removeItem(ck);
+    }
+  }catch(e){}
 
   var data=null,lastFetch=0,fired={},athanReady=false,armed=false;
+  var clkHM=null,clkS=null,railKey=null;
   var audioEl=null,cueEl=null,ctx=null,skyFromKey=null,skyToKey=null,lastKey=null;
+  var revealed=false;   // has anything taken the shell out of opacity 0
 
   function $(i){return document.getElementById(i);}
   function pad(n){return (n<10?'0':'')+n;}
@@ -478,12 +772,45 @@ body.dimmed #scrim{opacity:.5}
     var u=Math.min(w*0.0122,h*0.0215);
     if(u<9) u=9;
     document.documentElement.style.setProperty('--u',u.toFixed(2)+'px');
+    /* Echo Show and similar.
+       I originally wrote this on viewport alone and noted, with some
+       satisfaction, that it avoided sniffing the user agent. That is exactly
+       why it failed: an Echo Show 5 is 960x480, so `h < 460` missed it by
+       twenty pixels and Sakib's Show ran the full TV layout squeezed into five
+       inches for a day. A generic size rule cannot tell a 960x480 Echo from a
+       window someone shrank, because they are the same size.
+       So: viewport for the generic case, AND the Amazon UA for the devices
+       whose size lies about how far away they are. */
+    var ua = navigator.userAgent || '';
+    var isEcho = /Echo|AEO[A-Z0-9]*/i.test(ua);
+    var small = (w < 820) || (h < 620) || (isEcho && h < 1000);
+    document.body.classList[small?'add':'remove']('compact');
+    if(small){
+      /* The 10px floor keeps type legible on a small panel, but it must never
+         beat the height. The layout wants about 22.7 units of height, so on a
+         viewport too short to hold that, the floor stops being a minimum and
+         becomes an overflow: the rail walks off the bottom edge and the
+         timetable — the part you came for — is cut through the middle of its
+         own labels. A complete display in small type beats a half-cut one in
+         large type, so the floor is itself capped by what the height affords.
+         This only bites on genuinely short viewports (the demo panel on
+         tv.html at 317x178). Phone portrait, Echo Show and Fire TV all have
+         the height to hold the floor and are untouched. */
+      var uh=h*0.032, u2=Math.min(w*0.019,uh);
+      if(u2<10) u2=Math.min(10,uh);
+      document.documentElement.style.setProperty('--u',u2.toFixed(2)+'px');
+    }
   }
   scale();
   window.addEventListener('resize',scale);
   window.addEventListener('orientationchange',scale);
 
   ORDER.forEach(function(k){ var i=new Image(); i.src='sky/'+k+'.jpg'; });
+  /* ?lite=1 removes every moving layer and the mask that composites them. If the
+     flicker goes with it, the cause is GPU compositing rather than the DOM. */
+  if(CFG.lite){
+    var dw=$('driftWrap'); if(dw) dw.style.display='none';
+  }
   ['stars','clouds'].forEach(function(k){ var i=new Image(); i.src='sky/'+k+'.png'; });
 
   // Every layer's weight at each prayer. Written out per-layer rather than as
@@ -572,8 +899,12 @@ body.dimmed #scrim{opacity:.5}
    * that's about 90 minutes of sunset slowly becoming night; between Isha and
    * Fajr it's seven hours of almost nothing happening, which is correct.
    *
-   * Before the day's first prayer there is no previous entry in the list, so
-   * Isha stands in as the "from" — at 3am the sky behind you is night.
+   * After midnight the previous prayer is YESTERDAY'S isha, which is why the
+   * fetch window and upcoming() both reach one day back: the blend runs
+   * unbroken through 00:00. Only when yesterday is genuinely unknown (a first
+   * boot in the small hours, a cache that started today) does prev come up
+   * empty, and then the incoming sky simply stands at full — a fixed, wrong-ish
+   * backdrop beats a snap that happens while someone is looking at it.
    */
   function paintSky(now, prev, next){
     var fromKey = prev ? prev.key : 'isha';
@@ -611,6 +942,7 @@ body.dimmed #scrim{opacity:.5}
   // replay the entrance choreography
   function choreograph(){
     var s=$('shell');
+    revealed = true;          // whatever else happens, the shell is not black now
     s.classList.remove('go');
     /* force reflow so the transition restarts */
     void s.offsetWidth;
@@ -619,7 +951,14 @@ body.dimmed #scrim{opacity:.5}
 
   // ---------- data ----------
   function load(){
-    return fetch(API+CFG.slug+'?get=at&days=7&begin='+iso(new Date()),{headers:{'apikey':CFG.key}})
+    if(NUM_ID_RE.test(CFG.slug)) return loadNumbered();
+    if(CODE_ID_RE.test(CFG.slug)) return loadCoded();
+    /* The window starts YESTERDAY, not today. After midnight the sky is still
+       blending yesterday's isha into fajr, and that needs yesterday's row —
+       fetching from today made the blend snap to full dawn at 00:00 (and again
+       whenever a post-midnight refetch dropped the old row). One day of the
+       seven buys the sky its continuity; the display still sees today+5. */
+    return fetch(TIMES+'/times?id='+encodeURIComponent(CFG.slug)+'&from='+iso(new Date(Date.now()-86400000)))
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(j){
         if(!j||!j.timetable||!j.timetable.length) throw new Error('empty');
@@ -628,15 +967,186 @@ body.dimmed #scrim{opacity:.5}
         stat('','live · synced '+hhmm(new Date()));
         if(j.name) $('masjidName').textContent=j.name;
       })
-      .catch(function(){
-        try{
-          var c=JSON.parse(localStorage.getItem(CACHE)||'null');
-          if(c&&c.j){ data=c.j;
-            stat('warn','offline · cached '+Math.round((Date.now()-c.t)/3600000)+'h ago');
-            if(c.j.name) $('masjidName').textContent=c.j.name; return; }
-        }catch(e){}
-        stat('err','no connection');
-      });
+      .catch(function(){ if(!useCache()) stat('err','no connection'); });
+  }
+
+  /* The numbered directory serves no hijri date, and a blank date line under half the mosques in
+     the directory is the one place the two sources would be visibly different.
+     It is also the one field that does not need a mosque to supply it: a hijri
+     date is a calendar conversion of the Gregorian one.
+
+     `islamic-civil` is the variant to use, not the more obvious
+     `islamic-umalqura`. Checked against the primary directory's own hijri output across a
+     week spanning a month rollover: civil agrees on every day number and turns
+     the month on the same day, where umalqura runs two days ahead. Getting this
+     wrong is not cosmetic — the date is what people count fasts from.
+
+     The month NAMES still come from a table here, because Intl renders the
+     English as "Rabiʻ I" where the directory writes "Rabi` al-Awwal", and the two
+     sources have to be indistinguishable on screen.
+
+     Wrapped in try/catch and allowed to return null: Fire OS Silk can be
+     Chromium ~70 with a trimmed ICU, and a missing calendar must degrade to the
+     blank line it already shows rather than throwing inside the render path. */
+  var HIJRI_MONTHS=['Muharram','Safar','Rabi` al-Awwal','Rabi` al-Thani',
+    'Jumada al-Ula','Jumada al-Akhirah','Rajab','Sha`ban','Ramadan','Shawwal',
+    'Dhu al-Qa`dah','Dhu al-Hijjah'];
+  function hijriFor(d){
+    try{
+      var en=new Intl.DateTimeFormat('en-u-ca-islamic-civil',
+        {day:'numeric',month:'numeric',year:'numeric'}).formatToParts(d);
+      var o={}; en.forEach(function(p){ o[p.type]=p.value; });
+      var day=parseInt(o.day,10), mon=parseInt(o.month,10), yr=parseInt(o.year,10);
+      if(isNaN(day)||isNaN(mon)||isNaN(yr)) return null;
+      var ar=new Intl.DateTimeFormat('ar-u-ca-islamic-civil-nu-latn',
+        {weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)
+        .replace('،','')            // Intl separates the weekday with a comma
+        .replace(/\s*هـ\s*$/,'')    // and suffixes the era; the directory does neither
+        .trim();
+      return { formatted: ar, dayOfMonth: day,
+               monthISO: HIJRI_MONTHS[mon-1]||'', year: yr };
+    }catch(e){ return null; }
+  }
+
+  /* The numbered directory's /times rows are keyed the opposite way round from
+     the primary's: the top-level fields (row.fajr etc.) are the congregation
+     time and row.begin holds the prayer's start. Reshaping into the primary's
+     {timetable:[{fajr,...,iqamah:{...}}]} shape here means rowFor/upcoming/
+     paint below stay untouched — this is the only place that knows the second
+     shape exists. Times come back as bare "HH:MM" with no date or offset; appended
+     to the row's own date with no timezone suffix, `new Date(...)` parses
+     them as browser-local wall time, which is correct because a UK display
+     runs with the device set to UK local time anyway (same assumption the
+     rest of the clock code already makes). */
+  function loadNumbered(){
+    var id=CFG.slug;
+    var from=iso(new Date(Date.now()-86400000)),   // yesterday: see load()
+        to=iso(new Date(Date.now()+7*86400000));
+    return Promise.all([
+      fetch(TIMES+'/mosque?id='+encodeURIComponent(id)).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      fetch(TIMES+'/times?id='+encodeURIComponent(id)+'&from='+from+'&to='+to).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    ]).then(function(res){
+      var info=res[0], days=res[1];
+      if(!days||!days.length) throw new Error('empty');
+      function t(dateStr,hm){ return hm ? dateStr+'T'+hm+':00' : null; }
+      var j={
+        name: info&&info.name,
+        timetable: days.map(function(d){
+          var b=d.begin||{};
+          return {
+            date: d.date+'T00:00:00',
+            fajr: t(d.date,b.fajr), dhuhr: t(d.date,b.dhuhr), asr: t(d.date,b.asr),
+            maghrib: t(d.date,b.maghrib), isha: t(d.date,b.isha),
+            hijri: hijriFor(new Date(d.date+'T00:00:00')),
+            iqamah: {
+              fajr: t(d.date,d.fajr), dhuhr: t(d.date,d.dhuhr), asr: t(d.date,d.asr),
+              maghrib: t(d.date,d.maghrib), isha: t(d.date,d.isha)
+            }
+          };
+        })
+      };
+      data=j; lastFetch=Date.now();
+      try{ localStorage.setItem(CACHE,JSON.stringify({t:lastFetch,j:j})); }catch(e){}
+      stat('','live · synced '+hhmm(new Date()));
+      if(j.name) $('masjidName').textContent=j.name;
+    }).catch(function(){ if(!useCache()) stat('err','no connection'); });
+  }
+
+  /* The coded directory returns salah (begins) and iqamah (jama'ah) as two parallel arrays
+     of human strings — "4:56AM" against a date like "Tuesday, Aug 11, 2026" —
+     so both need parsing into the same date+'T'+HH:MM:00 shape the renderer
+     already reads. Two things to be careful about:
+
+     - it calls dhuhr "zuhr", so the key has to be translated or every dhuhr row
+       comes out null;
+     - the arrays are paired by their own date string, not by index. They have
+       been the same length in every mosque tested, but pairing on index would
+       silently shift the whole jama'ah column by a day if one array ever had a
+       gap, and a wrong iqamah is what the athan fires on.
+
+     Asking for 7 days keeps the payload small; their gateway takes ~60s on a
+     full year, which is far too slow for a screen waking up. */
+  function loadCoded(){
+    var id=CFG.slug;
+    var from=iso(new Date(Date.now()-86400000)),   // yesterday: see load()
+        to=iso(new Date(Date.now()+7*86400000));
+    var MON={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+    function ymd(s){
+      var m=/([A-Za-z]{3})[a-z]*\s+(\d{1,2}),\s*(\d{4})/.exec(String(s||''));
+      if(!m||!MON[m[1]]) return null;
+      return m[3]+'-'+pad(MON[m[1]])+'-'+pad(parseInt(m[2],10));
+    }
+    function hm(v){
+      var m=/^(\d{1,2}):(\d{2})\s*([AaPp])/.exec(String(v||'').trim());
+      if(!m) return null;
+      var h=parseInt(m[1],10)%12;
+      if(m[3].toLowerCase()==='p') h+=12;
+      return pad(h)+':'+m[2];
+    }
+    function at(d,v){ var t=hm(v); return t ? d+'T'+t+':00' : null; }
+    return fetch(TIMES+'/times?id='+encodeURIComponent(id)+'&from='+from+'&to='+to)
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(res){
+        if(!res||res.status!=='success'||!res.data) throw new Error('bad payload');
+        var salah=res.data.salah||[], iq=res.data.iqamah||[];
+        if(!salah.length) throw new Error('empty');
+        var iqBy={};
+        iq.forEach(function(r){ var d=ymd(r.date); if(d) iqBy[d]=r; });
+        var rows=[];
+        salah.forEach(function(s){
+          var d=ymd(s.date); if(!d) return;
+          var q=iqBy[d]||{};
+          rows.push({
+            date: d+'T00:00:00',
+            fajr: at(d,s.fajr), dhuhr: at(d,s.zuhr), asr: at(d,s.asr),
+            maghrib: at(d,s.maghrib), isha: at(d,s.isha),
+            hijri: hijriFor(new Date(d+'T00:00:00')),
+            iqamah: {
+              fajr: at(d,q.fajr), dhuhr: at(d,q.zuhr), asr: at(d,q.asr),
+              maghrib: at(d,q.maghrib), isha: at(d,q.isha)
+            }
+          });
+        });
+        if(!rows.length) throw new Error('unparsed');
+        var info=res.data.masjid_info||{};
+        var j={ name: info.name, timetable: rows };
+        data=j; lastFetch=Date.now();
+        try{ localStorage.setItem(CACHE,JSON.stringify({t:lastFetch,j:j})); }catch(e){}
+        stat('','live · synced '+hhmm(new Date()));
+        if(j.name) $('masjidName').textContent=j.name;
+      }).catch(function(){ if(!useCache()) stat('err','no connection'); });
+  }
+
+  /* Yesterday's timetable, read synchronously and with no network involved.
+     This used to live inside load()'s catch, which meant it was only ever
+     reached when the request FAILED. A request that hangs neither resolves nor
+     rejects, so the most common failure on a wall screen — a Fire Stick waking
+     up before its wifi has associated — was the one route that never touched
+     the cache. The screen sat there with a complete timetable in localStorage
+     and --:-- across the rail.
+
+     So the boot order is now cache first, network second: show what we know,
+     then upgrade. A prayer timetable a few hours old is still correct to the
+     minute for today, and the status line says how old it is. */
+  function useCache(){
+    try{
+      var c=JSON.parse(localStorage.getItem(CACHE)||'null');
+      if(c&&c.j){
+        data=c.j;
+        if(c.j.name) $('masjidName').textContent=c.j.name;
+        /* The cache holds a 7 day window. Past that it still parses, still has
+           a name, and still has a plausible age, but it has no row for today,
+           so paint() finds nothing and the rail stays empty. Reporting "cached
+           12h ago" over an empty rail claims we have the times while showing
+           none of them, which is the same lie as a footer saying the athan is
+           ready when it is muted. Age is only worth stating when the times it
+           describes actually exist. */
+        if(!rowFor(new Date())){ stat('err','cached times have run out'); return true; }
+        stat('warn','offline · cached '+Math.round((Date.now()-c.t)/3600000)+'h ago');
+        return true;
+      }
+    }catch(e){}
+    return false;
   }
 
   function stat(k,t){ $('stat').className='stat rise d4'+(k?' '+k:''); $('statText').textContent=t; }
@@ -651,7 +1161,11 @@ body.dimmed #scrim{opacity:.5}
 
   function upcoming(now){
     var out=[];
-    for(var off=0;off<2;off++){
+    /* -1: yesterday rides along purely for the sky. paintSky needs last
+       night's isha as its "from" until fajr; the trigger and rail logic are
+       indifferent to day-old entries (due() windows are 90 seconds, fired
+       keys carry the day, the rail reads today's row directly). */
+    for(var off=-1;off<2;off++){
       var d=new Date(now.getTime()); d.setDate(d.getDate()+off);
       var row=rowFor(d); if(!row) continue;
       for(var i=0;i<ORDER.length;i++){
@@ -723,6 +1237,10 @@ body.dimmed #scrim{opacity:.5}
          screen whose audio was fine. Only real playback sets the truth, in
          call(). */
       window.__bilal.unlock = (state==='ok') ? 'ok' : 'unproven';
+      /* A resolved play() is stronger proof than canplaythrough, which waits
+         on the full 3.7MB buffer. Without this the footer read "no athan.mp3,
+         tone only" while the file was merely still downloading. */
+      if(state==='ok') athanReady=true;
       if(err) window.__bilal.lastError=String(err);
       audioState();
       keepAwake();
@@ -753,7 +1271,7 @@ body.dimmed #scrim{opacity:.5}
     // NOT a permission failure and must never be shown as one — that false alarm
     // is exactly what made a working screen look broken.
     if(u&&u.indexOf('BLOCKED')===0){ $('audioState').textContent='athan blocked by browser'; return; }
-    if(!athanReady && u!=='unproven'){ $('audioState').textContent='no athan.mp3 — tone only'; return; }
+    if(!athanReady && u!=='unproven'){ $('audioState').textContent='no athan.mp3, tone only'; return; }
     var played=window.__bilal&&window.__bilal.calls>0;
     $('audioState').textContent=played?'athan played':'athan ready';
   }
@@ -818,8 +1336,15 @@ body.dimmed #scrim{opacity:.5}
 
   function paint(){
     var now=nowDate();
-    // innerHTML, not textContent, so the seconds can carry their own style
-    $('clock').innerHTML=hhmm(now)+'<span class="sec">'+pad(now.getSeconds())+'</span>';
+    /* Two persistent text nodes, built once. This used to reparse HTML every
+       second, which is 60 needless DOM teardowns a minute on a device whose GPU
+       cannot spare them. */
+    if(!clkHM){
+      $('clock').innerHTML='<span id="clkHM"></span><span class="sec" id="clkS"></span>';
+      clkHM=$('clkHM'); clkS=$('clkS');
+    }
+    clkHM.textContent=hhmm(now);
+    clkS.textContent=pad(now.getSeconds());
 
     var row=rowFor(now);
     if(row&&row.hijri){
@@ -866,16 +1391,49 @@ body.dimmed #scrim{opacity:.5}
        proper start. Written as a condition, not "if maghrib", because the gaps
        move through the year — at a 15 min walk Asr crosses the same line today,
        and that should correct itself without a code change. */
-    var tight = next.begins && (leaveAt < next.begins);
+    /* A quarter of the numbered directory's mosques publish jama'ah times and no start times,
+       and that breaks the test above by making `next.begins` null — `tight`
+       goes false and the adhan falls back to sounding at leave-time.
+
+       For four prayers that is harmless: the gap between a prayer starting and
+       its jama'ah runs 15-47 minutes, so leave-time still lands well after the
+       prayer exists. Maghrib is the exception and always will be, because its
+       jama'ah sits within a few minutes of sunset — leave-time is then reliably
+       BEFORE Maghrib has begun, and the screen would call the adhan early. That
+       is the one error here that is religious rather than cosmetic.
+
+       So when starts are unknown, Maghrib's jama'ah stands in as the earliest
+       moment the adhan may sound. It is a few minutes late by construction,
+       which is the safe direction to be wrong in. */
+    var startAt = next.begins || (next.key==='maghrib' ? next.jamaah : null);
+    var tight = startAt && (leaveAt < startAt);
     if(CFG.mode==='home'){
       var kLeave=next.day+':'+next.key+':leave';
       var kAthan=next.day+':'+next.key+':athan';
       var due=function(m){ return m<=0 && m>-1.5; };
+      /* Only consume a trigger once a fire can actually be heard. fired[] used
+         to be set BEFORE call(), and call() no-ops until the OK press — so a
+         reload landing inside the 90s window ate the trigger while unarmed,
+         and the press seconds later got silence. Quiet mode still consumes:
+         it is deliberately soundless, not waiting for permission. */
+      var canFire = armed || CFG.quiet;
       if(tight){
-        if(!fired[kLeave] && due(toLeave)){ fired[kLeave]=1; cue(); }
-        if(!fired[kAthan] && due((next.begins-now)/60000)){ fired[kAthan]=1; call(); }
+        if(canFire && !fired[kLeave] && due(toLeave)){ fired[kLeave]=1; cue(); }
+        if(canFire && !fired[kAthan] && due((startAt-now)/60000)){ fired[kAthan]=1; call(); }
       } else {
-        if(!fired[kAthan] && due(toLeave)){ fired[kAthan]=1; call(); }
+        if(canFire && !fired[kAthan] && due(toLeave)){ fired[kAthan]=1; call(); }
+      }
+      /* The stand-in case has a hole the block above cannot see: when startAt
+         IS the jama'ah, the instant it arrives `next` has already moved on to
+         the following prayer, so its due() never comes up while `next` still
+         names the right prayer — and the adhan simply never sounded. The
+         prayer that just started gets its own check, same stand-in rule, same
+         window, same fired key, so a no-begins Maghrib is called at its
+         jama'ah rather than never. */
+      if(canFire && started){
+        var kSt=started.day+':'+started.key+':athan';
+        var stAt=started.begins || started.jamaah;
+        if(!fired[kSt] && due((stAt-now)/60000)){ fired[kSt]=1; call(); }
       }
     }
 
@@ -911,6 +1469,17 @@ body.dimmed #scrim{opacity:.5}
 
   function rail(now,next,started){
     var row=rowFor(now); if(!row) return;
+    /* The rail's contents change when the day turns over, when the highlighted
+       prayer moves, or when one goes past. That is a handful of times a day, and
+       it was being torn down and rebuilt every single second. */
+    var head=started||next;
+    var key=row.date.slice(0,10)+'|'+(head?head.key+head.day:'')+'|';
+    for(var z=0;z<ORDER.length;z++){
+      var jz=row.iqamah&&row.iqamah[ORDER[z]];
+      key+=(jz&&new Date(jz)<now)?'1':'0';
+    }
+    if(key===railKey) return;
+    railKey=key;
     var head=started||next, html='';
     for(var i=0;i<ORDER.length;i++){
       var k=ORDER[i];
@@ -926,8 +1495,19 @@ body.dimmed #scrim{opacity:.5}
     $('rail').innerHTML=html;
   }
 
+  /* Burn-in protection: a panel showing the same rail in the same place for
+     hours will etch it, so the shell moves a little once a minute. The range
+     was written as flat pixels against a 1280x720 television, where +/-9px is
+     about a fifth of the safe margin and reads as nothing at all. The demo
+     panel on tv.html is 317x178, where the margin is 10px, so the same 9px
+     parked the content hard against the right edge with no padding left.
+     Same lesson as the type floor above: a constant measured on a television
+     is not a constant. As fractions of the panel it drifts by the same
+     proportion everywhere, and still lands on +/-9 and +/-6 at 1280x720. */
   function drift(){
-    var x=(Math.random()*18-9).toFixed(1),y=(Math.random()*12-6).toFixed(1);
+    var w=window.innerWidth||1280,h=window.innerHeight||720;
+    var x=((Math.random()*2-1)*w*0.00703).toFixed(1),
+        y=((Math.random()*2-1)*h*0.00833).toFixed(1);
     var t='translate('+x+'px,'+y+'px)';
     $('shell').style.webkitTransform=t; $('shell').style.transform=t;
   }
@@ -944,6 +1524,34 @@ body.dimmed #scrim{opacity:.5}
       if(window.__bilal) window.__bilal.hum=hum;
     }
     if('wakeLock' in navigator){ try{ navigator.wakeLock.request('screen').catch(function(){}); }catch(e){} }
+  }
+
+  /* Echo Show: Silk closes the browser after roughly ten minutes of what it
+     judges to be inactivity, and Amazon offer no setting to turn that off.
+     The known workaround (mehowq/keep-silk-open) is a silent track RELOADED
+     every minute — a loop is not enough, because a continuously-looping element
+     never re-registers as fresh activity. We already had the silent track for
+     the Fire Stick; this adds the part that was missing.
+
+     Harmless everywhere else: it is 48KB from cache and inaudible. Needs the
+     gesture first, same as everything else that makes sound. */
+  function nudgeSilk(){
+    if(!armed || !hum) return;
+    try{
+      /* Was hum.load(), a full teardown and re-fetch of the audio element every
+         55s. On a weak GPU that can force a compositor flush that shows as a
+         one-frame flicker — and because it is on a timer, it flickers
+         SOMETIMES, only when you happen to be watching at the 55s mark. Silk's
+         idle timer resets on playback activity, so a seek-and-play is enough;
+         the element never needs rebuilding. */
+      if(hum.paused){
+        var p=hum.play();
+        if(p&&p.catch) p.catch(function(){});
+      } else {
+        hum.currentTime = 0;            // a nudge, not a rebuild
+      }
+      if(window.__bilal) window.__bilal.silkNudges=(window.__bilal.silkNudges||0)+1;
+    }catch(e){}
   }
 
   // ---------- pairing ----------
@@ -972,22 +1580,54 @@ body.dimmed #scrim{opacity:.5}
 
   function startPairing(){
     // show the host we are actually on: staging must not point at production
+    var origin = location.origin + location.pathname.replace(/\/[^/]*$/, '');
     try{
-      var base=location.host+location.pathname.replace(/\/[^/]*$/,'');
-      $('setupUrl').textContent=(base+'/s').replace(/\/+$/,'').replace(/\/\//g,'/');
+      $('setupUrl').textContent=(location.host+location.pathname.replace(/\/[^/]*$/,'')+'/s')
+        .replace(/\/+$/,'').replace(/\/\//g,'/');
     }catch(e){}
     document.body.setAttribute('data-state','idle');
     document.body.classList.add('pairing');
     $('pair').classList.add('show');
+    scale();   // re-size now that the pairing class exists, or it keeps the display's unit
     var code = newCode();
     showCode(code);
+
+    /* A television has to be pointed at, because it cannot be typed into. A
+       laptop can, so sending someone to fetch their phone while they are sat
+       at the keyboard is ceremony for its own sake. Same rule as the routing
+       in <head>, pointed the same way: POSITIVE identification only, because
+       a TV wrongly offered a link shows a line nobody can click, while a
+       laptop wrongly denied one simply types the code as before.
+
+       target=_blank is load bearing. Navigating this tab to the setup page
+       would take the display down with it, and the pairing it is polling for
+       dies at the same moment. `here=1` tells the setup page it is finishing
+       on the machine it started on, so it can close with the advice that
+       actually applies there. */
+    try{
+      var pua = navigator.userAgent || '';
+      if(/Macintosh|Windows NT|CrOS|X11; Linux (x86_64|i686|amd64)/i.test(pua)
+         && !/CrKey|Tizen|Web0S|WebOS|SMART-TV|SmartTV|BRAVIA|Roku|PlayStation|Xbox|GoogleTV|HbbTV|Viera|NetCast/i.test(pua)){
+        $('pairHereLink').href = origin + '/s.html?c=' + code + '&here=1';
+        $('pairHere').style.display = 'block';
+      }
+    }catch(e){}
+
+    /* The code travels inside the QR, so a scan lands on the setup page already
+       knowing which television it is talking to. If drawing fails for any
+       reason the printed code below it still works, which is why this is
+       allowed to fail quietly rather than take the screen down. */
+    try{
+      window.BilalQR.draw($('pairQr'), origin + '/s.html?c=' + code,
+        { size: 640, dark: '#221E1C', light: '#F6EFE7', quiet: 3 });
+    }catch(e){}
 
     fetch(SB, {method:'POST',
       headers: sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body: JSON.stringify({code: code})
     }).catch(function(){});
 
-    var tries = 0;
+    var tries = 0, claimed = false;
     var poll = setInterval(function(){
       tries++;
       if (tries > 450) { clearInterval(poll); location.reload(); return; }  // code expired, get a fresh one
@@ -996,6 +1636,21 @@ body.dimmed #scrim{opacity:.5}
         .then(function(r){ return r.json(); })
         .then(function(rows){
           var cfg = rows && rows[0] && rows[0].config;
+          /* The phone writes {claimed:true} the moment it opens with this code,
+             before it knows the mosque. Saying so closes the loop on the scan:
+             otherwise the television sits on "waiting for your phone" while the
+             person holding the phone is already three taps in, wondering
+             whether the scan registered at all. No schema change for it, since
+             a config without a slug was already being ignored here. */
+          if (cfg && cfg.claimed && !cfg.slug && !claimed) {
+            claimed = true;
+            $('pairWait').innerHTML = '<i></i><span>phone connected</span>';
+            $('pairHead').textContent = 'Now pick your mosque on your phone.';
+            /* Retire the scan instructions. Leaving "open the camera" and a code
+               to type on screen after the phone is already connected asks for
+               work that is done, and makes the person wonder whether it took. */
+            document.body.classList.add('claimed');
+          }
           if (!cfg || !cfg.slug) return;
           clearInterval(poll);
           try{ localStorage.setItem('bilal.config', JSON.stringify(cfg)); }catch(e){}
@@ -1011,12 +1666,148 @@ body.dimmed #scrim{opacity:.5}
     }, 2000);
   }
 
+  /* ---------- the speed run ----------
+     A demo television should not sit on one hour of one day. With
+     ?demo=1&tour=1 it walks the whole day instead: for each prayer, the
+     moment twenty minutes before it begins, when the screen is counting
+     toward it and wearing its sky. SHIFT is the same lever ?at= pulls, so
+     every tick recomputes times, sky and label from the shifted clock and
+     each change choreographs itself exactly like a real prayer change.
+     Stations come from the mosque's real timetable, so the tour is honest:
+     winter and summer walk different hours. The first beat stays on the
+     actual now, because the placard beside it says this screen is live. */
+  if(DEMO && Q.get('tour')==='1'){
+    /* ---- tour storyboard, per station -----------------------------------
+     *
+     *      0ms   the numbers bow out: shell fades to nothing
+     *    540ms   only sky remains; time begins to glide toward the next
+     *            station, sky repainted every other frame, so the grades
+     *            melt through each other the way the display always blends
+     *            them, just quicker
+     *   3450ms   time lands exactly; the full paint runs once
+     *   3550ms   shell fades back in, settled, while the prayer's own
+     *            entrance choreography plays underneath it
+     *  10800ms   next station
+     *
+     * The jank this replaces: sweeping the FULL page through time dragged
+     * the clock, the countdown and the state machine along at 30fps, so
+     * digits spun, GO NOW flashed and the congregation dim strobed. Only
+     * the sky is continuous in this product; everything else is discrete
+     * and deserves a cut hidden inside a fade. */
+    var T_DWELL = 10800, T_FADE_OUT = 540, T_MELT = 2880, T_FADE_IN = 810;
+    var tourI = -1, tourAnim = null;
+
+    var skyOnly = function(){
+      var n = nowDate();
+      var list = upcoming(n); if(!list.length) return;
+      var next = null, prev = null;
+      for(var i=0;i<list.length;i++)
+        if(list[i].jamaah > n){ next = list[i]; prev = (i>0 ? list[i-1] : null); break; }
+      if(next){ try{ paintSky(n, prev, next); }catch(err){} }
+    };
+
+    var meltEpoch = 0;
+    var meltTo = function(target, done){
+      var from = SHIFT, skip = 0, t0 = null, ep = ++meltEpoch;
+      if(tourAnim) cancelAnimationFrame(tourAnim);
+      /* rAF stops dead in a hidden tab, which would leave the shell faded
+         out for as long as nobody is looking and never call done(). The
+         guard lands the glide by timer instead; the epoch keeps a stale
+         guard from stamping on the next station's fade. Same guaranteed-
+         reveal rule the rest of this page lives by. */
+      var finish = function(){
+        if(ep !== meltEpoch) return;
+        meltEpoch++;
+        clearTimeout(guard);
+        SHIFT = target - Date.now();
+        skyOnly();
+        done();
+      };
+      var guard = setTimeout(finish, T_MELT + 2200);
+      var frame = function(ts){
+        if(ep !== meltEpoch) return;
+        if(t0===null) t0 = ts;
+        var p = Math.min(1, (ts-t0)/T_MELT);
+        var e = p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+        SHIFT = from + ((target-Date.now())-from)*e;
+        if((skip++&1)===0) skyOnly();
+        if(p<1) tourAnim = requestAnimationFrame(frame);
+        else finish();
+      };
+      tourAnim = requestAnimationFrame(frame);
+    };
+
+    var tourStep = function(){
+      var real = new Date();
+      var list = upcoming(real), seen = {}, st = [];
+      for(var i=0;i<list.length;i++){
+        var p = list[i];
+        if(!p.begins || seen[p.key]) continue;
+        if(p.begins.getTime() < real.getTime() - 6*3600000) continue;
+        seen[p.key] = 1;
+        st.push(p.begins.getTime() - 20*60000);
+        if(st.length === 5) break;
+      }
+      if(st.length){                    // before the feed lands, list is empty: hold and retry
+        tourI++;
+        var target = st[tourI % st.length];
+        var wrap = tourI > 0 && tourI % st.length === 0;
+        var shell = $('shell');
+        var dimWas = CFG.dim;
+        CFG.dim = false;                // a mid-glide tick must not strobe the congregation dim
+        shell.style.transition = 'opacity ' + T_FADE_OUT + 'ms ease';
+        shell.style.opacity = '0';
+        var land = function(){
+          CFG.dim = dimWas;
+          try{ paint(); }catch(err){}
+          shell.style.transition = 'opacity ' + T_FADE_IN + 'ms ease';
+          shell.style.opacity = '1';
+        };
+        setTimeout(function(){
+          if(wrap){
+            /* The restart would otherwise drag the sun backwards through a
+               whole day. The sky cuts while nothing else is on stage. */
+            SHIFT = target - Date.now();
+            skyOnly();
+            setTimeout(land, 250);
+          } else {
+            meltTo(target, land);
+          }
+        }, T_FADE_OUT + 50);
+      }
+      setTimeout(tourStep, T_DWELL);
+    };
+    setTimeout(tourStep, 5400);
+  }
+
   // ---------- boot ----------
   $('gateBtn').addEventListener('click',arm);
   $('gate').addEventListener('click',arm);
   document.addEventListener('click',arm);
   document.addEventListener('touchstart',arm);
   document.addEventListener('keydown',arm);
+
+  /* F for fullscreen. On a television the browser is already the whole screen,
+     so this never came up; in a tab it is the difference between a display and
+     a web page, with a tab strip and a dock framing the sky.
+
+     It rides alongside arm() rather than replacing it: every key still grants
+     audio, and this one also fills the screen. Prefixed call included, since
+     Silk can be old enough to want it, and the whole thing is guarded because
+     a browser refusing fullscreen must never take the display down. */
+  document.addEventListener('keydown',function(e){
+    if(!e || (e.key||'').toLowerCase()!=='f') return;
+    try{
+      var d=document, el=d.documentElement;
+      if(d.fullscreenElement||d.webkitFullscreenElement){
+        if(d.exitFullscreen) d.exitFullscreen();
+        else if(d.webkitExitFullscreen) d.webkitExitFullscreen();
+      }else{
+        if(el.requestFullscreen){ var q=el.requestFullscreen(); if(q&&q.catch) q.catch(function(){}); }
+        else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      }
+    }catch(err){}
+  });
   document.addEventListener('mousemove',function(){
     document.body.classList.add('cursor');
     clearTimeout(window.__c);
@@ -1035,10 +1826,112 @@ body.dimmed #scrim{opacity:.5}
   $('starMid').style.backgroundImage="url('sky/stars.png')";
   $('cloud').style.backgroundImage="url('sky/clouds.png')";
 
-  load().then(function(){ paint(); choreograph(); });
-  setInterval(function(){ paint(); if(Date.now()-lastFetch>3*3600*1000) load(); },1000);
+  /* Everything in the shell is .rise, which is opacity:0 until .go lands, and
+     choreograph() is the only thing that ever adds it. That makes one function
+     call the difference between a display and a black rectangle on a wall, and
+     a black rectangle is indistinguishable from the television being off, so
+     nobody would ever report it as a bug.
+
+     Two ways it can happen. paint() throwing takes choreograph() down with it,
+     which is what `finally` is for. The live one is slower: fetch has no
+     timeout, so a Fire Stick that wakes and starts loading before its wifi has
+     associated sits on an unsettled promise, and every second of that is spent
+     black rather than merely empty. The failsafe reveals the shell regardless.
+     choreograph() removes and re-adds .go, so a later real one still plays. */
+  function reveal(){ if(revealed) return; revealed = true; $('shell').classList.add('go'); }
+  setTimeout(reveal, 4000);
+
+  try{ $('devId').textContent = window.BilalDiag.id(); }catch(e){}
+
+  /* ── watching itself ────────────────────────────────────────────────────
+     Three states where the screen is up but useless, all of which look to a
+     person like the mosque's fault or the television's rather than ours:
+     revealed with nothing on the rail, no connection, and a cache that has run
+     out of days. Each is checked from what is actually on screen rather than
+     from internal flags, so this stays true if the internals change.
+
+     Sustained for SICK_AFTER before it says anything. Prayer changes and the
+     first seconds of a load both flicker through empty states, and a display
+     that cries wolf during a normal minute is one nobody reads. */
+  var SICK_AFTER = 5 * 60 * 1000;
+  var sickSince = 0, faultShown = false;
+
+  function ailment(){
+    /* Never while pairing. That screen has an empty rail and no mosque by
+       design, which is indistinguishable from "up but broken" to a naive check,
+       and telling somebody their screen is faulty while they are in the middle
+       of setting it up would be a worse bug than any it could report. */
+    if(document.body.classList.contains('pairing')) return null;
+    var rail = $('rail'), status = ($('statText').textContent || '').toLowerCase();
+    var times = rail ? (rail.textContent.match(/\d{1,2}:\d{2}/g) || []).length : 0;
+    if(status.indexOf('run out') > -1)     return 'Its prayer times have run out.';
+    if(revealed && times === 0)            return 'It has no prayer times to show.';
+    if(status.indexOf('no connection') > -1) return "It can't reach your mosque's times.";
+    return null;
+  }
+
+  function watch(){
+    var what = ailment();
+    if(!what){ sickSince = 0;
+      if(faultShown){ faultShown = false; $('fault').classList.remove('show'); }
+      return; }
+    if(!sickSince){ sickSince = Date.now(); return; }
+    if(faultShown || Date.now() - sickSince < SICK_AFTER) return;
+
+    faultShown = true;
+    $('faultWhat').textContent = what;
+    try{
+      var base = location.origin + location.pathname.replace(/\/[^/]*$/, '');
+      window.BilalQR.draw($('faultQr'),
+        base + '/bug.html?c=' + window.BilalDiag.id(),
+        { size: 260, dark:'#221E1C', light:'#F6EFE7', quiet: 3 });
+      $('fault').classList.add('show');
+      window.BilalDiag.send('error', 'self-detected: ' + what);
+    }catch(e){}
+  }
+  setInterval(watch, 30000);
+
+  /* Cache first, then network. paint() choreographs itself the first time the
+     headline prayer resolves (lastKey starts null), so painting from cache is
+     what reveals the shell in the normal case, and the later live paint leaves
+     the key unchanged and does not replay the entrance. */
+  useCache();
+  try{ paint(); }catch(e){}
+
+  var lastAttempt=Date.now();
+  load().then(function(){
+    try{ paint(); } finally { reveal(); }
+  }).catch(function(e){
+    /* A first paint that throws must fail loudly — but as an error event,
+       which diag reports the same way, rather than as a dangling rejection. */
+    setTimeout(function(){ throw e; },0);
+  });
+  /* Refetch every ~3h — and when the network is down, retry each MINUTE.
+     lastFetch stays 0 until a load succeeds, so without the attempt gate an
+     offline boot fired a fresh fetch every single second, piling unsettled
+     requests onto a Fire Stick whose wifi had not associated yet.
+
+     A paint() that throws must take neither the clock nor this refetch loop
+     down with it. It is contained here and re-thrown at most once an hour,
+     so diag still hears about it without a broken screen posting an error
+     report per second. */
+  var paintFailAt=0;
+  setInterval(function(){
+    try{ paint(); }
+    catch(e){
+      if(Date.now()-paintFailAt>3600000){
+        paintFailAt=Date.now();
+        setTimeout(function(){ throw e; },0);   // surface to diag, bounded
+      }
+    }
+    if(Date.now()-lastFetch>3*3600*1000 && Date.now()-lastAttempt>60000){
+      lastAttempt=Date.now();
+      load();
+    }
+  },1000);
   setInterval(drift,60000);
   setInterval(keepAwake,240000);
+  setInterval(nudgeSilk,55000);   // under Silk's ~10 min idle timer
   keepAwake();
 })();
 </script>

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>bilal · the app for your TV</title>
+<meta name="description" content="A 196KB app that puts Bilal on a Fire TV or Android TV. The athan arms itself, the screen stays on, and it comes back after a power cut.">
+<meta name="theme-color" content="#17140f">
+<meta property="og:title" content="bilal · the app for your TV">
+<meta property="og:description" content="The screen that calls you to jama'ah. Now as an app: sound arms itself, the screen stays on, it comes back after a power cut.">
+<meta property="og:image" content="https://bilalathan.co.uk/og.jpg">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ─────────────────────────────────────────────────────────
+   * ENTRANCE STORYBOARD  (pure CSS, so a JS failure can never
+   * leave the page blank — the display burned on that lesson)
+   *
+   *    0ms   deep ground, no flash; the photo is already loading
+   *  120ms   maghrib sky fades up over 900ms
+   *  260ms   wordmark rises
+   *  380ms   headline + lede rise
+   *  560ms   the file card settles, scale .96 → 1
+   *  740ms   download button rises
+   *  920ms   the onto-the-TV cards stagger in (120ms apart)
+   * ───────────────────────────────────────────────────────── */
+  :root{
+    --clay:#d9a48f; --clay-lift:#f0c4ad; --cream:#f6efe7; --char:#221e1c; --deep:#17140f;
+    --veil:rgba(246,239,231,.55); --hair:rgba(246,239,231,.14);
+    --good:#9fc49a;
+    --display:'Prata',Georgia,serif;
+    --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+
+    --t-sky:120ms; --t-mark:260ms; --t-head:380ms; --t-card:560ms;
+    --t-btn:740ms; --t-routes:920ms; --t-stagger:120ms;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{background:var(--deep)}
+  body{background:var(--deep);color:var(--cream);font-family:var(--text);line-height:1.55;
+    -webkit-font-smoothing:antialiased;min-height:100svh;overflow-x:hidden}
+
+  /* the sky is the room: the same maghrib photograph the app icon lives in,
+     minaret kept in frame on every width, shadow scrim so type always lands */
+  .sky{position:fixed;inset:0;z-index:0;opacity:0;animation:fade 900ms ease var(--t-sky) forwards}
+  .sky img{width:100%;height:100%;object-fit:cover;object-position:72% 38%}
+  .sky:after{content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(23,20,15,.42) 0%,rgba(23,20,15,.24) 34%,rgba(23,20,15,.78) 72%,rgba(23,20,15,.96) 100%)}
+  .wrap{position:relative;z-index:1;max-width:34rem;margin:0 auto;
+    padding:max(28px,env(safe-area-inset-top)) 22px calc(56px + env(safe-area-inset-bottom))}
+
+  @keyframes fade{to{opacity:1}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes settle{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+  .rise{opacity:0;animation:rise 640ms cubic-bezier(.22,1,.36,1) forwards}
+
+  .mark{font-family:var(--display);font-size:26px;letter-spacing:-.01em;animation-delay:var(--t-mark)}
+  h1{font-family:var(--display);font-size:clamp(30px,8.4vw,38px);line-height:1.12;letter-spacing:-.02em;
+     font-weight:400;margin-top:clamp(30px,9vw,52px);animation-delay:var(--t-head)}
+  .lede{color:var(--veil);margin-top:14px;font-size:16px;animation-delay:var(--t-head)}
+  .lede b{color:var(--cream);font-weight:600}
+
+  /* ── the file card ─────────────────────────────────────── */
+  .file{margin-top:26px;background:rgba(34,30,28,.88);border:1px solid var(--hair);border-radius:16px;
+    padding:16px;display:flex;gap:14px;align-items:center;
+    opacity:0;animation:settle 700ms cubic-bezier(.22,1,.36,1) var(--t-card) forwards}
+  .file img{width:56px;height:56px;border-radius:13px;flex:0 0 auto;
+    box-shadow:0 4px 18px rgba(0,0,0,.45)}
+  .file .nm{font-family:var(--display);font-size:19px;line-height:1.2}
+  .file .meta{margin-top:3px;font-size:12.5px;color:var(--veil);letter-spacing:.02em}
+  .file .meta span+span:before{content:'·';margin:0 6px;opacity:.7}
+  .sum{margin-left:auto;text-align:right;font-size:11px;color:var(--veil);max-width:9.5em}
+  .sum b{display:block;color:var(--clay);font-weight:600;font-size:11.5px;letter-spacing:.06em}
+  .sum code{font-family:ui-monospace,Menlo,monospace;font-size:10px;opacity:.85}
+
+  /* ── the download module ───────────────────────────────── */
+  /* One machine, one attribute. CSS reads data-stage on #dl:
+     idle → fetching → verifying → saved   (error at any point) */
+  #dl{margin-top:14px;opacity:0;animation:rise 640ms cubic-bezier(.22,1,.36,1) var(--t-btn) forwards}
+  .btn{position:relative;display:block;width:100%;border:0;border-radius:14px;overflow:hidden;
+    background:var(--clay);color:var(--char);text-decoration:none;cursor:pointer;
+    font-family:var(--text);font-weight:700;font-size:16.5px;text-align:center;
+    padding:17px 18px;transition:transform 160ms cubic-bezier(.22,1,.36,1),background 240ms ease;
+    -webkit-user-select:none;user-select:none}
+  .btn:active{transform:scale(.975)}
+  .btn:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
+  .btn .fill{position:absolute;inset:0;background:var(--char);transform:scaleX(0);
+    transform-origin:left;transition:transform 220ms cubic-bezier(.25,1,.5,1);will-change:transform}
+  .btn .lb{position:relative;z-index:1;display:block;transition:opacity 180ms ease,transform 180ms ease}
+  .btn .lb small{display:block;font-weight:500;font-size:12.5px;opacity:.72;margin-top:2px}
+  [data-stage=fetching] .btn,[data-stage=verifying] .btn{background:rgba(34,30,28,.92);color:var(--cream);
+    border:1px solid var(--hair);padding:16px 17px;pointer-events:none}
+  [data-stage=fetching] .btn .fill,[data-stage=verifying] .btn .fill{background:var(--clay);opacity:.22}
+  [data-stage=saved] .btn{background:rgba(34,30,28,.92);color:var(--cream);border:1px solid var(--hair);
+    padding:16px 17px;pointer-events:none}
+
+  /* the tick draws itself: circle sweep, then the check */
+  .tick{width:21px;height:21px;vertical-align:-5px;margin-right:8px;display:none}
+  .tick circle{fill:none;stroke:var(--clay);stroke-width:2;stroke-dasharray:57;stroke-dashoffset:57}
+  .tick path{fill:none;stroke:var(--clay);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:14;stroke-dashoffset:14}
+  [data-stage=saved] .tick{display:inline-block}
+  [data-stage=saved] .tick circle{animation:draw 480ms cubic-bezier(.25,1,.5,1) forwards}
+  [data-stage=saved] .tick path{animation:draw 300ms cubic-bezier(.25,1,.5,1) 420ms forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  .sub{margin-top:10px;font-size:13px;color:var(--veil);text-align:center;min-height:1.3em;
+    transition:opacity 200ms ease}
+  .sub b{color:var(--cream);font-weight:600}
+  .sub a{color:var(--clay);text-decoration:underline}
+  [data-stage=error] .btn{background:rgba(34,30,28,.92);color:var(--cream);border:1px solid rgba(217,164,143,.5)}
+
+  /* the after: where the file goes next */
+  .next{display:none;margin-top:18px;border:1px solid var(--hair);border-radius:14px;
+    background:rgba(34,30,28,.88);padding:16px 18px 6px}
+  [data-stage=saved] .next{display:block;animation:rise 520ms cubic-bezier(.22,1,.36,1) both}
+  .next h3{font-family:var(--display);font-size:18px;font-weight:400}
+  .next ol{margin:10px 0 0;padding-left:1.3em}
+  .next li{margin-bottom:9px;font-size:14.5px;color:var(--veil)}
+  .next li b{color:var(--cream)}
+  .next .note{font-size:13px;color:var(--veil);border-top:1px solid var(--hair);margin-top:12px;padding:11px 0 13px}
+
+  /* ── onto the tv ───────────────────────────────────────── */
+  h2{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);
+     font-weight:700;margin:40px 0 0;opacity:0;animation:rise 640ms cubic-bezier(.22,1,.36,1) var(--t-routes) forwards}
+  .card{margin-top:14px;background:rgba(34,30,28,.88);border:1px solid var(--hair);border-radius:14px;
+    padding:18px 18px 6px;opacity:0;animation:rise 640ms cubic-bezier(.22,1,.36,1) forwards}
+  .card:nth-of-type(1){animation-delay:calc(var(--t-routes) + var(--t-stagger))}
+  .card:nth-of-type(2){animation-delay:calc(var(--t-routes) + var(--t-stagger)*2)}
+  .card h3{font-family:var(--display);font-size:20px;font-weight:400;letter-spacing:-.01em}
+  .card ol{margin:11px 0 0;padding-left:1.3em}
+  .card li{margin-bottom:9px;font-size:15px}
+  .card li b{font-weight:700}
+  .card .note{font-size:13.5px;color:var(--veil);border-top:1px solid var(--hair);margin-top:13px;padding:12px 0 14px}
+  .card .note b{color:var(--clay)}
+
+  .url{display:flex;align-items:center;gap:10px;margin:12px 0 14px;padding:12px 14px;
+    background:var(--deep);border:1px solid var(--hair);border-radius:11px}
+  .url code{font-family:inherit;font-size:15px;font-weight:700;letter-spacing:-.01em;flex:1;color:var(--cream)}
+  .url button{border:0;background:var(--clay);color:var(--char);font-family:inherit;font-weight:700;
+    font-size:12.5px;padding:8px 13px;border-radius:999px;cursor:pointer;transition:transform 140ms ease}
+  .url button:active{transform:scale(.94)}
+
+  footer{margin-top:38px;color:var(--veil);font-size:13px;border-top:1px solid var(--hair);padding-top:16px;
+    opacity:0;animation:rise 640ms ease calc(var(--t-routes) + var(--t-stagger)*3) forwards}
+  footer a{color:var(--veil);text-decoration:underline}
+
+  @media (prefers-reduced-motion:reduce){
+    .sky,.rise,.file,#dl,h2,.card,footer,[data-stage=saved] .next{animation-duration:1ms;animation-delay:0ms}
+    .btn,.btn .fill,.btn .lb{transition-duration:1ms}
+    [data-stage=saved] .tick circle,[data-stage=saved] .tick path{animation-duration:1ms;animation-delay:0ms}
+  }
+</style>
+</head>
+<body>
+
+<div class="sky" aria-hidden="true"><img src="sky/maghrib.jpg" alt="" fetchpriority="high"></div>
+
+<div class="wrap">
+  <div class="mark rise">bilal</div>
+
+  <h1 class="rise">The app, for the TV on your wall.</h1>
+  <p class="lede rise">Everything the screen already does, without the browser asking
+     favours. <b>The athan arms itself</b>, the screen stays on, and after a power cut
+     it comes back on its own, still paired to your mosque.</p>
+
+  <div class="file">
+    <img src="app-icon.png" alt="Bilal app icon" width="56" height="56">
+    <div>
+      <div class="nm">Bilal for Android TV</div>
+      <div class="meta"><span id="mVer">version 1.0</span><span id="mSize">196 KB</span><span>free</span></div>
+    </div>
+    <div class="sum" id="sum" hidden>
+      <b>checked</b>
+      <code id="sumHex"></code>
+    </div>
+  </div>
+
+  <div id="dl" data-stage="idle">
+    <!-- A real link first. If every line of script below dies, this still
+         downloads the file. The script only makes it a nicer story. -->
+    <a class="btn" id="btn" href="bilal.apk" download="bilal.apk">
+      <span class="fill" id="fill" aria-hidden="true"></span>
+      <span class="lb" id="lb">
+        <svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.7 2.7L16.2 9.6"/></svg><span id="lbText">Download the app</span>
+        <small id="lbSub">bilal.apk · one file, nothing else</small>
+      </span>
+    </a>
+    <p class="sub" id="sub" aria-live="polite"></p>
+
+    <div class="next" id="next">
+      <h3>It's in your downloads. Now the TV.</h3>
+      <ol>
+        <li><b>Easiest:</b> skip the file entirely. On the TV, open <b>Downloader</b> and
+            type the address below. It fetches this same file itself.</li>
+        <li><b>With this file:</b> apps like <b>Send Files to TV</b> on both devices, or
+            a USB stick, or <b>adb install bilal.apk</b> if that's your thing.</li>
+        <li>On an Android <b>phone or tablet</b>, just open the file. It installs and
+            works as a wall display.</li>
+      </ol>
+      <p class="note">First open shows a QR code. Scan it with your phone, pick your
+         mosque, done.</p>
+    </div>
+  </div>
+
+  <h2>Onto the TV</h2>
+
+  <div class="card">
+    <h3>Fire TV Stick &amp; Android TV</h3>
+    <div class="url"><code id="apkUrl">bilalathan.co.uk/bilal.apk</code><button id="copy" type="button">Copy</button></div>
+    <ol>
+      <li>Get <b>Downloader</b> (free, orange icon) from the TV's app store</li>
+      <li>Type the address above into it, install Bilal, open it</li>
+      <li>Scan the QR it shows with your phone and pick your mosque</li>
+    </ol>
+    <p class="note"><b>No press for sound, no settings.</b> The screen stays on and the
+       athan arms itself. The catch: the two newest sticks, Fire TV Stick 4K Select and
+       the 2026 Fire TV Stick HD, run Vega OS and can't install apps at all. For those,
+       open <b>bilalathan.co.uk</b> in the Silk browser instead.</p>
+  </div>
+
+  <footer>The file above is checked against its published fingerprint as it
+     downloads, so a half-finished transfer never installs.
+     <br><a href="tv.html">Every other way to put Bilal on a screen</a> ·
+     <a href="bug.html">Something not working? Tell us</a></footer>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+ * DOWNLOAD STORYBOARD
+ *
+ * Stages are driven by real work; the minimum dwells only
+ * stop a 196KB file from flashing past like nothing happened.
+ *
+ *      0ms   press. button compresses, becomes a track
+ *    ~90ms   FETCHING · fill tracks real bytes (dwell ≥ 900ms)
+ *  +ready    VERIFYING · sha-256 of the bytes vs the published
+ *            fingerprint (dwell ≥ 650ms)
+ *  +match    SAVED · tick draws (480ms circle, 300ms check),
+ *            file lands in downloads, next-steps card rises
+ *  anywhere  ERROR · say what happened, offer the plain link
+ * ───────────────────────────────────────────────────────── */
+(function(){
+  "use strict";
+
+  var TIMING = {
+    fetchDwell:   900,   // fetching stage lives at least this long
+    verifyDwell:  650,   // verifying stage lives at least this long
+    tickToSave:   780,   // tick finishes drawing before the save fires
+  };
+
+  var FILE = {
+    href:    'bilal.apk',                 // same-origin, next to this page
+    sumHref: 'bilal.apk.sha256',          // published fingerprint, deployed with it
+    type:    'application/vnd.android.package-archive',
+  };
+
+  var LABELS = {
+    idle:      ['Download the app',        'bilal.apk · one file, nothing else'],
+    fetching:  ['Fetching it',             ''],
+    verifying: ['Checking it arrived whole','sha-256 against the published fingerprint'],
+    saved:     ['Saved to your downloads', 'bilal.apk · checked'],
+    error:     ['That didn’t work',   'tap to try again'],
+  };
+
+  var dl   = document.getElementById('dl');
+  var btn  = document.getElementById('btn');
+  var fill = document.getElementById('fill');
+  var lbT  = document.getElementById('lbText');
+  var lbS  = document.getElementById('lbSub');
+  var sub  = document.getElementById('sub');
+
+  if (!window.fetch || !window.ReadableStream) return;   // the plain link stands
+
+  function stage(name){
+    dl.setAttribute('data-stage', name);
+    lbT.textContent = LABELS[name][0];
+    lbS.textContent = LABELS[name][1];
+  }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function hex(buf){
+    var b = new Uint8Array(buf), s = '';
+    for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+    return s;
+  }
+
+  /* size and date come from the file itself, so this page cannot lie
+     when a new build ships */
+  fetch(FILE.href, {method:'HEAD'}).then(function(r){
+    var len = +r.headers.get('content-length');
+    if (len) document.getElementById('mSize').textContent = Math.round(len/1024) + ' KB';
+  }).catch(function(){});
+
+  var busy = false;
+  btn.addEventListener('click', function(ev){
+    if (!(window.crypto && crypto.subtle)) return;       // let the plain link run
+    ev.preventDefault();
+    if (busy || dl.getAttribute('data-stage') === 'saved') return;
+    busy = true;
+
+    var t0 = Date.now();
+    stage('fetching');
+    fill.style.transform = 'scaleX(0)';
+
+    var sumP = fetch(FILE.sumHref).then(function(r){ return r.ok ? r.text() : ''; })
+                                  .catch(function(){ return ''; });
+
+    fetch(FILE.href).then(function(r){
+      if (!r.ok) throw new Error('http ' + r.status);
+      var total = +r.headers.get('content-length') || 0;
+      var reader = r.body.getReader();
+      var parts = [], got = 0;
+      function pump(){
+        return reader.read().then(function(step){
+          if (step.done) return;
+          parts.push(step.value); got += step.value.length;
+          if (total) fill.style.transform = 'scaleX(' + Math.min(1, got/total) + ')';
+          return pump();
+        });
+      }
+      return pump().then(function(){
+        var all = new Uint8Array(got), off = 0;
+        for (var i = 0; i < parts.length; i++){ all.set(parts[i], off); off += parts[i].length; }
+        fill.style.transform = 'scaleX(1)';
+        return all;
+      });
+    })
+    .then(function(bytes){
+      var left = TIMING.fetchDwell - (Date.now() - t0);
+      return wait(Math.max(0, left)).then(function(){ return bytes; });
+    })
+    .then(function(bytes){
+      stage('verifying');
+      var t1 = Date.now();
+      return Promise.all([
+        crypto.subtle.digest('SHA-256', bytes.buffer),
+        sumP,
+      ]).then(function(rs){
+        var got = hex(rs[0]);
+        var want = (rs[1] || '').trim().toLowerCase();
+        var left = TIMING.verifyDwell - (Date.now() - t1);
+        return wait(Math.max(0, left)).then(function(){
+          if (want && got !== want) throw new Error('checksum');
+          if (want){
+            document.getElementById('sumHex').textContent = got.slice(0,8) + '…' + got.slice(-8);
+            document.getElementById('sum').hidden = false;
+          }
+          return bytes;
+        });
+      });
+    })
+    .then(function(bytes){
+      stage('saved');
+      sub.textContent = '';
+      return wait(TIMING.tickToSave).then(function(){
+        var url = URL.createObjectURL(new Blob([bytes], {type: FILE.type}));
+        var a = document.createElement('a');
+        a.href = url; a.download = 'bilal.apk';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      });
+    })
+    .catch(function(e){
+      stage('error');
+      fill.style.transform = 'scaleX(0)';
+      sub.innerHTML = (String(e && e.message) === 'checksum')
+        ? 'The file didn’t match its published fingerprint, so it wasn’t saved. ' +
+          'That usually means a deploy is mid-flight. Try again in a minute.'
+        : 'Couldn’t reach the file. Check the connection and tap again, or use the ' +
+          '<a href="bilal.apk" download>plain download</a>.';
+      busy = false;
+    });
+  });
+
+  document.getElementById('copy').addEventListener('click', function(){
+    var b = this;
+    function done(){ b.textContent = 'Copied'; setTimeout(function(){ b.textContent = 'Copy'; }, 1600); }
+    var url = 'https://bilalathan.co.uk/bilal.apk';
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(done).catch(function(){});
+    } else {
+      var t = document.createElement('textarea');
+      t.value = url; t.setAttribute('readonly',''); t.style.position = 'fixed'; t.style.left = '-9999px';
+      document.body.appendChild(t); t.select();
+      try{ document.execCommand('copy'); done(); }catch(e){}
+      document.body.removeChild(t);
+    }
+  });
+})();
+</script>
+<script src="diag.js"></script>
+</body>
+</html>
