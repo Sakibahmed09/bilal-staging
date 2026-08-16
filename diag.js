@@ -114,6 +114,53 @@
     });
   } catch (e) {}
 
+  /* ── "it was just gone" ─────────────────────────────────────────────────
+     The gap detector above only survives if the PAGE survives. On the evening
+     of 16 Aug the display ran 13 hours clean, stopped dead between 18:25 and
+     23:42, and missed maghrib and isha in silence. Nothing above could report
+     that, because a page cannot describe its own death: server-side the screen
+     simply went quiet, which is indistinguishable from the telly being off.
+
+     So the NEXT instance files the report. A stamp goes down every 30s, and a
+     fresh boot that finds a recent one knows exactly how long the screen was
+     missing. The breadcrumb next to it is the part that matters: the browser
+     announces most of the ways it can take a page away, and which announcement
+     arrived last separates them —
+
+       'freeze'    the browser froze the page (lifecycle, reclaimable)
+       'pagehide'  it was navigated away from or unloaded
+       'hidden'    it was backgrounded first, e.g. Alexa took the screen
+       none        killed outright: process death, OOM, or the device rebooted
+
+     Only the last of those is a device-level event, so this is what decides
+     whether the fix belongs in the page or in the Echo's settings. */
+  var ALIVE = 'bilal.alive', LASTEV = 'bilal.lastEvent';
+  function stamp(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  function readNum(k) { try { return parseInt(localStorage.getItem(k), 10) || 0; } catch (e) { return 0; } }
+  var priorAlive = readNum(ALIVE);
+  var priorEvent = (function () { try { return localStorage.getItem(LASTEV); } catch (e) { return null; } })();
+  stamp(ALIVE, Date.now());
+  setInterval(function () { stamp(ALIVE, Date.now()); }, 30000);
+  ['freeze', 'pagehide'].forEach(function (ev) {
+    try { global.addEventListener(ev, function () { stamp(LASTEV, ev + '@' + Date.now()); }); } catch (e) {}
+  });
+  try {
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stamp(LASTEV, 'hidden@' + Date.now());
+    });
+  } catch (e) {}
+
+  /* Five minutes, not thirty: a reload takes seconds, so anything past five is
+     a real absence rather than someone pressing refresh. A device with no prior
+     stamp is genuinely new and has nothing to report. */
+  function outage() {
+    if (!priorAlive) return null;
+    var min = Math.round((Date.now() - priorAlive) / 60000);
+    if (min < 5) return null;
+    return { minutes: min, lastAlive: new Date(priorAlive).toISOString(),
+             lastEvent: priorEvent || 'none' };
+  }
+
   /* ── "the screen flickers" ──────────────────────────────────────────────
      Flicker is a report, not a measurement, and the device it happens on is one
      nobody can attach a profiler to. So the screen times its own frames and
@@ -252,6 +299,9 @@
 
          Absent on an older cached display, same as `heard` above: report null
          rather than inventing a verdict we did not measure. */
+      /* Null on a screen that simply kept running, which is the common case
+         and should not read as a finding. */
+      outage: outage(),
       awake: (function () {
         var b = global.__bilal || {};
         if (!b.wakeLock && !b.vid) return null;
@@ -287,7 +337,16 @@
      real screen in the fleet table — heartbeats from every landing-page
      visit, drowning the signal the table exists for ("a screen that stops
      reporting IS the signal"). Snapshots still work; only the network stops. */
-  var EMBEDDED = /[?&](demo|nodiag)=1/.test(location.search);
+  /* Staging counts as embedded for the same reason ?demo=1 does: it writes to
+     the SAME reports table as production, so every test load became a real
+     screen in the fleet. That table is the instrument the "is anything dark"
+     question is answered from, and a phantom desktop sitting in it for three
+     days is a false reading in exactly the place we can least afford one.
+     Caught on 16 Aug while using staging to verify a wake-lock fix — four
+     rows, one imaginary screen. Matching on the staging repo path rather than
+     the host, because the host also serves the public gh-pages site. */
+  var STAGING = /\/bilal-staging\//.test(location.pathname);
+  var EMBEDDED = /[?&](demo|nodiag)=1/.test(location.search) || STAGING;
 
   /* note() caps what a report CARRIES; this caps what a fault SENDS. The
      display's render loop runs every second, so one throwing frame used to
@@ -343,6 +402,16 @@
      screens will not fill a table. */
   setTimeout(function () { send('heartbeat'); }, 20000);
   setInterval(function () { send('heartbeat'); }, 30 * 60 * 1000);
+
+  /* Its own row, and early, rather than riding the next heartbeat. A screen
+     that has just come back from being missing is the one moment worth an
+     immediate report, and query 2 in ops.sql groups by kind — an outage buried
+     inside a routine heartbeat would be found only by someone already looking
+     for it, which is the whole failure this is meant to end. */
+  setTimeout(function () {
+    var o = outage();
+    if (o) send('restart', 'gone ' + o.minutes + ' min, last event: ' + o.lastEvent);
+  }, 22000);
 
   global.BilalDiag = { id: deviceId, snapshot: snapshot, send: send, note: note };
 })(this);
