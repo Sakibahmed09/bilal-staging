@@ -645,7 +645,6 @@ body.compact #driftWrap{
 </div>
 
 <div id="pair">
-  <div class="eyebrow">Set up</div>
   <div class="head" id="pairHead">Point your phone at this screen.</div>
   <div class="cols">
     <div class="qr"><canvas id="pairQr"></canvas></div>
@@ -743,6 +742,7 @@ body.compact #driftWrap{
   var TIMES='https://bilal-times.ahmed-sakib.workers.dev/v1';
   var NUM_ID_RE=/^mosque-\d+$/i;
   var CODE_ID_RE=/^(?=.*[A-Z0-9])[A-Za-z0-9]{8}$/;
+  var UUID_ID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var ORDER=['fajr','dhuhr','asr','maghrib','isha'];
   var LABEL={fajr:"fajr",dhuhr:"dhuhr",asr:"asr",maghrib:"maghrib",isha:"isha"};
   var CAP={fajr:"Fajr",dhuhr:"Dhuhr",asr:"Asr",maghrib:"Maghrib",isha:"Isha"};
@@ -953,6 +953,7 @@ body.compact #driftWrap{
   function load(){
     if(NUM_ID_RE.test(CFG.slug)) return loadNumbered();
     if(CODE_ID_RE.test(CFG.slug)) return loadCoded();
+    if(UUID_ID_RE.test(CFG.slug)) return loadYearly();
     /* The window starts YESTERDAY, not today. After midnight the sky is still
        blending yesterday's isha into fajr, and that needs yesterday's row —
        fetching from today made the blend snap to full dawn at 00:00 (and again
@@ -1117,6 +1118,68 @@ body.compact #driftWrap{
       }).catch(function(){ if(!useCache()) stat('err','no connection'); });
   }
 
+  /* The yearly directory hands over the whole year in one reply and dates its
+     rows by day and month with NO year at all — {day:15, month:8, fajr:"04:05",
+     iqamah_Fajr:"05:00"}. Two consequences worth stating, because both are the
+     kind of thing that works for eleven months and then doesn't:
+
+     - The window is walked as DATES and each one looks up its row, rather than
+       walking the rows and assigning them dates. The display asks for
+       yesterday through +7, and in late December that window crosses into next
+       year; assigning a year to a row would put the last days of the window
+       twelve months in the past.
+     - The reply always holds 366 rows, so 29 February exists whether or not
+       this year does. Nothing special is needed for it — a date-driven walk
+       simply never asks for a day the calendar does not have.
+
+     Times are bare "HH:MM", appended to the date with no timezone suffix, for
+     the same reason as the numbered directory: a UK display runs on UK local
+     time and `new Date(...)` then reads them as local wall time. */
+  function loadYearly(){
+    var id=CFG.slug;
+    var from=iso(new Date(Date.now()-86400000)),
+        to=iso(new Date(Date.now()+7*86400000));
+    return fetch(TIMES+'/times?id='+encodeURIComponent(id)+'&from='+from+'&to='+to)
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(res){
+        var m=res&&res.model;
+        if(!m||res.hasError) throw new Error('bad payload');
+        var year=m.salahTimings||[];
+        if(!year.length) throw new Error('empty');
+        var by={};
+        year.forEach(function(r){
+          if(r&&r.month&&r.day) by[pad(r.month)+'-'+pad(r.day)]=r;
+        });
+        function t(dateStr,hm){
+          return /^\d{1,2}:\d{2}$/.test(String(hm||'')) ? dateStr+'T'+
+            (String(hm).length===4?'0'+hm:hm)+':00' : null;
+        }
+        var rows=[];
+        for(var i=-1;i<=7;i++){
+          var d=new Date(Date.now()+i*86400000), ds=iso(d);
+          var r=by[pad(d.getMonth()+1)+'-'+pad(d.getDate())];
+          if(!r) continue;
+          rows.push({
+            date: ds+'T00:00:00',
+            fajr: t(ds,r.fajr), dhuhr: t(ds,r.zuhr), asr: t(ds,r.asr),
+            maghrib: t(ds,r.maghrib), isha: t(ds,r.isha),
+            hijri: hijriFor(new Date(ds+'T00:00:00')),
+            iqamah: {
+              fajr: t(ds,r.iqamah_Fajr), dhuhr: t(ds,r.iqamah_Zuhr),
+              asr: t(ds,r.iqamah_Asr), maghrib: t(ds,r.iqamah_Maghrib),
+              isha: t(ds,r.iqamah_Isha)
+            }
+          });
+        }
+        if(!rows.length) throw new Error('unparsed');
+        var j={ name: (m.masjidDetails||{}).name, timetable: rows };
+        data=j; lastFetch=Date.now();
+        try{ localStorage.setItem(CACHE,JSON.stringify({t:lastFetch,j:j})); }catch(e){}
+        stat('','live · synced '+hhmm(new Date()));
+        if(j.name) $('masjidName').textContent=j.name;
+      }).catch(function(){ if(!useCache()) stat('err','no connection'); });
+  }
+
   /* Yesterday's timetable, read synchronously and with no network involved.
      This used to live inside load()'s catch, which meant it was only ever
      reached when the request FAILED. A request that hangs neither resolves nor
@@ -1272,7 +1335,11 @@ body.compact #driftWrap{
     // is exactly what made a working screen look broken.
     if(u&&u.indexOf('BLOCKED')===0){ $('audioState').textContent='athan blocked by browser'; return; }
     if(!athanReady && u!=='unproven'){ $('audioState').textContent='no athan.mp3, tone only'; return; }
-    var played=window.__bilal&&window.__bilal.calls>0;
+    var b=window.__bilal, played=b&&b.calls>0;
+    /* The one line this footer could never say. 'athan played' was printed on a
+       screen nobody could hear for four days running, because a resolved play()
+       was being reported as if it were a sound. Say what was measured. */
+    if(played && b.heard==='no-progress'){ $('audioState').textContent='athan played, no sound came out'; return; }
     $('audioState').textContent=played?'athan played':'athan ready';
   }
 
@@ -1314,6 +1381,30 @@ body.compact #driftWrap{
     try{ audioEl.currentTime=0; }catch(e){}
     audioEl.volume=1;
     var p=audioEl.play();
+
+    /* A resolved play() proves the browser ACCEPTED playback. It does not prove
+       a sound left the speaker, and those are different faults with different
+       owners: an exhausted media pool or a stolen audio focus both resolve and
+       then sit at zero. Four days of heartbeats once read 'played' identically
+       whether or not anybody could hear it, which is why a silent athan took a
+       morning to diagnose instead of ten seconds.
+
+       So sample the media clock once, a moment after starting. A clock that
+       advanced is the closest thing to proof a speaker made a noise; a clock
+       still at zero means the sound never started and the screen should say so
+       rather than blaming the television. Guarded on the call counter so a
+       second athan cannot be measured by the first one's probe. */
+    if(window.__bilal){ window.__bilal.heard='pending'; window.__bilal.playedMs=null; }
+    var gen=window.__bilal?window.__bilal.calls:0;
+    setTimeout(function(){
+      var b=window.__bilal;
+      if(!b || b.calls!==gen || !audioEl) return;
+      var t=0; try{ t=audioEl.currentTime||0; }catch(e){}
+      b.playedMs=Math.round(t*1000);
+      b.heard=(t>0.4)?'yes':'no-progress';
+      audioState();
+    }, 2500);
+
     if(p&&p.then){
       p.then(function(){
         if(window.__bilal) window.__bilal.unlock='ok';   // proof beats a probe
@@ -1516,6 +1607,55 @@ body.compact #driftWrap{
   // us a gesture we can run a genuinely-playing, inaudible audio loop, which is
   // far more likely to hold a media session open on Fire OS.
   var hum=null;
+
+  /* The Screen Wake Lock is the ONLY web API that speaks to the panel rather
+     than to the browser, so on the night of 16 Aug it was the one lever whose
+     state we could not read. The screen went dark while the page stayed
+     provably healthy — unbroken heartbeats, 523 Silk nudges, rAF firing 1794
+     samples every 30 min, zero errors — and the wake lock was being requested
+     every 240s as `.request('screen').catch(function(){})`. Sentinel thrown
+     away, outcome thrown away. Granted, refused and granted-then-ignored all
+     looked identical, which is this codebase's oldest failure mode.
+
+     Two real bugs in that one line, either of which is enough on its own:
+
+     · The sentinel was discarded. A WakeLockSentinel nobody holds is garbage
+       collectible, and collecting it releases the lock. The 240s re-request
+       masked it into a flicker rather than a fix.
+     · A lock is auto-released whenever the document stops being visible, and
+       the spec gives you a 'release' event to notice. Nothing listened, so a
+       lock lost at 21:10 stayed lost except for whatever the next re-request
+       happened to win.
+
+     The premise that put us here was also wrong, and it is worth writing down:
+     the code assumed Silk is Chromium ~70 and therefore has no Wake Lock at
+     all. Every Silk device that has ever heartbeated reports Chromium 118-150
+     (Echo Shows 118/128/138/144, Fire TVs 119/138/150). Wake Lock shipped in
+     Chrome 84. It has been available on the whole fleet the entire time. */
+  var lock=null, lockState=('wakeLock' in navigator)?'idle':'absent',
+      lockGrants=0, lockReleases=0, lockErr=null;
+  function takeLock(){
+    if(lockState==='absent' || lock) return;          // never stack sentinels
+    try{
+      navigator.wakeLock.request('screen').then(function(s){
+        lock=s; lockState='held'; lockGrants++;
+        /* Held for the same reason the sentinel is: an anonymous listener on a
+           collectible object is not a subscription you can rely on. */
+        try{ s.addEventListener('release', function(){
+          lock=null; lockReleases++;
+          if(lockState==='held') lockState='released';
+        }); }catch(e){}
+      }).catch(function(e){
+        lock=null; lockState='refused'; lockErr=String(e&&e.name||e);
+      });
+    }catch(e){ lock=null; lockState='threw'; lockErr=String(e&&e.name||e); }
+  }
+  /* Re-take the moment the document is visible again: this is the exact edge
+     the old code could only recover from by luck, up to 4 minutes late. */
+  try{ document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) takeLock();
+  }); }catch(e){}
+
   function keepAwake(){
     var v=$('keepawake'); if(v){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); }
     if(armed){
@@ -1523,7 +1663,18 @@ body.compact #driftWrap{
       if(hum.paused){ var q=hum.play(); if(q&&q.catch) q.catch(function(){}); }
       if(window.__bilal) window.__bilal.hum=hum;
     }
-    if('wakeLock' in navigator){ try{ navigator.wakeLock.request('screen').catch(function(){}); }catch(e){} }
+    takeLock();
+    /* The video is the other half of the keep-awake story and has never been
+       checked in the field either. On 8 Aug a muted video at this opacity was
+       found to be play()-accepted and paused-anyway, which is why the hum
+       exists at all. Report what it is actually doing rather than assuming the
+       replacement made the question moot. */
+    if(window.__bilal){
+      window.__bilal.wakeLock={ state:lockState, grants:lockGrants,
+                                releases:lockReleases, error:lockErr };
+      if(v) window.__bilal.vid={ paused:!!v.paused, t:Math.round((v.currentTime||0)*10)/10,
+                                 ready:v.readyState };
+    }
   }
 
   /* Echo Show: Silk closes the browser after roughly ten minutes of what it

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bilal help</title>
+<meta name="description" content="Setting up bilal, the athan, the screen, and the times. Every question somebody has actually asked.">
+<link rel="icon" href="favicon.ico" sizes="any">
+<meta name="theme-color" content="#17140f">
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+ * HELP
+ *
+ * Every question here was asked by somebody holding a real device, mostly
+ * during the first fortnight. Nothing is invented to look complete.
+ *
+ * Why it is a page of its own rather than sections bolted onto tv.html: that
+ * page is a decision (which device, then go), and this one is a reference read
+ * by somebody already stuck. Mixing them would cost the setup page its line,
+ * and reference material grows. It also stays off the display itself, which is
+ * read at four metres by somebody who is walking past and is not debugging.
+ *
+ * Closed by default because the index IS the content: twenty-odd questions
+ * readable in one scroll beats a wall of prose nobody scans. The person
+ * arriving has one problem and wants one answer.
+ *
+ * Restraint is deliberate. This is the page somebody reads when the thing they
+ * trusted with Fajr has let them down, so it stays quiet, and the only motion
+ * is the disclosure itself.
+ * ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --clay:#d9a48f; --clay-lift:#e8b9a3; --cream:#f6efe7;
+  --char:#221e1c; --deep:#17140f;
+  --veil:rgba(246,239,231,.50); --hair:rgba(246,239,231,.14);
+  --display:'Prata',Georgia,serif;
+  --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
+  -webkit-font-smoothing:antialiased;min-height:100%}
+#app{padding:calc(env(safe-area-inset-top) + 28px) 22px 72px;max-width:560px;margin:0 auto}
+.brand{font-family:var(--display);font-size:22px;opacity:.9;margin-bottom:30px}
+.brand a{color:inherit;text-decoration:none}
+h1{font-family:var(--display);font-size:32px;line-height:1.14;letter-spacing:-.022em;font-weight:400}
+.sub{color:var(--veil);font-size:15.5px;line-height:1.62;margin-top:12px}
+
+/* The index earns its place: six words tell somebody whether their problem is
+   even on this page, before they scroll past twenty questions that are not it. */
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.jump a{font-size:13.5px;color:var(--clay);text-decoration:none;padding:7px 13px;
+  border:1px solid var(--hair);border-radius:11px;line-height:1;
+  transition:border-color .18s,background .18s}
+.jump a:hover{border-color:var(--clay);background:rgba(217,164,143,.08)}
+
+.step{margin-top:34px;padding-top:26px;border-top:1px solid var(--hair);scroll-margin-top:20px}
+h2{font-family:var(--display);font-size:21px;font-weight:400;letter-spacing:-.01em;margin-bottom:4px}
+
+/* One question. Closed state has to read as a tappable line rather than a
+   heading, or nobody discovers there is an answer under it. */
+/* The last question in a section stops at the section rule rather than drawing
+   its own beneath it, which read as an accident at the join. */
+.q{border-bottom:1px solid rgba(246,239,231,.07)}
+.q:last-of-type{border-bottom:0}
+.q summary{list-style:none;cursor:pointer;padding:15px 30px 15px 0;position:relative;
+  font-size:15.5px;font-weight:600;line-height:1.45;color:var(--cream)}
+.q summary::-webkit-details-marker{display:none}
+/* Transform only. A rotating rule costs nothing on a weak GPU, where a chevron
+   glyph would need a font that may not have landed yet. */
+.q summary::after,.q summary::before{content:'';position:absolute;right:2px;top:50%;
+  width:12px;height:1.5px;background:var(--clay);opacity:.8;
+  transition:transform .22s cubic-bezier(.16,1,.3,1)}
+.q summary::before{transform:translateY(-50%)}
+.q summary::after{transform:translateY(-50%) rotate(90deg)}
+.q[open] summary::after{transform:translateY(-50%) rotate(0deg)}
+.q[open] summary{color:var(--clay)}
+.q .a{padding:0 4px 18px 0;font-size:14.8px;line-height:1.66;color:var(--veil)}
+.q .a p+p{margin-top:11px}
+.q .a b{color:var(--cream);font-weight:600}
+.q .a code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;
+  color:var(--clay);background:rgba(217,164,143,.09);padding:2px 6px;border-radius:6px;
+  word-break:break-word}
+.q .a ul{margin:11px 0 0;padding-left:18px}
+.q .a li{margin-bottom:9px}
+.q .a a{color:var(--clay)}
+
+.tail{margin-top:34px;padding-top:26px;border-top:1px solid var(--hair)}
+.btn{display:block;width:100%;padding:17px 20px;border:0;border-radius:14px;
+  background:var(--clay);color:var(--char);font-weight:700;font-size:16.5px;
+  font-family:inherit;text-align:center;text-decoration:none;line-height:1.2;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),background .18s}
+.btn:active{transform:scale(.978);background:var(--clay-lift)}
+.btn.ghost{background:rgba(246,239,231,.06);border:1px solid var(--hair);
+  color:var(--cream);font-weight:600;margin-top:10px}
+
+/* Opacity and transform only, and never a reason to wait for content. */
+.r{opacity:0;transform:translateY(12px);animation:rise .62s cubic-bezier(.16,1,.3,1) forwards}
+.r2{animation-delay:.07s} .r3{animation-delay:.13s} .r4{animation-delay:.19s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .r{animation:none;opacity:1;transform:none}
+  html{scroll-behavior:auto}
+  .q summary::after,.q summary::before{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="brand r"><a href="tv.html">bilal</a></div>
+
+  <h1 class="r r2">Help</h1>
+  <p class="sub r r2">Bilal is experimental. Everything below is something somebody
+    ran into on a real screen, and what to do about it.</p>
+
+  <nav class="jump r r3">
+    <a href="#setup">Setting it up</a>
+    <a href="#athan">The athan</a>
+    <a href="#screen">The screen</a>
+    <a href="#times">The times</a>
+    <a href="#devices">Devices</a>
+  </nav>
+
+  <!-- ── setting it up ─────────────────────────────────────────────────── -->
+  <section class="step r r4" id="setup">
+    <h2>Setting it up</h2>
+
+    <details class="q"><summary>Do I need an account?</summary>
+      <div class="a"><p>No. No sign-up, no email, no tracking. Pick your mosque once
+        and the screen remembers.</p></div></details>
+
+    <details class="q"><summary>Does my phone need to be on the same wifi as the screen?</summary>
+      <div class="a"><p>No. The code travels over the internet, so any phone works
+        from anywhere. It does not need to be the same Amazon account either.</p></div></details>
+
+    <details class="q"><summary>How long does setup take?</summary>
+      <div class="a"><p>Three moments. Open the site on the screen, scan the code with
+        your phone, then press once for sound. The screen picks up the rest on its
+        own.</p></div></details>
+
+    <details class="q"><summary>I paired it to the wrong mosque. How do I change it?</summary>
+      <div class="a"><p>Add <code>?setup=1</code> to the address on the screen and the
+        pairing screen comes back. Pair it again and the new mosque replaces the old
+        one.</p></div></details>
+
+    <details class="q"><summary>Does the pairing survive a reboot?</summary>
+      <div class="a"><p>Yes, and a power cut. It is stored on the screen itself, so it
+        comes back paired without your phone.</p>
+        <p>Uninstalling the app is the one thing that clears it, because the storage
+        goes with the app.</p></div></details>
+  </section>
+
+  <!-- ── the athan ─────────────────────────────────────────────────────── -->
+  <section class="step r r4" id="athan">
+    <h2>The athan</h2>
+
+    <details class="q"><summary>It says the athan is blocked by the browser.</summary>
+      <div class="a"><p>Browsers keep sound locked until somebody presses a button, so
+        the screen cannot play anything until you press once. Press OK on the remote,
+        or tap the screen, and the footer changes to <b>athan ready</b>.</p>
+        <p>The Fire TV app presses it for you, which is most of the reason it
+        exists.</p></div></details>
+
+    <details class="q"><summary>It played for a few days and then went silent.</summary>
+      <div class="a"><p>Look at the footer first. If it does not say <b>athan ready</b>,
+        the screen reloaded at some point and is waiting for a press. One press
+        re-arms it.</p>
+        <p>If the footer says it is ready and the athan still did not play, that is a
+        real fault and worth reporting.</p></div></details>
+
+    <details class="q"><summary>Can I run it silent?</summary>
+      <div class="a"><p>Add <code>?quiet=1</code> to the address. It shows the times and
+        never makes a sound.</p></div></details>
+
+    <details class="q"><summary>Why is maghrib different?</summary>
+      <div class="a"><p>Maghrib jama'ah is usually only minutes after the adhan, so a
+        fifteen minute warning would land before the adhan itself. Maghrib gets
+        <b>leave now to catch jama'ah</b>. Every other prayer gets the athan at the
+        start time.</p></div></details>
+  </section>
+
+  <!-- ── the screen ────────────────────────────────────────────────────── -->
+  <section class="step r r4" id="screen">
+    <h2>The screen</h2>
+
+    <details class="q"><summary>It was dark when I came down for Fajr.</summary>
+      <div class="a"><p>Three different timers can do this, and they are not the same
+        thing. Which one you have depends on what the screen did:</p>
+        <ul>
+          <li><b>The television powered off completely.</b> Nearly every TV switches
+            off after about four hours with no button pressed. The setting is on the
+            TV, under Eco, Energy Saving, or no-operation off timer.</li>
+          <li><b>The TV is on but says no signal.</b> That is Fire OS asking
+            <b>Still Watching?</b> after four hours with no press on the remote, then
+            sleeping the stick. Turn it off under Settings, Preferences, Data Usage
+            Monitoring, Still Watching. If the question is on screen, <b>Don't show
+            again</b> does the same thing in one press.</li>
+          <li><b>It went dark within the hour.</b> Fire TV has a second sleep timer,
+            around fourteen minutes, that Amazon do not expose in any settings screen.
+            The app retires it. The browser route cannot.</li>
+        </ul></div></details>
+
+    <details class="q"><summary>The screen flickers.</summary>
+      <div class="a"><p>Add <code>?lite=1</code> to the address. That drops the drifting
+        layers and the moving sky, which is what a weaker GPU struggles with.</p>
+        <p>If the flicker stops, running it that way permanently is fine. You lose
+        some atmosphere and nothing else.</p></div></details>
+
+    <details class="q"><summary>It was offline all night. Did it show me the wrong times?</summary>
+      <div class="a"><p>No. With no connection it shows the timetable it already has
+        and says so in the footer, with how old it is. It does not invent times, and
+        it does not go blank.</p></div></details>
+
+    <details class="q"><summary>Do I need to update it?</summary>
+      <div class="a"><p>No. The screen refreshes itself overnight, and the app is a
+        window onto the website, so a fix reaches every screen without anybody
+        reinstalling anything.</p></div></details>
+  </section>
+
+  <!-- ── the times ─────────────────────────────────────────────────────── -->
+  <section class="step r r4" id="times">
+    <h2>The times</h2>
+
+    <details class="q"><summary>Where do the times come from?</summary>
+      <div class="a"><p>From what your mosque publishes itself. Bilal does not
+        calculate jama'ah times, because a guessed time makes you late.</p></div></details>
+
+    <details class="q"><summary>My mosque is not on the list.</summary>
+      <div class="a"><p>You can add it yourself from your phone. Photograph or upload
+        your mosque's timetable and it reads the year off it, showing you anything it
+        is unsure about so you can correct it before it goes live.</p>
+        <p>It then exists for everybody else at your mosque, not only you.</p></div></details>
+
+    <details class="q"><summary>The times are wrong.</summary>
+      <div class="a"><p>Report it from the link at the bottom of this page. It asks
+        which device and what you saw, which is what makes it fixable.</p>
+        <p>If the screen is showing a code in the corner, include it. It links your
+        note to what that screen was actually doing.</p></div></details>
+
+    <details class="q"><summary>Why does it say the times are estimated?</summary>
+      <div class="a"><p>Some mosques publish the adhan times and no jama'ah times. When
+        that happens the screen says so rather than presenting an estimate as your
+        mosque's own decision.</p></div></details>
+
+    <details class="q"><summary>What happens when the timetable runs out?</summary>
+      <div class="a"><p>It tells you three weeks before, then stops showing jama'ah
+        times rather than guessing into a new year. You add the new timetable the same
+        way you set it up the first time.</p></div></details>
+  </section>
+
+  <!-- ── devices ───────────────────────────────────────────────────────── -->
+  <section class="step r r4" id="devices">
+    <h2>Devices</h2>
+
+    <details class="q"><summary>What can I run it on?</summary>
+      <div class="a"><p>A Fire TV stick, an Android or Google TV, an Echo Show, a spare
+        phone or tablet, or a tab on a laptop. Anything with a browser and a screen you
+        can leave on.</p></div></details>
+
+    <details class="q"><summary>Which is best?</summary>
+      <div class="a"><p>A screen that stays put. The habit comes from a fixed display in
+        a room you walk through, on all day, that you never have to open.</p>
+        <p>A laptop tab is for hearing it work in the next few minutes, or for a desk
+        you sit at all day.</p></div></details>
+
+    <details class="q"><summary>The app will not install on my Fire Stick.</summary>
+      <div class="a"><p>Amazon ended sideloading on their newest sticks, which is the
+        Fire TV Stick 4K Select from 2025 and the Fire TV Stick HD from 2026 onwards.
+        Those run the browser route instead, which works, with the fourteen minute
+        sleep timer as the catch.</p>
+        <p>Every Fire OS 7 and 8 device installs it normally.</p></div></details>
+
+    <details class="q"><summary>What does the app ask for?</summary>
+      <div class="a"><p>The internet, and nothing else. No account, no tracking, no
+        permissions beyond that.</p></div></details>
+
+    <details class="q"><summary>Can I run it on a laptop?</summary>
+      <div class="a"><p>Open the site, press <b>F</b> for fullscreen, and leave the tab
+        open.</p>
+        <p>Stop the computer sleeping if you want Fajr. A sleeping screen calls
+        nothing, and it will not tell you it missed one.</p></div></details>
+  </section>
+
+  <div class="tail r r4">
+    <p class="sub" style="margin-top:0">Nothing here matches what happened?</p>
+    <a class="btn" href="bug.html" style="margin-top:14px">Report a problem</a>
+    <a class="btn ghost" href="tv.html">Back to setup</a>
+  </div>
+</div>
+</body>
+</html>

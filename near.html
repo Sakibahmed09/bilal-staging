@@ -84,6 +84,12 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
 .item{display:block;width:100%;text-align:left;background:rgba(246,239,231,.035);
   border:1px solid var(--hair);border-radius:12px;padding:14px 16px;margin-bottom:9px;
   color:var(--cream);font-family:var(--text);font-size:15px}
+button.item{cursor:pointer}
+button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,231,.30)}
+.find{font-family:var(--text);font-size:15px;padding:12px 14px;border-radius:11px;
+  border:1px solid var(--hair);background:rgba(246,239,231,.06);color:var(--cream);
+  width:100%;margin-bottom:12px;display:block}
+.find::placeholder{color:rgba(246,239,231,.38)}
 .item .n{font-weight:600}
 .item .a{font-size:13px;color:var(--veil);margin-top:3px;line-height:1.4}
 .item .s{font-size:12.5px;margin-top:7px;display:flex;align-items:center;gap:7px}
@@ -159,6 +165,7 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
 
   <div id="others" style="display:none">
     <h2 class="sec" id="othersHead">Also near you</h2>
+    <input class="find" id="q" placeholder="Search for another mosque by name" spellcheck="false">
     <div id="list"></div>
   </div>
 
@@ -194,6 +201,7 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
      belong. */
   var NUM_ID_RE  = /^mosque-\d+$/i;
   var CODE_ID_RE = /^(?=.*[A-Z0-9])[A-Za-z0-9]{8}$/;
+  var UUID_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   /* Five is the budget. Checking the nearest five costs five requests on a
      cold location and none at all on a warm one (the Worker edge-caches times
@@ -232,7 +240,10 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
   var PICKED = null;    // the mosque being counted to
   var ROWS = [];        // its normalised timetable
   var ARMED = false;
-  var CALLED = {};      // prayer keys already called this page load
+  var CALLED = {};      // mosque+prayer keys already called this page load
+  var RESULTS = [];     // the checked candidates, nearest first
+  var SEEN = {};        // id -> rows, so a mosque is never fetched twice
+  var HEADING = 'Also near you';   // restored when a search is cleared
 
   /* ── geometry ──────────────────────────────────────────────────────────── */
   function hav(a,b,c,d){
@@ -332,6 +343,39 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
     return rows.length ? rows : null;
   }
 
+  /* A whole year in one reply, rows keyed by day and month with no year, and
+     begins and jama'ah sitting side by side in the same row. Only the days
+     this page actually asks about are built, and each is looked up by its own
+     day and month — so the 29 February row that is always present simply goes
+     unread in a year that does not have one. */
+  function shapeYearly(res, from, to){
+    var m = res && res.model;
+    if(!m || res.hasError) return null;
+    var year = m.salahTimings || [];
+    if(!year.length) return null;
+    var by = {};
+    year.forEach(function(r){
+      if(r && r.month && r.day) by[pad(r.month)+'-'+pad(r.day)] = r;
+    });
+    var BEGIN={fajr:'fajr',dhuhr:'zuhr',asr:'asr',maghrib:'maghrib',isha:'isha'};
+    var IQ={fajr:'iqamah_Fajr',dhuhr:'iqamah_Zuhr',asr:'iqamah_Asr',
+            maghrib:'iqamah_Maghrib',isha:'iqamah_Isha'};
+    var rows=[], d=new Date(from+'T00:00:00'), end=new Date(to+'T00:00:00');
+    while(d<=end){
+      var ds=iso(d), r=by[pad(d.getMonth()+1)+'-'+pad(d.getDate())];
+      if(r){
+        var out={date:ds, begins:{}, jamaah:{}};
+        PRAYERS.forEach(function(p){
+          out.begins[p]=at(ds, r[BEGIN[p]]);
+          out.jamaah[p]=at(ds, r[IQ[p]]);
+        });
+        rows.push(out);
+      }
+      d=new Date(d.getTime()+86400000);
+    }
+    return rows.length ? rows : null;
+  }
+
   function fetchTimes(id){
     var from = iso(nowDate());
     var to   = iso(new Date(nowMs() + 2*86400000));
@@ -340,6 +384,7 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
       .then(function(j){
         var rows = NUM_ID_RE.test(id)  ? shapeNumbered(j)
                  : CODE_ID_RE.test(id) ? shapeCoded(j)
+                 : UUID_ID_RE.test(id) ? shapeYearly(j, from, to)
                  : shapeDashed(j);
         if(!rows || !rows.length) throw new Error('empty');
         return rows;
@@ -389,6 +434,11 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
     return best;
   }
 
+  /* Scoped to the mosque as well as the prayer. Switching target must not
+     inherit the previous one's call history in either direction: two mosques
+     can share a jama'ah minute, and neither should silence the other. */
+  function callKey(nx){ return (PICKED ? PICKED.g : '?')+'|'+nx.key; }
+
   /* ── the sky ─────────────────────────────────────────────────────────── */
   function sky(prayer){
     var el=$('sky');
@@ -435,8 +485,8 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
       /* The call. Fires once per prayer per page load, inside the window
          between leaving and the jama'ah itself. A reload re-arms it, which is
          correct: a reload is a fresh decision to be here. */
-      if(ARMED && !CALLED[nx.key] && nowMs()>=leaveAt.getTime() && nowMs()<nx.at.getTime()){
-        CALLED[nx.key]=1;
+      if(ARMED && !CALLED[callKey(nx)] && nowMs()>=leaveAt.getTime() && nowMs()<nx.at.getTime()){
+        CALLED[callKey(nx)]=1;
         callNow(LABEL[nx.prayer], hhmm(nx.at));
       }
     }else{
@@ -602,8 +652,9 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
     });
 
     Promise.all(checks).then(function(res){
+      RESULTS = res.filter(Boolean);
       var usable=null, j;
-      for(j=0;j<res.length;j++){ if(res[j] && res[j].v.use){ usable=res[j]; break; } }
+      for(j=0;j<RESULTS.length;j++){ if(RESULTS[j].v.use){ usable=RESULTS[j]; break; } }
 
       if(!usable){
         say('None of the mosques near you publish jama\'ah times.',
@@ -612,35 +663,128 @@ h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
         return;
       }
 
-      PICKED = usable.m;
-      ROWS   = usable.rows;
-
       $('stage').style.display='none';
       $('hero').style.display='';
       $('foot').style.display='';
-      $('mname').textContent = PICKED.n;
-      $('maddr').textContent = PICKED.a;
-      $('mdist').textContent = distLine(PICKED._d);
       note();
-      paint();
+      promote(usable.m, usable.rows, RESULTS.indexOf(usable)>0);
       setTimeout(function(){ $('hero').className='in'; }, 30);
-
-      /* The leader comes out of the list it was chosen from, so the rest are
-         genuinely "also", and any mosque nearer than the leader stays visible
-         with the reason it was passed over. Skipping a closer mosque silently
-         would hide exactly the gap add.html exists to close. */
-      var rest = res.filter(function(r){ return r && r.m!==PICKED; });
-      var closer = res.indexOf(usable);
-      $('othersHead').textContent = closer>0 ? 'Nearer, but no usable times' : 'Also near you';
-      $('list').innerHTML = rest.map(function(r){
-        return '<div class="item">'+
-               '<div class="n">'+esc(r.m.n)+'</div>'+
-               '<div class="a">'+esc(r.m.a)+'</div>'+
-               '<div class="s '+r.v.kind+'"><b></b>'+esc(distLine(r.m._d))+' · '+esc(r.v.why)+'</div>'+
-               '</div>';
-      }).join('');
     });
   }
+
+  /* Making the target changeable is the whole reason the checks are kept
+     rather than discarded once a leader is chosen. Everything below is
+     in-memory: the paired television keeps its own mosque whatever is clicked
+     here, and a reload throws all of it away and resolves from scratch, which
+     is the behaviour the footer promises. */
+  function promote(m, rows, passedCloser){
+    /* Clicking through the list is browsing, not an instruction to be called
+       now. If the new target's leave-time has already gone, mark it called so
+       switching to it does not set the athan off in your hands. Arming, which
+       IS an instruction, deliberately still fires inside a window. */
+    PICKED = m; ROWS = rows;
+    var nx = nextJamaah(rows);
+    if(nx && walkable(m._d)){
+      var leaveAt = nx.at.getTime() - walkMins(m._d)*60000;
+      if(nowMs() >= leaveAt) CALLED[callKey(nx)] = 1;
+    }
+
+    $('mname').textContent = m.n;
+    $('maddr').textContent = m.a;
+    $('mdist').textContent = distLine(m._d);
+    /* Only honest on the automatic pick. Once you have chosen one yourself,
+       the others are not "nearer but rejected", they are just the others. */
+    HEADING = passedCloser ? 'Nearer, but no usable times' : 'Also near you';
+    $('othersHead').textContent = HEADING;
+    $('q').value='';
+    paint();
+    renderList();
+  }
+
+  function row(m, v, note){
+    return '<button class="item" data-g="'+esc(m.g)+'">'+
+           '<div class="n">'+esc(m.n)+'</div>'+
+           '<div class="a">'+esc(m.a)+'</div>'+
+           '<div class="s '+(v?v.kind:'pend')+'"><b></b>'+
+             esc(distLine(m._d))+' · '+esc(note || (v?v.why:'checking their times'))+
+           '</div></button>';
+  }
+
+  function wire(list){
+    Array.prototype.forEach.call($('list').querySelectorAll('[data-g]'), function(b){
+      b.onclick=function(){ pick(b.getAttribute('data-g'), list); };
+    });
+  }
+
+  function renderList(){
+    var rest = RESULTS.filter(function(r){ return r.m !== PICKED; });
+    $('list').innerHTML = rest.map(function(r){ return row(r.m, r.v); }).join('');
+    wire(rest.map(function(r){ return r.m; }));
+  }
+
+  /* A mosque checked once is never checked again, so flicking between the
+     five costs nothing at all and only a searched-for mosque touches the
+     network. */
+  function pick(id, pool){
+    var m=null, i;
+    for(i=0;i<pool.length;i++){ if(pool[i].g===id){ m=pool[i]; break; } }
+    if(!m) return;
+    if(SEEN[id]) return promote(m, SEEN[id], false);
+
+    var btn=$('list').querySelector('[data-g="'+id.replace(/"/g,'\\"')+'"] .s');
+    if(btn){ btn.className='s pend'; btn.innerHTML='<b></b>'+esc(distLine(m._d))+' · checking their times'; }
+    fetchTimes(id).then(function(rows){
+      SEEN[id]=rows;
+      var v=judge(rows);
+      /* A mosque you asked for by name is shown even when its listing is poor.
+         The badge still tells the truth, and paint() says so plainly if there
+         is nothing to count to. Refusing to show it would just look broken. */
+      if(!RESULTS.some(function(r){ return r.m.g===id; })){
+        RESULTS.push({m:m, rows:rows, v:v});
+        RESULTS.sort(function(a,b){ return a.m._d-b.m._d; });   // the list stays nearest-first
+      }
+      promote(m, rows, false);
+    }).catch(function(){
+      if(btn){ btn.className='s warn'; btn.innerHTML='<b></b>'+esc(distLine(m._d))+' · could not check their times'; }
+    });
+  }
+
+  /* Ranked, not filtered, the same rule the setup flow uses: a plain substring
+     match answers "masjid" with forty mosques in alphabetical order beginning
+     with Adam Masjid, which is every mosque except the one you want. Name beats
+     address, a name that starts with what you typed beats one that merely
+     contains it, and distance breaks every remaining tie. */
+  $('q').addEventListener('input', function(){
+    var t=this.value.trim().toLowerCase();
+    /* The heading has to move with the list. Search reaches the whole
+       directory, so leaving "Also near you" above a mosque 300km away would
+       be the page lying about the one thing it exists to tell you. */
+    if(t.length<2){ $('othersHead').textContent=HEADING; renderList(); return; }
+    $('othersHead').textContent='Anywhere in the directory';
+    var hits=[];
+    LIST.forEach(function(m){
+      if(m.y==null) return;
+      var n=(m.n||'').toLowerCase(), a=(m.a||'').toLowerCase(), s;
+      if(n.indexOf(t)===0) s=0; else if(n.indexOf(t)!==-1) s=1;
+      else if(a.indexOf(t)!==-1) s=2; else return;
+      if(m._d==null) m._d = hav(HERE.lat, HERE.lng, m.y, m.x);
+      hits.push({m:m, s:s});
+    });
+    hits.sort(function(a,b){ return a.s-b.s || a.m._d-b.m._d; });
+    var top=hits.slice(0,6).map(function(h){ return h.m; });
+    if(!top.length){
+      $('list').innerHTML='<div class="item"><div class="n">We do not have that one</div>'+
+        '<div class="a">Search by town instead, or '+
+        '<a href="add.html" style="color:var(--clay)">add it</a>.</div></div>';
+      return;
+    }
+    $('list').innerHTML = top.map(function(m){
+      var known=null, i;
+      for(i=0;i<RESULTS.length;i++){ if(RESULTS[i].m.g===m.g) known=RESULTS[i].v; }
+      return row(m, known, known?null:'tap to check their times');
+    }).join('');
+    wire(top);
+  });
 
   /* One second, recomputed from the wall clock rather than scheduled ahead.
      A backgrounded tab gets throttled to roughly one tick a minute and a

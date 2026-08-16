@@ -54,8 +54,9 @@ html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
 h1{font-family:var(--display);font-size:33px;line-height:1.13;letter-spacing:-.022em;font-weight:400}
 .sub{color:var(--veil);font-size:15.5px;line-height:1.62;margin-top:12px}
 .sub b{color:var(--cream);font-weight:600}
-.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);
-  font-weight:700;margin-bottom:12px}
+/* Wayfinding only, no longer a decorative label. See s.html for the reasoning. */
+.eyebrow{font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--veil);
+  font-weight:500;margin-bottom:12px}
 .step{margin-top:28px;padding-top:24px;border-top:1px solid var(--hair)}
 
 section{display:none} section.on{display:block}
@@ -191,7 +192,6 @@ input:focus{border-color:var(--clay)}
 
   <!-- 3 ─ extracting -->
   <section id="s3">
-    <div class="eyebrow r r1">Reading</div>
     <h1 class="r r2" id="readHead">Going through it month by month.</h1>
     <p class="sub r r3" id="readSub">Each month is read more than once. Where the readings
       disagree, it reads again until they agree.</p>

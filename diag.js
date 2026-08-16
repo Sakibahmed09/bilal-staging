@@ -146,25 +146,47 @@
      to play, or did it play and nobody heard it. The first is ours. The second
      is the television's volume, and no amount of our code fixes it. The
      display already records both outcomes on window.__bilal, so read that
-     rather than guessing from the status line. */
+     rather than guessing from the status line.
+
+     There is a THIRD outcome, and it is the one that cost a morning: the browser
+     accepts the play, resolves the promise, and no sound comes out. Reported as
+     'played, so check the TV volume', it sends the owner to hunt a fault in
+     their television that is actually ours. `heard` is the measurement that
+     separates it: the media clock either advanced or it did not. */
   function audio() {
     var b = global.__bilal || {};
     var el = document.getElementById('audioState');
     var out = {
       line: el ? el.textContent.trim() : null,
       unlocked: b.unlock || null,          // 'ok' means a play() actually resolved
+      heard: b.heard || null,              // 'yes' means the media clock ran
+      playedMs: typeof b.playedMs === 'number' ? b.playedMs : null,
       athanAttempts: b.calls || 0,
       cueAttempts: b.cues || 0,
+      // The Silk keep-awake counter has always existed and was never sent, so a
+      // screen that quietly stopped nudging looked exactly like one that never
+      // needed to. Zero here on a long-lived screen is a finding, not a default.
+      silkNudges: b.silkNudges || 0,
       lastError: b.lastError ? String(b.lastError).slice(0, 200) : null
     };
+    /* `heard` may be absent, and absent is NOT the same as bad. diag.js and
+       index.html are separate files on the same origin, so a browser can hold a
+       new diag beside an older cached display that never sets it. An unmeasured
+       screen keeps the old verdict rather than being downgraded, because
+       inventing a fault we did not measure is the same sin as the one this
+       field was added to fix. */
     out.verdict =
-      out.unlocked === 'ok' && out.athanAttempts > 0
-        ? 'played, so check the TV volume'
+      out.athanAttempts > 0 && out.heard === 'no-progress'
+        ? 'played but no sound came out, ours to fix'
         : /BLOCKED/.test(out.unlocked || '')
           ? 'browser refused to play, ours to fix'
-          : out.athanAttempts === 0
-            ? 'has not tried yet today'
-            : 'unproven';
+          : out.unlocked === 'ok' && out.athanAttempts > 0
+            ? (out.heard === 'yes'
+                ? 'played and the clock ran, so check the TV volume'
+                : 'played, so check the TV volume')
+            : out.athanAttempts === 0
+              ? 'has not tried yet today'
+              : 'unproven';
     return out;
   }
 
@@ -214,6 +236,27 @@
                 lite: /[?&]lite=1/.test(location.search) },
       asleep: { gaps: gaps.slice(), timesHidden: hides,
                 uptimeMin: Math.round((Date.now() - started) / 60000) },
+      /* ── "the screen went dark" ────────────────────────────────────────
+         The failure this was added for looks like nothing else in here: the
+         page is perfectly healthy and the panel is black. On 16 Aug an Echo
+         Show ran all night with unbroken heartbeats, rAF at full rate and zero
+         errors, and showed the owner a dark screen. Everything above answers
+         "is the page alive", and every one of them said yes.
+
+         So these two are deliberately about the panel, not the page:
+         `state` is the wake lock's real outcome (held / refused / released /
+         absent / idle), which used to be swallowed by an empty catch, and
+         `vid` says whether the keep-awake video is genuinely playing or
+         merely play()-accepted and paused, which is a distinction that has
+         already cost one morning on this project.
+
+         Absent on an older cached display, same as `heard` above: report null
+         rather than inventing a verdict we did not measure. */
+      awake: (function () {
+        var b = global.__bilal || {};
+        if (!b.wakeLock && !b.vid) return null;
+        return { lock: b.wakeLock || null, vid: b.vid || null };
+      })(),
       at: new Date().toISOString(),
       tzOffsetMin: new Date().getTimezoneOffset(),
       device: device(),
