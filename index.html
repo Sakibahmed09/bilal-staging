@@ -1276,7 +1276,16 @@ body.compact #driftWrap{
     armed=true;
     $('gate').classList.remove('show');
     audioEl=a;
-    window.__bilal={audio:a, cue:cueEl, calls:0, cues:0, lastError:null, unlock:'pending'};
+    /* Merged onto whatever is already here rather than replacing it. The panel
+       instrumentation starts at page load, but arming happens whenever somebody
+       presses OK, so a plain assignment threw away the wake lock's history
+       every time a screen was armed — and an unarmed screen is exactly the
+       state a reloaded display sits in, which is when panel questions matter
+       most. */
+    window.__bilal=window.__bilal||{};
+    window.__bilal.audio=a; window.__bilal.cue=cueEl;
+    window.__bilal.calls=0; window.__bilal.cues=0;
+    window.__bilal.lastError=null; window.__bilal.unlock='pending';
 
     var p=a.play();                                  // must be in the gesture
 
@@ -1634,22 +1643,35 @@ body.compact #driftWrap{
      Chrome 84. It has been available on the whole fleet the entire time. */
   var lock=null, lockState=('wakeLock' in navigator)?'idle':'absent',
       lockGrants=0, lockReleases=0, lockErr=null;
+  /* Published on every transition rather than once per keepAwake pass. The
+     first draft wrote the snapshot synchronously inside keepAwake, which reads
+     the state BEFORE the request has resolved: a healthy screen reported
+     'idle' at boot and a lock lost at 21:10 stayed unreported until the 240s
+     tick. Reporting a stale value is how the original empty catch did its
+     damage, only slower. */
+  function reportLock(){
+    var b=window.__bilal||(window.__bilal={});
+    b.wakeLock={ state:lockState, grants:lockGrants,
+                 releases:lockReleases, error:lockErr };
+  }
   function takeLock(){
     if(lockState==='absent' || lock) return;          // never stack sentinels
     try{
       navigator.wakeLock.request('screen').then(function(s){
-        lock=s; lockState='held'; lockGrants++;
+        lock=s; lockState='held'; lockGrants++; reportLock();
         /* Held for the same reason the sentinel is: an anonymous listener on a
            collectible object is not a subscription you can rely on. */
         try{ s.addEventListener('release', function(){
           lock=null; lockReleases++;
           if(lockState==='held') lockState='released';
+          reportLock();
         }); }catch(e){}
       }).catch(function(e){
-        lock=null; lockState='refused'; lockErr=String(e&&e.name||e);
+        lock=null; lockState='refused'; lockErr=String(e&&e.name||e); reportLock();
       });
-    }catch(e){ lock=null; lockState='threw'; lockErr=String(e&&e.name||e); }
+    }catch(e){ lock=null; lockState='threw'; lockErr=String(e&&e.name||e); reportLock(); }
   }
+  reportLock();                       // 'absent' is a finding, so say it at boot
   /* Re-take the moment the document is visible again: this is the exact edge
      the old code could only recover from by luck, up to 4 minutes late. */
   try{ document.addEventListener('visibilitychange', function(){
@@ -1669,11 +1691,11 @@ body.compact #driftWrap{
        found to be play()-accepted and paused-anyway, which is why the hum
        exists at all. Report what it is actually doing rather than assuming the
        replacement made the question moot. */
-    if(window.__bilal){
-      window.__bilal.wakeLock={ state:lockState, grants:lockGrants,
-                                releases:lockReleases, error:lockErr };
-      if(v) window.__bilal.vid={ paused:!!v.paused, t:Math.round((v.currentTime||0)*10)/10,
-                                 ready:v.readyState };
+    reportLock();
+    if(v){
+      var b=window.__bilal||(window.__bilal={});
+      b.vid={ paused:!!v.paused, t:Math.round((v.currentTime||0)*10)/10,
+              ready:v.readyState };
     }
   }
 
