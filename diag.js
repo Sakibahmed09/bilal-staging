@@ -225,7 +225,7 @@
     out.verdict =
       out.athanAttempts > 0 && out.heard === 'no-progress'
         ? 'played but no sound came out, ours to fix'
-        : /BLOCKED/.test(out.unlocked || '')
+        : /BLOCKED/.test(out.unlocked || '') || out.unlocked === 'refused'
           ? 'browser refused to play, ours to fix'
           : out.unlocked === 'ok' && out.athanAttempts > 0
             ? (out.heard === 'yes'

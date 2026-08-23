@@ -3,16 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nearest jama'ah</title>
+<title>Bilal Near · nearest jama'ah</title>
+<meta name="description" content="Find the next trustworthy jama'ah near you and know when to leave.">
 <link rel="icon" href="favicon.ico" sizes="any">
-<meta name="theme-color" content="#17140f">
+<meta name="theme-color" content="#14161d">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bilal Near">
+<link rel="apple-touch-icon" href="icon-180.png">
+<!-- iOS owns the frame before near.html can paint. Match that native launch
+     canvas to the living splash instead of allowing the default white card. -->
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-640x1136.png" media="(device-width:320px) and (device-height:568px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-750x1334.png" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1125x2436.png" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-828x1792.png" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1242x2688.png" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1170x2532.png" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1179x2556.png" media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1284x2778.png" media="(device-width:428px) and (device-height:926px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1290x2796.png" media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1206x2622.png" media="(device-width:402px) and (device-height:874px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-1320x2868.png" media="(device-width:440px) and (device-height:956px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="/near-launch/near-launch-942x2048.png" media="(device-width:471px) and (device-height:1024px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="manifest" href="near.webmanifest">
 <meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/prata-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="bilal-mark-192.png" as="image">
+<link rel="preload" href="mosques.json" as="fetch" crossorigin>
+<link rel="preconnect" href="https://bilal-times.ahmed-sakib.workers.dev" crossorigin>
 <style>
+@font-face{font-family:'Prata';font-style:normal;font-weight:400;font-display:swap;
+  src:url('fonts/prata-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+    U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400 700;font-stretch:100%;font-display:optional;
+  src:url('fonts/archivo-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+    U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 /* ─────────────────────────────────────────────────────────────────────────
- * NEAR, the laptop tab
+ * NEAR, the portable companion
  *
  * The display is one mosque, permanent, across a room. This is wherever you
  * are, resolved once, at arm's length. Deliberately a separate file:
@@ -32,65 +63,256 @@
  * simple because of it: no swap thresholds, no frozen targets, no "you have
  * moved" state to reconcile.
  *
- * Chromium-70 constraints do NOT apply here (this is a laptop, not a Fire
- * Stick), but the house style is kept so the two files read as one product.
+ * Chromium-70 constraints do NOT apply here (this is a modern phone, not a
+ * Fire Stick), but the house style is kept so the two files read as one product.
  * ───────────────────────────────────────────────────────────────────────── */
 :root{
   --clay:#d9a48f; --clay-lift:#e8b9a3; --cream:#f6efe7;
-  --char:#221e1c; --deep:#17140f;
+  --char:#221e1c; --deep:#17140f; --chrome:#14161d;
   --veil:rgba(246,239,231,.52); --hair:rgba(246,239,231,.14);
   --ok:#7fb08a; --warn:#d8a24a; --bad:#c4614f;
   --display:'Prata',Georgia,serif;
   --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --sky-height:76svh;
+  --swift:160ms;
+  --settle:420ms;
+  --grand:760ms;
+  --out:cubic-bezier(.16,1,.3,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--deep);color:var(--cream);font-family:var(--text);
-  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;min-height:100%}
+html,body{color:var(--cream);font-family:var(--text);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;min-height:100%;
+  -webkit-tap-highlight-color:transparent;text-rendering:optimizeLegibility}
+html{background:var(--chrome);scroll-behavior:smooth;min-height:-webkit-fill-available}
+body{position:relative;overflow-x:hidden;overscroll-behavior-y:none;
+  background:linear-gradient(to bottom,var(--chrome) 0,var(--chrome) 66svh,
+    var(--deep) 66svh,var(--deep) 100%);
+  min-height:100vh;min-height:-webkit-fill-available}
+button,input{font:inherit}
 
-#sky{position:fixed;top:0;left:0;right:0;height:70vh;z-index:0;
-  background-position:center 32%;background-size:cover;
-  opacity:0;transition:opacity 1.2s ease}
-#sky.on{opacity:1}
+/* ─────────────────────────────────────────────────────────────────────────
+ * LOADING STORYBOARD
+ *
+ * Read top-to-bottom. Data, not a timer, advances the stages.
+ *
+ *    0ms   the minaret rises; “bilal” and the location task settle in
+ *  data 1  status crossfades to “checking jama’ah nearby”; line tracks checks
+ *  data 2  the living page is ready; the veil lifts in 280ms
+ *
+ * The splash never creates a wait longer than the work beneath it. A very
+ * fast cached answer gets 900ms so the mark and name can actually arrive;
+ * slower work continues in the living page after 1.45s so this never becomes
+ * a decorative wall between someone and the postcode route. */
+.splash{position:fixed;inset:0;z-index:24;display:grid;place-items:center;overflow:hidden;
+  background:
+    radial-gradient(circle at 64% 22%,rgba(217,164,143,.20),transparent 31%),
+    radial-gradient(circle at 24% 76%,rgba(116,80,62,.23),transparent 38%),var(--deep);
+  opacity:1;visibility:visible;transition:opacity 280ms ease,visibility 0s linear 280ms}
+.splash.out{opacity:0;visibility:hidden;pointer-events:none}
+.splash:before{content:'';position:absolute;width:min(92vw,560px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(217,164,143,.12),rgba(217,164,143,0) 68%);
+  transform:scale(.78);animation:splash-breathe 2.8s ease-in-out infinite}
+.splash-inner{position:relative;display:flex;align-items:center;flex-direction:column;text-align:center;
+  width:min(86vw,360px);padding:calc(24px + var(--safe-top)) 18px calc(24px + var(--safe-bottom));
+  transform:translateY(0);transition:transform 280ms var(--out),opacity 220ms ease}
+.splash.out .splash-inner{opacity:0;transform:translateY(-8px)}
+.splash-mark{width:70px;height:70px;object-fit:contain;opacity:0;transform:translateY(14px) scale(.94);
+  animation:splash-mark-in var(--grand) var(--out) 40ms forwards}
+.splash-name{font-family:var(--display);font-size:34px;line-height:1;margin-top:20px;
+  letter-spacing:-.025em;opacity:0;transform:translateY(8px);
+  animation:splash-copy-in 620ms var(--out) 120ms forwards}
+.splash-status{min-height:22px;color:var(--veil);font-size:13px;line-height:1.5;margin-top:13px;
+  opacity:0;transform:translateY(6px);animation:splash-copy-in 620ms var(--out) 190ms forwards}
+.splash-progress{width:min(190px,52vw);height:1px;margin-top:27px;background:rgba(246,239,231,.12);overflow:hidden}
+.splash-progress span{display:block;width:100%;height:100%;background:var(--clay);transform:scaleX(.08);
+  transform-origin:left center;transition:transform var(--settle) var(--out)}
+.splash-postcode{appearance:none;border:0;background:none;color:var(--clay);font-size:12px;
+  min-height:44px;margin-top:9px;padding:10px;opacity:0;transform:translateY(4px);
+  animation:splash-copy-in 520ms var(--out) 760ms forwards;cursor:pointer}
+@keyframes splash-mark-in{to{opacity:1;transform:none}}
+@keyframes splash-copy-in{to{opacity:1;transform:none}}
+@keyframes splash-breathe{0%,100%{opacity:.56;transform:scale(.78)}50%{opacity:1;transform:scale(1)}}
+
+.pull-refresh{position:fixed;z-index:23;top:calc(var(--safe-top) + 7px);left:50%;
+  display:flex;align-items:center;gap:8px;min-height:38px;padding:7px 12px;border-radius:999px;
+  border:1px solid rgba(246,239,231,.15);background:#211d1a;color:var(--veil);font-size:11.5px;
+  opacity:0;pointer-events:none;transform:translate(-50%,-54px);transition:opacity var(--swift) ease,
+  transform var(--settle) var(--out)}
+.pull-refresh.on{opacity:1}
+.pull-refresh.settle{transform:translate(-50%,0)!important}
+.pull-arrow{display:flex;align-items:center;justify-content:center;width:22px;height:22px;
+  border:1px solid rgba(217,164,143,.5);border-radius:50%;color:var(--clay);font-size:14px;
+  transform:rotate(0deg)}
+.pull-refresh.ready .pull-arrow{transform:rotate(180deg)}
+.pull-refresh.refreshing .pull-arrow{animation:pull-spin .7s linear infinite}
+@keyframes pull-spin{to{transform:rotate(360deg)}}
+
+/* A quiet platform cue, not a third action. It lives in the top edge, scrolls
+   away with the page and yields to the full pull status as soon as a finger
+   moves. The 44px gesture surface is the page itself, so the mark can stay
+   optically tiny. */
+.refresh-hint{position:absolute;z-index:22;top:calc(var(--safe-top) + 7px);left:50%;
+  display:flex;align-items:center;gap:6px;color:rgba(246,239,231,.38);font-size:10px;
+  line-height:1;letter-spacing:.045em;white-space:nowrap;pointer-events:none;
+  opacity:0;transform:translate(-50%,-5px);
+  transition:opacity 240ms ease,transform var(--settle) var(--out)}
+.refresh-hint.on{opacity:1;transform:translate(-50%,0)}
+.refresh-hint-mark{width:7px;height:7px;border-right:1px solid currentColor;
+  border-bottom:1px solid currentColor;transform:rotate(45deg) translateY(-1px)}
+
+#sky{position:fixed;top:0;left:0;right:0;height:var(--sky-height);z-index:0;
+  background-position:66% center;background-size:auto 100%;
+  opacity:0;transform:scale(1.018);transition:opacity 1.2s var(--out),transform 1.8s var(--out)}
+#sky.on{opacity:1;transform:none}
 #scrim{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;pointer-events:none;
-  background:linear-gradient(to bottom, rgba(23,20,15,.44) 0%, rgba(23,20,15,.30) 20%,
-                             rgba(23,20,15,.86) 50%, var(--deep) 66%, var(--deep) 100%)}
+  background:
+    linear-gradient(to right,rgba(23,20,15,.34) 0%,rgba(23,20,15,.18) 62%,rgba(23,20,15,.04) 100%),
+    linear-gradient(to bottom,rgba(23,20,15,.40) 0%,rgba(23,20,15,.25) 22%,
+      rgba(23,20,15,.84) 53%,var(--deep) 69%,var(--deep) 100%)}
+#scrim:after{content:'';position:absolute;inset:0;opacity:0;
+  background:radial-gradient(circle at 50% 37%,rgba(217,164,143,.24),transparent 54%)}
+body.calling #scrim:after{animation:call-glow 1.4s var(--out) both}
 
 #app{position:relative;z-index:2;max-width:620px;margin:0 auto;
-  padding:34px 22px 60px;min-height:100vh}
+  padding-top:calc(28px + var(--safe-top));
+  padding-right:calc(22px + env(safe-area-inset-right,0px));
+  padding-bottom:calc(60px + var(--safe-bottom));
+  padding-left:calc(22px + env(safe-area-inset-left,0px));min-height:100svh;
+  opacity:1;transition:opacity 220ms ease}
+/* Safari can expose a sliver below an absolute full-bleed layer while its
+   visual viewport is settling. Keep the living page unpainted for the brief
+   data-led loading beat, so no section heading can peek through the home area. */
+body.is-loading #app{opacity:0;visibility:hidden}
+#app.pulling{will-change:transform}
+#app.pull-settle{transition:transform var(--settle) var(--out)}
 
 .brand{font-family:var(--display);font-size:22px;letter-spacing:-.01em;opacity:.9}
-.brandrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:40px}
-.where{font-size:13px;color:var(--veil)}
+.brandrow{display:flex;min-height:44px;align-items:center;justify-content:space-between;
+  gap:18px;margin-bottom:clamp(38px,8vh,68px)}
+.where{max-width:55%;font-size:13px;color:var(--veil);text-align:right}
 
-/* hero */
-#hero{opacity:0;transform:translateY(12px);transition:opacity .7s ease,transform .7s ease}
-#hero.in{opacity:1;transform:none}
-.mname{font-family:var(--display);font-size:34px;line-height:1.14;letter-spacing:-.015em}
+/* ── entrance ─────────────────────────────────────────────────────────────
+   ANIMATION STORYBOARD
+
+   0ms  mosque settles into the sky
+  90ms  address and distance arrive as one thought
+ 190ms  the rule draws, then the prayer context arrives
+ 260ms  the leave decision follows as one sentence
+ 390ms  the route and supporting controls finish the gesture
+
+   One class drives the sequence. It is an editorial reveal, not a collection
+   of unrelated fades, and switching mosque reuses the same settling curve. */
+#hero>:not(.journey-form),#hero .actions{opacity:0;transform:translateY(12px);
+  transition:opacity var(--grand) var(--out),transform var(--grand) var(--out)}
+#hero.in>:not(.journey-form){opacity:1;transform:none}
+#hero .maddr,#hero .mdist{transition-delay:90ms}
+#hero .rule{transform:scaleX(.94);transform-origin:left center;transition-delay:190ms}
+#hero.in .rule{transform:scaleX(1)}
+#hero .jamaah-line{transition-delay:220ms}
+#hero .leave,#hero .journey-meta{transition-delay:280ms}
+#hero .actions{transition-delay:390ms}
+#hero .day{transition-delay:450ms}
+.mname{font-family:var(--display);font-size:clamp(34px,10vw,48px);line-height:1.08;
+  letter-spacing:-.025em;text-wrap:balance;font-kerning:normal}
 .maddr{font-size:14px;color:var(--veil);margin-top:9px;line-height:1.45}
-.mdist{font-size:14px;color:var(--clay);margin-top:7px;font-weight:600}
+.mdist{font-size:14px;color:var(--clay);margin-top:7px;font-weight:600;
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:7px}
+.rule{height:1px;background:var(--hair);margin:clamp(28px,7vh,54px) 0 24px}
 
-.rule{height:1px;background:var(--hair);margin:26px 0 24px}
+.jamaah-line{display:flex;align-items:baseline;gap:8px;color:var(--veil)}
+.plabel{font-size:14px;letter-spacing:.01em}
+.ptime{font-family:var(--display);font-size:19px;line-height:1;letter-spacing:-.02em;
+  color:var(--cream);font-variant-numeric:lining-nums tabular-nums}
+.leave{margin-top:14px;color:var(--cream)}
+.leave span{display:block;font-family:var(--display);font-size:clamp(40px,12vw,58px);
+  line-height:1.08;letter-spacing:-.035em;text-wrap:balance}
+.leave b{color:var(--clay-lift);font-weight:400}
+.leave small{display:block;margin-top:11px;color:var(--veil);font-family:var(--text);
+  font-size:13px;line-height:1.45;letter-spacing:0}
+.leave.none span,.leave.late span{font-size:clamp(31px,9vw,43px);line-height:1.12}
+.journey-meta{display:flex;align-items:baseline;gap:8px;margin-top:5px;
+  color:var(--veil);font-size:12.5px;line-height:1.45}
+.text-button{appearance:none;border:0;background:none;color:var(--clay);font:inherit;
+  display:inline-flex;align-items:center;min-height:44px;margin:-10px 0;font-weight:600;padding:10px 0;
+  cursor:pointer;text-decoration:underline;
+  text-decoration-color:rgba(217,164,143,.45);text-underline-offset:3px}
+.journey-form{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows var(--settle) var(--out),opacity var(--swift) ease}
+.journey-form.on{grid-template-rows:1fr;opacity:1}
+.journey-inner{overflow:hidden;padding-top:17px}
+.journey-form label{display:block;color:var(--cream);font-size:13px;font-weight:600;margin-bottom:8px}
+.journey-fields{display:flex;align-items:center;gap:8px}
+#journeyMinutes{width:88px;min-height:46px;border:1px solid var(--hair);border-radius:11px;
+  background:rgba(246,239,231,.06);color:var(--cream);font:inherit;font-size:16px;
+  padding:11px 12px;outline:none;font-variant-numeric:tabular-nums}
+.journey-fields .btn{min-height:46px;padding:10px 15px}
+.journey-hint{color:var(--veil);font-size:12px;line-height:1.45;margin-top:8px}
 
-.plabel{font-size:13px;letter-spacing:.02em;color:var(--veil);text-transform:none}
-.ptime{font-family:var(--display);font-size:60px;line-height:1;margin-top:8px;letter-spacing:-.02em}
-.pcount{font-size:16px;color:var(--clay);margin-top:12px;font-weight:600}
-.leave{font-size:15px;margin-top:18px;line-height:1.5;color:var(--cream)}
-.leave.none{color:var(--veil)}
-.leave b{color:var(--clay-lift)}
+/* The rest of the day is present when it is wanted, never in competition
+   with the one decision this screen exists to answer. */
+.day{margin-top:27px;border-top:1px solid var(--hair)}
+.day-toggle{appearance:none;width:100%;min-height:56px;border:0;background:none;color:var(--cream);
+  display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;
+  padding:10px 0;cursor:pointer}
+.day-title{font-size:13px;font-weight:600}
+.day-title small{display:block;color:var(--veil);font-size:12px;font-weight:400;margin-top:3px}
+.chev{width:8px;height:8px;border-right:1.5px solid var(--clay);border-bottom:1.5px solid var(--clay);
+  transform:rotate(45deg);margin:-4px 5px 0 0;transition:transform var(--settle) var(--out)}
+.day-toggle[aria-expanded="true"] .chev{transform:rotate(225deg);margin-top:5px}
+.day-drawer{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows var(--settle) var(--out),opacity var(--swift) ease}
+.day-drawer.on{grid-template-rows:1fr;opacity:1}
+.day-inner{overflow:hidden}
+.day-list{padding:2px 0 8px}
+.day-prayer{display:grid;grid-template-columns:minmax(0,1fr) auto 62px;gap:12px;align-items:baseline;
+  min-height:40px;padding:9px 0;border-top:1px solid rgba(246,239,231,.07);font-size:13px}
+.day-prayer .day-time{font-weight:600;font-variant-numeric:tabular-nums}
+.day-prayer .day-state{text-align:right;color:var(--veil);font-size:11.5px}
+.day-prayer.past{color:var(--veil)}
+.day-prayer.next{color:var(--clay-lift)}
+.day-prayer.next .day-state{color:var(--clay);font-weight:600}
+.day-prayer.bad{color:var(--veil)}
+.day-prayer.bad .day-time{font-weight:400}
+.day-trust{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:11px 0 14px;border-top:1px solid var(--hair);color:var(--veil);font-size:11.5px;line-height:1.45}
+.day-report{position:relative;display:inline-flex;align-items:center;min-height:44px;margin:-10px 0;
+  color:var(--clay);white-space:nowrap;text-underline-offset:3px}
 
-/* the others */
-h2.sec{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--veil);
-  margin:38px 0 14px;text-transform:uppercase}
+/* Timetable and mosque choice are both available without turning Home into a
+   directory. They use the same quiet disclosure language and only become a
+   surface after someone asks for them. */
+#others{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.others-toggle{appearance:none;width:100%;min-height:56px;border:0;background:none;color:var(--cream);
+  display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;
+  padding:10px 0;cursor:pointer}
+.others-title{font-size:13px;font-weight:600}
+.others-title small{display:block;color:var(--veil);font-size:12px;font-weight:400;margin-top:3px}
+.others-toggle[aria-expanded="true"] .chev{transform:rotate(225deg);margin-top:5px}
+.others-drawer{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows var(--settle) var(--out),opacity var(--swift) ease}
+.others-drawer.on{grid-template-rows:1fr;opacity:1}
+.others-inner{overflow:hidden}
+.others-content{padding:8px 0 4px}
+.find-label{display:block;margin-bottom:9px;color:var(--veil);font-size:12px}
 .item{display:block;width:100%;text-align:left;background:rgba(246,239,231,.035);
-  border:1px solid var(--hair);border-radius:12px;padding:14px 16px;margin-bottom:9px;
-  color:var(--cream);font-family:var(--text);font-size:15px}
-button.item{cursor:pointer}
-button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,231,.30)}
+  border:1px solid var(--hair);border-radius:14px;padding:15px 16px;margin-bottom:10px;
+  color:var(--cream);font-family:var(--text);font-size:15px;
+  animation:item-in .52s var(--out) both}
+.item:nth-child(2){animation-delay:45ms}.item:nth-child(3){animation-delay:90ms}
+.item:nth-child(4){animation-delay:135ms}.item:nth-child(5){animation-delay:180ms}
+button.item{min-height:72px;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,transform .18s var(--out)}
+button.item:active{transform:scale(.985)}
 .find{font-family:var(--text);font-size:15px;padding:12px 14px;border-radius:11px;
   border:1px solid var(--hair);background:rgba(246,239,231,.06);color:var(--cream);
-  width:100%;margin-bottom:12px;display:block}
+  width:100%;min-height:50px;margin-bottom:12px;display:block;outline:none}
 .find::placeholder{color:rgba(246,239,231,.38)}
 .item .n{font-weight:600}
+.item-top{display:flex;justify-content:space-between;align-items:baseline;gap:18px}
+.item .soon{display:flex;align-items:baseline;gap:8px;flex:none;color:var(--clay-lift)}
+.item .soon span{font-size:11.5px;color:var(--veil);font-weight:400}
+.item .soon strong{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .item .a{font-size:13px;color:var(--veil);margin-top:3px;line-height:1.4}
 .item .s{font-size:12.5px;margin-top:7px;display:flex;align-items:center;gap:7px}
 .item .s b{width:6px;height:6px;border-radius:50%;display:block;flex:none}
@@ -101,48 +323,290 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
 
 /* controls */
 .btn{font-family:var(--text);font-size:15px;font-weight:600;border-radius:11px;
-  padding:13px 20px;border:1px solid var(--clay);background:var(--clay);color:var(--char);
-  cursor:pointer}
-.btn:hover{background:var(--clay-lift);border-color:var(--clay-lift)}
+  min-height:50px;padding:13px 20px;border:1px solid var(--clay);background:var(--clay);color:var(--char);
+  cursor:pointer;transition:background-color .18s ease,border-color .18s ease,transform .18s var(--out)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:1;cursor:default}
 .btn.ghost{background:transparent;color:var(--clay);border-color:rgba(217,164,143,.45)}
-.btn.ghost:hover{background:rgba(217,164,143,.10);color:var(--clay-lift)}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:26px}
+.actions{display:grid;gap:8px;margin-top:26px}
+/* A route is the completion of the decision, not a generic rectangular CTA.
+   Two quiet rules hold an editorial action in the page; the clay disc is the
+   only button-like shape and sits where a thumb naturally finishes the scan. */
+.route-primary{display:grid;grid-template-columns:minmax(0,1fr) 48px;align-items:center;gap:16px;
+  width:100%;min-height:84px;padding:14px 0;border-top:1px solid rgba(217,164,143,.42);
+  border-bottom:1px solid var(--hair);color:var(--cream);text-decoration:none;cursor:pointer}
+.route-copy{display:block;min-width:0}
+.route-kicker{display:block;color:var(--clay);font-size:11.5px;line-height:1.2;
+  letter-spacing:.015em}
+.route-label{display:block;margin-top:5px;font-family:var(--display);font-size:24px;
+  font-weight:400;line-height:1.16;letter-spacing:-.02em}
+.route-primary .route-arrow{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;
+  background:var(--clay);color:var(--char);font-size:20px;
+  transition:background-color var(--swift) ease,transform var(--settle) var(--out)}
+.route-primary:active .route-arrow{transform:translate(2px,-2px)}
+#arm{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:max-content;max-width:100%;
+  min-height:48px;padding:7px 2px;background:transparent;border-color:transparent;
+  color:var(--clay);text-align:left}
+.arm-copy{display:block}
+.arm-copy small{display:block;margin-top:2px;color:var(--veil);font-size:11.5px;font-weight:400}
+.armdot{width:6px;height:6px;border-radius:50%;background:var(--clay);opacity:.45;
+  transform:scale(.72);transition:opacity var(--swift) ease,transform var(--settle) var(--out)}
+#arm.armed .armdot{opacity:1;transform:scale(1);
+  animation:armed-breathe 2.8s ease-in-out infinite}
 
 #pcform{margin-top:18px;display:none}
 #pcform.on{display:block}
 #pc{font-family:var(--text);font-size:16px;padding:13px 15px;border-radius:11px;
   border:1px solid var(--hair);background:rgba(246,239,231,.06);color:var(--cream);
-  width:190px;letter-spacing:.04em}
+  width:min(190px,calc(100% - 112px));min-height:50px;letter-spacing:.04em;outline:none}
 #pc::placeholder{color:rgba(246,239,231,.38)}
 
 .foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--hair);
   font-size:13px;color:var(--veil);line-height:1.6}
 .foot b{color:var(--clay)}
+.near-about{margin-top:8px}
+.near-about summary{display:inline-flex;align-items:center;min-height:44px;color:var(--clay);
+  cursor:pointer;list-style:none;text-decoration:underline;text-decoration-color:rgba(217,164,143,.45);
+  text-underline-offset:3px}
+.near-about summary::-webkit-details-marker{display:none}
+.near-about p{max-width:50ch;padding:2px 0 8px}
 
 .msg{font-size:16px;line-height:1.55;color:var(--cream)}
 .msg .sub{font-size:14px;color:var(--veil);margin-top:9px}
+.postcode-alt{display:none;margin-top:14px}
+.postcode-alt.on{display:inline-flex}
 .spin{display:inline-block;width:12px;height:12px;border-radius:50%;
   border:2px solid rgba(246,239,231,.25);border-top-color:var(--clay);
   animation:sp .8s linear infinite;vertical-align:-1px}
 @keyframes sp{to{transform:rotate(360deg)}}
+@keyframes item-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes armed-breathe{
+  0%,45%{box-shadow:0 0 0 0 rgba(217,164,143,.28)}
+  75%,100%{box-shadow:0 0 0 6px rgba(217,164,143,0)}
+}
+@keyframes call-glow{
+  0%{opacity:0} 18%{opacity:1} 55%{opacity:.38} 100%{opacity:0}
+}
+
+.net{position:fixed;z-index:8;top:calc(var(--safe-top) + 9px);left:50%;
+  padding:7px 11px;border:1px solid var(--hair);border-radius:999px;
+  background:var(--deep);color:var(--veil);font-size:12px;white-space:nowrap;
+  opacity:0;pointer-events:none;transform:translate(-50%,-16px);
+  transition:opacity .25s ease,transform .35s var(--out)}
+.net.on{opacity:1;transform:translate(-50%,0)}
+
+.install{display:none;align-items:center;justify-content:space-between;gap:14px;
+  margin-top:18px;padding:16px 0 2px;border-top:1px solid var(--hair)}
+.install.on{display:grid;grid-template-columns:minmax(0,1fr) auto}
+.install-copy{color:var(--cream);font-size:13px;line-height:1.45}
+.install-copy strong{display:block;font-family:var(--display);font-size:17px;font-weight:400;
+  letter-spacing:-.01em;margin-bottom:2px}
+.install-copy span{display:block;color:var(--veil);font-size:12px;max-width:31ch}
+.install .btn{min-height:44px;padding:9px 13px;font-size:13px;flex:none}
+
+body.guide-open{overflow:hidden}
+.install-sheet{position:fixed;inset:0;z-index:30;display:grid;grid-template-rows:1fr auto;
+  visibility:hidden;pointer-events:none}
+.install-sheet.on{visibility:visible;pointer-events:auto}
+.install-backdrop{appearance:none;border:0;background:rgba(12,10,8,.70);opacity:0;
+  transition:opacity var(--settle) ease;cursor:default}
+.install-sheet.on .install-backdrop{opacity:1}
+.install-panel{position:relative;width:min(620px,100%);max-height:100svh;
+  margin:0 auto;background:#211d1a;border:1px solid rgba(246,239,231,.16);border-bottom:0;
+  border-radius:0;padding:calc(10px + var(--safe-top)) 20px calc(22px + var(--safe-bottom));overflow:auto;
+  overscroll-behavior:contain;transform:translateY(102%);
+  transition:transform var(--grand) var(--out)}
+.install-sheet.on .install-panel{transform:none}
+.install-grab{width:36px;height:4px;border-radius:99px;background:rgba(246,239,231,.22);margin:0 auto 17px}
+.install-head{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:16px;align-items:start}
+.install-kicker{color:var(--clay);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.install-head h2{font-family:var(--display);font-size:28px;font-weight:400;line-height:1.12;
+  letter-spacing:-.025em;margin-top:5px}
+.install-head p{color:var(--veil);font-size:13px;line-height:1.5;margin-top:7px;max-width:42ch}
+.install-close{appearance:none;width:44px;height:44px;border:1px solid var(--hair);border-radius:50%;
+  background:transparent;color:var(--cream);font-size:22px;line-height:1;cursor:pointer}
+.install-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:20px 0 7px;
+  padding:4px;background:rgba(246,239,231,.055);border-radius:12px}
+.install-tab{appearance:none;min-height:40px;border:0;border-radius:9px;background:transparent;
+  color:var(--veil);font-size:13px;font-weight:600;cursor:pointer}
+.install-tab[aria-selected="true"]{background:var(--cream);color:var(--char)}
+.install-steps{list-style:none}
+.install-step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:18px 0;
+  border-bottom:1px solid rgba(246,239,231,.08)}
+.install-step:last-child{border-bottom:0}
+.install-number{display:flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border:1px solid rgba(217,164,143,.55);border-radius:50%;color:var(--clay);
+  font-size:11px;font-weight:700}
+.install-step h3{font-size:15px;line-height:1.35}
+.install-step p{color:var(--veil);font-size:12.5px;line-height:1.5;margin-top:3px}
+.install-shot{position:relative;overflow:hidden;min-height:112px;margin-top:12px;border-radius:17px;
+  border:1px solid rgba(34,30,28,.12);background:#f1efec;color:#1f1d1b;
+  box-shadow:0 12px 28px rgba(0,0,0,.16);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.shot-page{height:69px;padding:14px 16px;background:linear-gradient(145deg,#3f261f,#74503e);color:#f6efe7}
+.shot-page span{display:block;font-family:var(--display);font-size:13px;opacity:.8}
+.shot-page b{display:block;font-family:var(--display);font-size:21px;font-weight:400;margin-top:7px}
+.browser-bar{display:grid;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;
+  gap:7px;height:43px;padding:5px 8px;background:#f8f7f5;font-size:10px;text-align:center}
+.browser-url{padding:7px 6px;border-radius:8px;background:#e7e5e1;white-space:nowrap;overflow:hidden}
+.share-glyph,.menu-glyph{position:relative;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;background:#d9a48f;color:#24211f;font-size:18px;font-weight:500}
+.share-glyph:after{content:'';position:absolute;left:8px;right:8px;bottom:5px;height:9px;
+  border:1.5px solid currentColor;border-top:0;border-radius:0 0 2px 2px}
+.menu-glyph{font-size:20px;line-height:1;letter-spacing:1px}
+.share-card{padding:10px;background:#dedbd7}
+.share-source{display:flex;align-items:center;gap:9px;padding:8px 10px 11px;color:#6e6964;font-size:10px}
+.mini-icon{width:26px;height:26px;border-radius:7px}
+.share-row{display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:9px;align-items:center;
+  min-height:48px;padding:9px 12px;border-radius:11px;background:#faf9f7;font-size:13px}
+.home-glyph{display:flex;align-items:center;justify-content:center;width:25px;height:25px;
+  border:1.5px solid #817a73;border-radius:6px;font-size:17px;font-weight:400}
+.share-row em{color:#8a847e;font-size:20px;font-style:normal}
+.confirm-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:13px 14px;
+  border-bottom:1px solid #ddd9d4;font-size:11px;color:#2871d3}
+.confirm-top b{color:#292622;font-size:12px}.confirm-top strong{text-align:right}
+.confirm-app{display:flex;align-items:center;gap:12px;padding:17px 15px}
+.confirm-app img{width:48px;height:48px;border-radius:12px}
+.confirm-app b,.confirm-app span{display:block}.confirm-app b{font-size:14px}.confirm-app span{color:#77716b;font-size:10px;margin-top:3px}
+.android-menu{position:absolute;right:9px;top:8px;width:206px;padding:6px;border-radius:11px;
+  background:#f9f8f6;box-shadow:0 10px 28px rgba(0,0,0,.24)}
+.android-menu .share-row{padding:7px 8px;min-height:43px;background:transparent}
+.android-menu .share-row.install-row{background:rgba(217,164,143,.26)}
+.android-prompt{padding:14px}
+.android-prompt-head{display:flex;align-items:center;gap:10px}.android-prompt-head img{width:40px;height:40px;border-radius:10px}
+.android-prompt-head b,.android-prompt-head span{display:block}.android-prompt-head span{font-size:10px;color:#77716b;margin-top:2px}
+.android-preview{height:64px;margin:12px 0;border-radius:10px;background:linear-gradient(135deg,#3f261f,#a36d53);
+  color:#f6efe7;padding:12px;font-family:var(--display);font-size:18px}
+.android-actions{display:flex;justify-content:flex-end;gap:18px;color:#9a5f49;font-size:12px;font-weight:700}
+.install-finish{width:100%;margin-top:3px}
+
+.find:focus,#pc:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,164,143,.12)}
+:focus-visible{outline:2px solid var(--clay-lift);outline-offset:3px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media(hover:hover) and (pointer:fine){
+  button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,231,.30)}
+  .btn:hover{background:var(--clay-lift);border-color:var(--clay-lift)}
+  .btn.ghost:hover{background:rgba(217,164,143,.10);color:var(--clay-lift)}
+  .route-primary:hover{color:var(--clay-lift)}
+  .route-primary:hover .route-arrow{background:var(--clay-lift)}
+  .route-primary:hover .route-arrow{transform:translate(2px,-2px)}
+}
+
+@media(max-width:520px){
+  :root{--sky-height:78svh}
+  #app{padding-top:calc(18px + var(--safe-top));
+    padding-left:calc(18px + env(safe-area-inset-left,0px));
+    padding-right:calc(18px + env(safe-area-inset-right,0px))}
+  /* The source photograph is landscape. On a phone it is treated as a
+     portrait crop: the full minaret rises on the right edge while the open
+     sky becomes the reading field. This is art direction, not a smaller TV. */
+  #sky{background-position:64% center;background-size:auto 100%}
+  #scrim{background:
+    linear-gradient(to right,rgba(23,20,15,.66) 0%,rgba(23,20,15,.36) 66%,rgba(23,20,15,.08) 100%),
+    linear-gradient(to bottom,rgba(23,20,15,.35) 0%,rgba(23,20,15,.20) 24%,
+      rgba(23,20,15,.84) 56%,var(--deep) 72%,var(--deep) 100%)}
+  .brandrow{margin-bottom:clamp(21px,4.4svh,32px)}
+  .mname{max-width:88%;font-size:clamp(30px,8.7vw,38px);line-height:1.06;
+    letter-spacing:-.03em;text-wrap:pretty}
+  .maddr{max-width:78%;font-size:13.5px;margin-top:7px}
+  .mdist{margin-top:5px}
+  .rule{width:88%;margin:clamp(20px,4.1svh,30px) 0 17px}
+  .ptime{font-size:19px}
+  .leave{margin-top:13px}
+  .leave span{font-size:clamp(39px,12.2vw,52px)}
+  .leave.none span,.leave.late span{font-size:clamp(30px,8.8vw,38px)}
+  .journey-meta{margin-top:5px}
+  .actions{gap:6px;margin-top:22px}
+  .route-primary{min-height:82px}
+  .route-label{font-size:23px}
+  #arm{min-height:48px}
+  .day{margin-top:18px}
+  .item-top{gap:12px}
+  .item .soon{display:block;text-align:right}
+  .item .soon span{display:block;margin-bottom:2px}
+  .install-panel{padding-left:18px;padding-right:18px}
+}
+
+/* Short phones still deliver the whole decision before asking for a scroll.
+   This is density through hierarchy, not a shrunken desktop canvas: every
+   control retains its touch target and only the ceremonial whitespace yields. */
+@media(max-width:520px) and (max-height:740px){
+  .brandrow{margin-bottom:20px}
+  .mname{font-size:29px}
+  .rule{margin:18px 0 15px}
+  .leave{margin-top:11px}
+  .leave span{font-size:39px}
+  .actions{margin-top:15px}
+  .day{margin-top:14px}
+}
+
+@media(min-width:700px){
+  #app{padding-top:calc(42px + var(--safe-top));
+    padding-left:calc(30px + env(safe-area-inset-left,0px));
+    padding-right:calc(30px + env(safe-area-inset-right,0px))}
+  #sky{background-position:center center;background-size:cover}
+  .install-panel{max-height:calc(100svh - 18px);border-radius:28px 28px 0 0;padding-top:10px}
+}
+
+/* Safari clips fixed layers to its visual viewport. In edge-to-edge mode that
+   leaves the root colour visible behind the status icons. Let the living sky
+   and its scrim paint into the document safe area instead; the app content is
+   still inset, so the clock and controls never sit under the notch. */
+@supports (-webkit-touch-callout:none){
+  #sky{position:absolute;top:calc(0px - var(--safe-top));
+    height:calc(var(--sky-height) + var(--safe-top))}
+  #scrim{position:absolute;top:calc(0px - var(--safe-top));bottom:auto;
+    height:calc(100svh + var(--safe-top))}
+  .splash{position:absolute;top:calc(0px - var(--safe-top));bottom:auto;
+    min-height:calc(100svh + var(--safe-top))}
+}
+
+@media(display-mode:standalone){
+  #app{padding-bottom:calc(72px + var(--safe-bottom))}
+}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
 </style>
 </head>
-<body>
+<body class="is-loading">
 <div id="sky"></div>
 <div id="scrim"></div>
+<div class="splash" id="splash" data-stage="0">
+  <div class="splash-inner">
+    <img class="splash-mark" src="bilal-mark-192.png" width="70" height="70" alt="">
+    <div class="splash-name">bilal</div>
+    <div class="splash-status" id="splashStatus" role="status" aria-live="polite">finding where you are</div>
+    <div class="splash-progress" aria-hidden="true"><span id="splashProgress"></span></div>
+    <button class="splash-postcode" id="splashPostcode" type="button">Use a postcode instead</button>
+  </div>
+</div>
+<div class="pull-refresh" id="pullRefresh" role="status" aria-live="polite" aria-hidden="true">
+  <span class="pull-arrow" id="pullArrow" aria-hidden="true">↓</span><span id="pullText">Pull to refresh</span>
+</div>
+<div class="refresh-hint" id="refreshHint" aria-hidden="true">
+  <span class="refresh-hint-mark"></span><span>pull to refresh</span>
+</div>
+<div class="net" id="net" role="status" aria-live="polite" aria-hidden="true">Offline · saved times only</div>
 
-<div id="app">
+<main id="app">
   <div class="brandrow">
     <div class="brand">bilal</div>
     <div class="where" id="where"></div>
   </div>
 
-  <div id="stage">
-    <div class="msg" id="msg"><span class="spin"></span> Finding you</div>
+  <div id="stage" aria-live="polite">
+    <div class="msg" id="msg"><span class="spin"></span> Finding your nearest jama’ah</div>
     <div class="sub" id="sub" style="font-size:14px;color:var(--veil);margin-top:9px">
       Your browser will ask permission. Nothing is stored and nothing is sent anywhere.
     </div>
+    <button class="text-button postcode-alt" id="postcodeInstead" type="button">Use a postcode instead</button>
     <div id="pcform">
+      <label class="sr-only" for="pc">UK postcode</label>
       <input id="pc" placeholder="Postcode" autocomplete="postal-code" spellcheck="false">
       <button class="btn" id="pcgo" style="margin-left:8px">Use this</button>
     </div>
@@ -151,42 +615,108 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
   <div id="hero" style="display:none">
     <div class="mname" id="mname"></div>
     <div class="maddr" id="maddr"></div>
-    <div class="mdist" id="mdist"></div>
+    <div class="mdist"><span id="mdist"></span></div>
     <div class="rule"></div>
-    <div class="plabel" id="plabel"></div>
-    <div class="ptime" id="ptime">--:--</div>
-    <div class="pcount" id="pcount"></div>
-    <div class="leave" id="leave"></div>
-    <div class="row">
-      <button class="btn" id="arm">Turn the athan on</button>
-      <button class="btn ghost" id="again">Refresh</button>
+    <div class="jamaah-line">
+      <span class="plabel" id="plabel"></span>
+      <span class="ptime" id="ptime">--:--</span>
     </div>
+    <div class="leave" id="leave" role="status" aria-live="polite"></div>
+    <div class="pcount sr-only" id="pcount"></div>
+    <div class="journey-meta" id="journeyMeta"><span id="journeySource"></span><button class="text-button" id="journeyEdit" type="button" aria-expanded="false" aria-controls="journeyForm">Change</button></div>
+    <form class="journey-form" id="journeyForm" aria-hidden="true" inert>
+      <div class="journey-inner">
+        <label for="journeyMinutes">How many minutes from here?</label>
+        <div class="journey-fields">
+          <input id="journeyMinutes" type="number" min="1" max="180" step="1" inputmode="numeric" autocomplete="off">
+          <button class="btn ghost" type="submit">Use this</button>
+        </div>
+        <div class="journey-hint">Walk, drive, transit, cycle or a lift. Bilal only needs the minutes.</div>
+      </div>
+    </form>
+    <div class="actions">
+      <a class="route route-primary" id="route" target="_blank" rel="noopener external">
+        <span class="route-copy"><span class="route-kicker">Live route · Google Maps</span><strong class="route-label">Take me there</strong></span>
+        <span class="route-arrow" aria-hidden="true">↗</span>
+      </a>
+      <button class="btn ghost" id="arm" aria-pressed="false"><span class="armdot" aria-hidden="true"></span><span class="arm-copy"><span id="armText">Alert me when to leave</span><small>Bilal needs to stay open</small></span></button>
+    </div>
+    <section class="day" id="daySection">
+      <button class="day-toggle" id="dayToggle" type="button" aria-expanded="false" aria-controls="dayDrawer">
+        <span class="day-title"><span id="dayTitle">Today’s jama’ah</span><small id="dayHint"></small></span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="day-drawer" id="dayDrawer" aria-hidden="true" inert>
+        <div class="day-inner">
+          <div class="day-list" id="dayList"></div>
+          <div class="day-trust">
+            <span id="dayTrust"></span>
+            <a class="day-report" id="wrongTime" href="bug.html?kind=times" target="_blank" rel="noopener">Time looks wrong?</a>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div id="others" style="display:none">
-    <h2 class="sec" id="othersHead">Also near you</h2>
-    <input class="find" id="q" placeholder="Search for another mosque by name" spellcheck="false">
-    <div id="list"></div>
-  </div>
+  <section id="others" style="display:none">
+    <button class="others-toggle" id="othersToggle" type="button" aria-expanded="false" aria-controls="othersDrawer">
+      <span class="others-title">Other mosques<small id="othersHint">Nearby choices and search</small></span>
+      <span class="chev" aria-hidden="true"></span>
+    </button>
+    <div class="others-drawer" id="othersDrawer" aria-hidden="true" inert>
+      <div class="others-inner">
+        <div class="others-content">
+          <h2 class="sr-only" id="othersHead">Also near you</h2>
+          <label class="find-label" for="q">Find a different mosque</label>
+          <input class="find" id="q" placeholder="Mosque name or town" spellcheck="false" autocomplete="off">
+          <div id="list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="foot" id="foot" style="display:none">
-    This page works out where you are once, when it loads. It will not follow you
-    around. If you have moved, <b>refresh</b>.
-    <div id="footnote" style="margin-top:9px"></div>
-    <!-- The hierarchy, stated inside the product rather than only on the
-         landing page. Someone who is handed this URL never sees the pitch, and
-         a page that stays quiet about what it is would let them take the
-         travelling version for the whole of Bilal. -->
-    <div style="margin-top:14px">
-      Bilal is really a fixed screen that lives in one room and calls you there.
-      That is where the habit comes from, and this page is for the days you are
-      away from yours. <a href="tv.html" style="color:var(--clay)">Set one up</a>.
+    Location was used once for this result and is not stored. If you have moved, <b>refresh</b>.
+    <div id="footnote" style="display:none;margin-top:9px"></div>
+    <details class="near-about">
+      <summary>What is Bilal Near?</summary>
+      <p>Near is the travelling companion. Bilal’s fixed screen lives in one room and calls you there. <a href="tv.html" style="color:var(--clay)">Set one up</a>.</p>
+    </details>
+    <div class="install" id="install">
+      <div class="install-copy">
+        <strong>Keep Bilal in your pocket.</strong>
+        <span id="installHint">One tap away. No account, no location history.</span>
+      </div>
+      <button class="btn ghost" id="installBtn" aria-expanded="false" aria-controls="installSheet">Add Bilal</button>
     </div>
   </div>
-</div>
+</main>
 
 <audio id="athan" preload="none" src="athan.mp3"></audio>
 
+<section class="install-sheet" id="installSheet" role="dialog" aria-modal="true"
+  aria-labelledby="installTitle" aria-hidden="true" inert>
+  <button class="install-backdrop" id="installBackdrop" type="button" tabindex="-1" aria-label="Close install guide"></button>
+  <div class="install-panel">
+    <div class="install-grab" aria-hidden="true"></div>
+    <div class="install-head">
+      <div>
+        <div class="install-kicker">30 seconds · no app store</div>
+        <h2 id="installTitle">Put Bilal on your Home Screen</h2>
+        <p id="installIntro">It opens full-screen, keeps the app icon close, and is ready when you need to pray away from home.</p>
+      </div>
+      <button class="install-close" id="installClose" type="button" aria-label="Close install guide">×</button>
+    </div>
+    <div class="install-tabs" role="tablist" aria-label="Phone type">
+      <button class="install-tab" id="installIos" type="button" role="tab" aria-selected="true">iPhone</button>
+      <button class="install-tab" id="installAndroid" type="button" role="tab" aria-selected="false">Android</button>
+    </div>
+    <ol class="install-steps" id="installSteps"></ol>
+    <button class="btn install-finish" id="installDone" type="button">Done</button>
+  </div>
+</section>
+
+<script src="near-core.js?v=7"></script>
 <script>
 (function(){
   'use strict';
@@ -209,8 +739,18 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
      between. Beyond that the tail is mosques you were never going to. */
   var CANDIDATES = 5;
 
-  var PRAYERS = ['fajr','dhuhr','asr','maghrib','isha'];
+  var CORE = window.BilalNearCore;
+  var PRAYERS = CORE.PRAYERS;
   var LABEL = {fajr:'Fajr', dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha'};
+  var THEME = {fajr:'#292737', dhuhr:'#544637', asr:'#4b3529', maghrib:'#3f261f', isha:'#14161d'};
+
+  /* The same three clocks used across Sakib's other interfaces, narrowed to
+     one motion voice here: touch responds immediately, state settles once,
+     and the initial reveal is allowed to breathe. */
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var MOTION = {swift:160, settle:420, grand:760, out:'cubic-bezier(.16,1,.3,1)'};
+  var SPLASH = {minimum:900, maximum:1450};
+  var PULL = {threshold:72, maximum:108, resistance:.44, reloadDelay:240};
 
   /* Time override for previewing, the same ?at=HH:MM the display takes. Every
      clock read below goes through nowMs() so the whole page moves together:
@@ -233,6 +773,59 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
   function esc(s){ return String(s||'').replace(/[&<>"]/g,function(c){
     return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
 
+  /* The visual sequence follows real progress, with only a short identity beat
+     on warm-cache visits. It is never an ornamental delay in front of an
+     answer that is already ready. */
+  var SPLASH_STARTED=Date.now(), SPLASH_CLOSED=false, SPLASH_TIMER=null;
+  var SPLASH_HIDE_TIMER=null, SPLASH_MAX_TIMER=null;
+  function splashStage(stage,status,progress){
+    if(SPLASH_CLOSED) return;
+    $('splash').setAttribute('data-stage',String(stage));
+    if(status && $('splashStatus').textContent!==status){
+      $('splashStatus').textContent=status;
+      if($('splashStatus').animate && !REDUCED){
+        $('splashStatus').animate([
+          {opacity:.28,transform:'translateY(4px)'},
+          {opacity:1,transform:'translateY(0)'}
+        ],{duration:MOTION.settle,easing:MOTION.out});
+      }
+    }
+    if(typeof progress==='number'){
+      $('splashProgress').style.transform='scaleX('+Math.max(.08,Math.min(1,progress))+')';
+    }
+  }
+  function showSplash(status){
+    clearTimeout(SPLASH_TIMER);
+    clearTimeout(SPLASH_HIDE_TIMER);
+    clearTimeout(SPLASH_MAX_TIMER);
+    SPLASH_CLOSED=false;
+    SPLASH_STARTED=Date.now();
+    document.body.classList.add('is-loading');
+    $('splash').className='splash';
+    $('splash').setAttribute('aria-hidden','false');
+    splashStage(0,status||'finding where you are',.08);
+    SPLASH_MAX_TIMER=setTimeout(function(){ dismissSplash(); },SPLASH.maximum);
+  }
+  function dismissSplash(status){
+    if(SPLASH_CLOSED) return;
+    clearTimeout(SPLASH_MAX_TIMER);
+    if(status) splashStage(2,status,1);
+    var wait=Math.max(0,SPLASH.minimum-(Date.now()-SPLASH_STARTED));
+    clearTimeout(SPLASH_TIMER);
+    SPLASH_TIMER=setTimeout(function(){
+      SPLASH_CLOSED=true;
+      document.body.classList.remove('is-loading');
+      $('splash').className='splash out';
+      if($('stage').style.display!=='none' && $('stage').animate && !REDUCED){
+        $('stage').animate([
+          {opacity:.02,transform:'translateY(7px)'},
+          {opacity:1,transform:'translateY(0)'}
+        ],{duration:MOTION.grand,easing:MOTION.out});
+      }
+      SPLASH_HIDE_TIMER=setTimeout(function(){ $('splash').setAttribute('aria-hidden','true'); },300);
+    },wait);
+  }
+
   /* ── state, all of it ────────────────────────────────────────────────────
      Nothing here survives a reload, by design. */
   var HERE = null;      // {lat,lng}
@@ -240,10 +833,16 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
   var PICKED = null;    // the mosque being counted to
   var ROWS = [];        // its normalised timetable
   var ARMED = false;
-  var CALLED = {};      // mosque+prayer keys already called this page load
+  var CALLED = {};      // mosque+prayer -> 'suppressed' or 'called' this page load
   var RESULTS = [];     // the checked candidates, nearest first
   var SEEN = {};        // id -> rows, so a mosque is never fetched twice
+  var JOURNEYS = {};    // mosque id -> {minutes, source}; in-memory, like location
   var HEADING = 'Also near you';   // restored when a search is cleared
+  var HERO_SHOWN = false;
+  var LAST_PRAYER = '';
+  var DAY_SIGNATURE = '';
+  var MANUAL_LOCATION = false;
+  var directoryReady = null;
 
   /* ── geometry ──────────────────────────────────────────────────────────── */
   function hav(a,b,c,d){
@@ -255,16 +854,21 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
      streets, at 80 metres a minute. */
   function walkMins(km){ return Math.max(1, Math.round(km*1.3/0.08)); }
 
-  /* Past half an hour nobody is walking, and we have no idea whether they
-     drive or get a lift. The setup flow refuses to guess there and so does
-     this: the leave-time is the number the athan fires on, and a manufactured
-     one calls you out of the house an hour early with total confidence. */
-  function walkable(km){ return walkMins(km) <= 30; }
+  /* Distance is a fact. Transport is not. A plausible walk is useful as an
+     editable starting point, but list rows no longer turn it into the only
+     journey Near can understand. */
   function distLine(km){
-    return walkable(km) ? (walkMins(km)+' min walk · '+km.toFixed(1)+' km')
-                        : (km.toFixed(1)+' km away');
+    return km<1 ? (Math.max(10,Math.round(km*1000/10)*10)+' m away')
+                : (km.toFixed(1)+' km away');
   }
-
+  function journeyFor(m){
+    if(!m) return null;
+    if(!Object.prototype.hasOwnProperty.call(JOURNEYS,m.g)){
+      var walk=walkMins(m._d);
+      JOURNEYS[m.g]=walk<=30 ? {minutes:walk,source:'walk'} : null;
+    }
+    return JOURNEYS[m.g];
+  }
   /* ── the three shapes ────────────────────────────────────────────────────
      The Worker is a pass-through, so each directory's own body arrives intact
      and this is where the three become one. Output is always:
@@ -391,59 +995,50 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
       });
   }
 
-  /* ── is it usable ────────────────────────────────────────────────────────
-     Same judgement the setup flow makes, on the same three values, for the
-     same reason. `nq` is counted separately from the offsets and that
-     separation is the point: an offset needs BOTH a start and a jama'ah, so a
-     mosque publishing five jama'ah times and no start times has no offsets at
-     all, and is indistinguishable on offsets alone from a mosque that
-     published nothing. Those are among the most useful listings we hold. */
-  function judge(rows){
-    var today = iso(nowDate());
-    var row = null, i;
-    for(i=0;i<rows.length;i++){ if(rows[i].date===today){ row=rows[i]; break; } }
-    if(!row) row = rows[0];
-
-    var nq=0, offs=[];
-    PRAYERS.forEach(function(p){
-      var b=row.begins[p], q=row.jamaah[p];
-      if(q) nq++;
-      if(b && q) offs.push(Math.round((q-b)/60000));
-    });
-    var distinct={}; offs.forEach(function(o){ distinct[o]=1; });
-    var n = Object.keys(distinct).length;
-
-    if(nq===0)          return {use:false, kind:'bad',  why:'No jama\'ah times published'};
-    if(nq<3)            return {use:false, kind:'warn', why:'Only a partial listing published'};
-    if(offs.length===0) return {use:true,  kind:'warn', why:'Jama\'ah times, but no separate start times'};
-    if(n===1)           return {use:false, kind:'bad',  why:'Times look automatic, not set by the mosque'};
-    if(n===2)           return {use:true,  kind:'warn', why:'Times not confirmed by the mosque'};
-    return                     {use:true,  kind:'ok',   why:'Real jama\'ah times, set by the mosque'};
-  }
-
-  /* ── next jama'ah ────────────────────────────────────────────────────── */
-  function nextJamaah(rows){
-    var now=nowMs(), best=null;
-    rows.forEach(function(r){
-      PRAYERS.forEach(function(p){
-        var q=r.jamaah[p];
-        if(!q || q.getTime()<=now) return;
-        if(!best || q<best.at) best={key:r.date+'/'+p, prayer:p, at:q};
-      });
-    });
-    return best;
-  }
+  /* The parser and the interface share one conservative trust boundary. A
+     questionable prayer is quarantined on its own; the four sound times stay
+     useful, and neither the countdown nor an athan can target the bad value. */
+  function auditRows(rows){ return CORE.auditRows(rows); }
+  function judge(rows){ return CORE.judge(rows,nowDate()); }
+  function nextJamaah(rows){ return CORE.nextJamaah(rows,nowMs()); }
 
   /* Scoped to the mosque as well as the prayer. Switching target must not
      inherit the previous one's call history in either direction: two mosques
      can share a jama'ah minute, and neither should silence the other. */
   function callKey(nx){ return (PICKED ? PICKED.g : '?')+'|'+nx.key; }
 
+  /* Browsing to a mosque or changing journey time must never blast the athan
+     immediately. A past leave-time is suppressed. Unlike a real call, that
+     suppression can be removed if a faster journey moves leave-time back into
+     the future. */
+  function reconcileCall(journey){
+    var nx=nextJamaah(ROWS);
+    if(!nx) return;
+    var key=callKey(nx);
+    if(CALLED[key]==='suppressed') delete CALLED[key];
+    if(CALLED[key] || !journey) return;
+    var leaveAt=nx.at.getTime()-journey.minutes*60000;
+    if(nowMs()>=leaveAt && nowMs()<nx.at.getTime()) CALLED[key]='suppressed';
+  }
+
   /* ── the sky ─────────────────────────────────────────────────────────── */
   function sky(prayer){
     var el=$('sky');
-    el.style.backgroundImage="url('sky/"+prayer+".jpg')";
+    var changed=LAST_PRAYER && LAST_PRAYER!==prayer;
+    el.style.backgroundImage="url('sky/"+prayer+".webp')";
+    el.setAttribute('data-prayer',prayer);
     el.className='on';
+    if(changed && el.animate && !REDUCED){
+      el.animate([
+        {opacity:.58,transform:'scale(1.012)'},
+        {opacity:1,transform:'scale(1)'}
+      ],{duration:900,easing:MOTION.out});
+    }
+    LAST_PRAYER=prayer;
+    var meta=document.querySelector('meta[name="theme-color"]');
+    var tone=THEME[prayer] || THEME.isha;
+    if(meta) meta.setAttribute('content',tone);
+    document.documentElement.style.setProperty('--chrome',tone);
   }
 
   /* ── paint ───────────────────────────────────────────────────────────── */
@@ -454,100 +1049,508 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     return h+'h '+pad(m%60)+'m';
   }
 
+  function dayName(date){
+    var today=iso(nowDate());
+    var tomorrow=iso(new Date(nowMs()+86400000));
+    if(date===today) return 'Today’s jama’ah';
+    if(date===tomorrow) return 'Tomorrow’s jama’ah';
+    return new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long'})+' jama’ah';
+  }
+
+  function renderDay(){
+    if(!PICKED || !ROWS.length) return;
+    var nx=nextJamaah(ROWS), wanted=nx ? nx.key.split('/')[0] : iso(nowDate()), row=null, i;
+    for(i=0;i<ROWS.length;i++){ if(ROWS[i].date===wanted){ row=ROWS[i]; break; } }
+    if(!row){
+      for(i=0;i<ROWS.length;i++){ if(ROWS[i].date>=iso(nowDate())){ row=ROWS[i]; break; } }
+    }
+    if(!row) row=ROWS[ROWS.length-1];
+
+    /* The signature changes at minute boundaries, prayer boundaries and mosque
+       changes. paint() can keep its one-second countdown without repeatedly
+       rebuilding this calmer disclosure. */
+    var signature=PICKED.g+'|'+row.date+'|'+(nx?nx.key:'none')+'|'+Math.floor(nowMs()/60000);
+    if(signature===DAY_SIGNATURE) return;
+    DAY_SIGNATURE=signature;
+
+    var audit=auditRows(ROWS), remaining=0;
+    PRAYERS.forEach(function(p){
+      var q=CORE.effectiveJamaah(row.begins[p],row.jamaah[p]);
+      if(q && !audit.bad[row.date+'/'+p] && q.getTime()>nowMs()) remaining++;
+    });
+    $('dayTitle').textContent=dayName(row.date);
+    $('dayHint').textContent=remaining ? remaining+' still to come' : 'No more listed';
+    $('dayList').innerHTML=PRAYERS.map(function(p){
+      var key=row.date+'/'+p, q=CORE.effectiveJamaah(row.begins[p],row.jamaah[p]);
+      var bad=audit.bad[key], cls='', state='Later', time='';
+      if(bad){ cls='bad'; state='Checking'; time='Withheld'; }
+      else if(!q){ cls='bad'; state='Not listed'; }
+      else{
+        time=hhmm(q);
+        if(nx && nx.key===key){ cls='next'; state='Next'; }
+        else if(q.getTime()<=nowMs()){ cls='past'; state='Passed'; }
+      }
+      return '<div class="day-prayer '+cls+'"'+(bad?' title="'+esc(bad)+'"':'')+'>'+
+        '<span>'+LABEL[p]+'</span><span class="day-time">'+esc(time)+'</span>'+
+        '<span class="day-state">'+state+'</span></div>';
+    }).join('');
+
+    var verdict=judge(ROWS);
+    $('dayTrust').textContent=verdict.why+'.';
+    var params=new URLSearchParams({
+      from:'near',kind:'times',mosque:PICKED.g,name:PICKED.n,date:row.date,
+      prayer:nx ? LABEL[nx.prayer] : '',time:nx ? hhmm(nx.at) : ''
+    });
+    $('wrongTime').href='bug.html?'+params.toString();
+  }
+
+  $('dayToggle').onclick=function(){
+    var opening=this.getAttribute('aria-expanded')!=='true';
+    this.setAttribute('aria-expanded',opening?'true':'false');
+    $('dayDrawer').className=opening ? 'day-drawer on' : 'day-drawer';
+    $('dayDrawer').setAttribute('aria-hidden',opening?'false':'true');
+    $('dayDrawer').inert=!opening;
+  };
+
+  function setOthersOpen(opening){
+    $('othersToggle').setAttribute('aria-expanded',opening?'true':'false');
+    $('othersDrawer').className=opening ? 'others-drawer on' : 'others-drawer';
+    $('othersDrawer').setAttribute('aria-hidden',opening?'false':'true');
+    $('othersDrawer').inert=!opening;
+  }
+  $('othersToggle').onclick=function(){
+    setOthersOpen(this.getAttribute('aria-expanded')!=='true');
+  };
+
+  function setLeave(className,html){
+    var el=$('leave');
+    el.className=className;
+    if(el.innerHTML!==html) el.innerHTML=html;
+  }
+
   function paint(){
     if(!PICKED || !ROWS.length) return;
     var nx = nextJamaah(ROWS);
+    renderDay();
     if(!nx){
       $('plabel').textContent='Next jama\'ah';
       $('ptime').textContent='--:--';
       $('pcount').textContent='';
-      $('leave').textContent='No further times published. Refresh later.';
+      setLeave('leave none','<span>No further times</span><small>Refresh later for a new listing.</small>');
       return;
     }
-    sky(nx.prayer);
-    $('plabel').textContent = LABEL[nx.prayer]+' jama\'ah';
+    sky(CORE.currentAtmosphere(ROWS,nowDate()));
+    $('othersHint').textContent='Nearby choices and search';
+    $('plabel').textContent = LABEL[nx.prayer]+' jama\'ah'+
+      (iso(nx.at)!==iso(nowDate()) ? ' tomorrow' : '')+' ·';
     $('ptime').textContent  = hhmm(nx.at);
-    $('pcount').textContent = 'in '+human(nx.at-nowMs());
+    movingText($('pcount'), 'Jama\'ah in '+human(nx.at-nowMs()));
 
-    var km = PICKED._d;
-    var el = $('leave');
-    if(walkable(km)){
-      var leaveAt = new Date(nx.at.getTime() - walkMins(km)*60000);
+    var journey=journeyFor(PICKED);
+    if(journey){
+      var leaveAt = new Date(nx.at.getTime() - journey.minutes*60000);
       var left = leaveAt-nowMs();
-      el.className='leave';
       if(left>0){
-        el.innerHTML='Leave at <b>'+hhmm(leaveAt)+'</b>, in '+human(left)+'.';
+        if(iso(leaveAt)!==iso(nowDate())){
+          setLeave('leave','<span>Leave tomorrow at <b>'+hhmm(leaveAt)+'</b></span>');
+        }else{
+          setLeave('leave','<span>Leave in <b>'+human(left)+'</b></span><small>At '+hhmm(leaveAt)+'</small>');
+        }
       }else if(nowMs() < nx.at.getTime()){
-        el.innerHTML='<b>Go now.</b> You have '+human(nx.at-nowMs())+' before it starts.';
+        setLeave('leave late','<span>This one is too tight</span><small>'+human(nx.at-nowMs())+
+          ' until jama\'ah · about '+journey.minutes+' min away</small>');
+        $('othersHint').textContent='Check for a later jama\'ah';
       }else{
-        el.innerHTML='<b>Go now.</b>';
+        setLeave('leave late','<span><b>Leave now</b></span>');
       }
       /* The call. Fires once per prayer per page load, inside the window
          between leaving and the jama'ah itself. A reload re-arms it, which is
          correct: a reload is a fresh decision to be here. */
       if(ARMED && !CALLED[callKey(nx)] && nowMs()>=leaveAt.getTime() && nowMs()<nx.at.getTime()){
-        CALLED[callKey(nx)]=1;
+        CALLED[callKey(nx)]='called';
         callNow(LABEL[nx.prayer], hhmm(nx.at));
       }
     }else{
-      /* No leave-time means no call, and the page says so rather than going
-         quiet and letting you assume one is coming. */
-      el.className='leave none';
-      el.textContent='Too far to walk, so Bilal will not guess when to leave and will not call you.';
+      /* No journey means no leave-time and no call. Maps can provide the live
+         route, but only the person can bring that duration back to Bilal. */
+      setLeave('leave none','<span>When should you leave?</span><small>Check the live route, then set your journey time.</small>');
     }
   }
 
   /* ── the call ────────────────────────────────────────────────────────── */
+  function movingText(el, value){
+    if(el.textContent===value) return;
+    var hadText=!!el.textContent;
+    el.textContent=value;
+    if(hadText && HERO_SHOWN && el.animate && !REDUCED){
+      el.animate([
+        {opacity:.38,transform:'translateY(4px)'},
+        {opacity:1,transform:'translateY(0)'}
+      ],{duration:MOTION.settle,easing:MOTION.out});
+    }
+  }
+
+  function leaveNotification(prayer, time){
+    if(!window.Notification || Notification.permission!=='granted') return;
+    var title='Leave now for '+PICKED.n;
+    var options={
+      body:prayer+' jama\'ah at '+time+' · '+distLine(PICKED._d),
+      tag:'bilal-near-'+PICKED.g,
+      renotify:true,
+      requireInteraction:true,
+      icon:'/icon-192.png',
+      badge:'/icon-192.png',
+      data:{url:'/near'}
+    };
+    if(navigator.serviceWorker){
+      navigator.serviceWorker.ready
+        .then(function(reg){ return reg.showNotification(title,options); })
+        .catch(function(){ try{ new Notification(title,options); }catch(e){} });
+      return;
+    }
+    try{ new Notification(title,options); }catch(e){}
+  }
+
   function callNow(prayer, time){
     try{
       var a=$('athan'); a.currentTime=0; a.volume=1; a.play();
     }catch(e){}
-    try{
-      if(window.Notification && Notification.permission==='granted'){
-        /* The mosque's name leads. This page follows whichever mosque is
-           nearest, so a call that named only the prayer could send you to a
-           place you have never read the name of, which is not something you
-           can act on. */
-        new Notification('Leave now for '+PICKED.n, {
-          body: prayer+' jama\'ah at '+time+' · '+distLine(PICKED._d),
-          tag: 'bilal-near'
-        });
-      }
-    }catch(e){}
+    /* The mosque's name leads. This page follows whichever mosque is nearest,
+       so a call that named only the prayer could send you somewhere you have
+       never read the name of. The warm horizon is the visual equivalent of
+       the call for anyone already looking at the phone. */
+    leaveNotification(prayer,time);
+    document.body.classList.remove('calling');
+    void document.body.offsetWidth;
+    document.body.classList.add('calling');
+    setTimeout(function(){ document.body.classList.remove('calling'); },1500);
+    if(navigator.vibrate){ try{ navigator.vibrate([80,40,80]); }catch(e){} }
   }
 
   $('arm').onclick=function(){
     var btn=this, a=$('athan');
+    if(ARMED){
+      ARMED=false;
+      btn.setAttribute('aria-pressed','false');
+      btn.className='btn ghost';
+      $('armText').textContent='Alert me when to leave';
+      note();
+      return;
+    }
+    if(!journeyFor(PICKED)){
+      $('journeyEdit').click();
+      return;
+    }
     a.volume=0;
     var p=a.play();
     function ok(){
       a.pause(); a.currentTime=0; a.volume=1;
       ARMED=true;
-      btn.textContent='Athan is on';
-      btn.disabled=true;
-      btn.className='btn ghost';
+      $('armText').textContent='Leave alert is on';
+      btn.setAttribute('aria-pressed','true');
+      btn.className='btn ghost armed';
       note();
     }
-    function no(){ btn.textContent='Sound was blocked, click again'; }
+    function no(){ $('armText').textContent='Could not start the alert'; }
     if(p && p.then) p.then(ok).catch(no); else ok();
     try{
       if(window.Notification && Notification.permission==='default') Notification.requestPermission();
     }catch(e){}
   };
 
-  $('again').onclick=function(){ location.reload(); };
+  /* PULL-TO-REFRESH STORYBOARD
+
+       touch  the page follows at less than half finger speed
+        72px  arrow turns and a tiny haptic says the action is armed
+     release  the surface settles beneath the status, then reloads
+
+     It only begins at the document top and never steals a control gesture.
+     That makes it the familiar mobile refresh action without turning every
+     upward page scroll into an accidental loss of state. */
+  var PULLING={active:false,startX:0,startY:0,distance:0,ready:false};
+  function pullTop(){ return window.scrollY<=.5 && document.documentElement.scrollTop<=.5; }
+  function resetPull(){
+    PULLING.active=false; PULLING.distance=0; PULLING.ready=false;
+    $('app').classList.remove('pulling');
+    $('app').classList.add('pull-settle');
+    $('app').style.transform='translateY(0)';
+    $('pullRefresh').className='pull-refresh';
+    $('pullRefresh').style.transform='';
+    $('pullRefresh').setAttribute('aria-hidden','true');
+    $('pullArrow').style.transform='';
+    $('pullText').textContent='Pull to refresh';
+    if(HERO_SHOWN && navigator.onLine) $('refreshHint').className='refresh-hint on';
+    setTimeout(function(){
+      $('app').classList.remove('pull-settle');
+      $('app').style.transform='';
+    },MOTION.settle);
+  }
+  document.addEventListener('touchstart',function(e){
+    if(!e.touches || e.touches.length!==1 || !pullTop() ||
+       $('splash').className.indexOf('out')===-1 ||
+       $('installSheet').className.indexOf('on')!==-1 ||
+       (e.target.closest && e.target.closest('button,input,a'))){ return; }
+    PULLING.active=true;
+    PULLING.startX=e.touches[0].clientX;
+    PULLING.startY=e.touches[0].clientY;
+    PULLING.distance=0; PULLING.ready=false;
+    $('refreshHint').className='refresh-hint';
+    $('app').classList.add('pulling');
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!PULLING.active || !e.touches || e.touches.length!==1) return;
+    var dy=e.touches[0].clientY-PULLING.startY;
+    var dx=e.touches[0].clientX-PULLING.startX;
+    var amount=CORE.pullDistance(dy,dx,pullTop(),PULL.resistance,PULL.maximum);
+    if(!amount){
+      if(dy<0 || Math.abs(dx)>Math.abs(dy)*.8) resetPull();
+      return;
+    }
+    e.preventDefault();
+    PULLING.distance=amount;
+    $('app').style.transform='translateY('+amount+'px)';
+    $('pullRefresh').className='pull-refresh on'+(amount>=PULL.threshold?' ready':'');
+    $('pullRefresh').style.transform='translate(-50%,'+(-54+amount)+'px)';
+    $('pullRefresh').setAttribute('aria-hidden','false');
+    $('pullArrow').style.transform='rotate('+Math.min(180,amount/PULL.threshold*180)+'deg)';
+    $('pullText').textContent=amount>=PULL.threshold ? 'Release to refresh' : 'Pull to refresh';
+    if(amount>=PULL.threshold && !PULLING.ready && navigator.vibrate){
+      try{ navigator.vibrate(8); }catch(error){}
+    }
+    PULLING.ready=amount>=PULL.threshold;
+  },{passive:false});
+  function releasePull(){
+    if(!PULLING.active) return;
+    if(!PULLING.ready){ resetPull(); return; }
+    PULLING.active=false;
+    $('app').classList.remove('pulling');
+    $('app').classList.add('pull-settle');
+    $('app').style.transform='translateY(52px)';
+    $('pullRefresh').className='pull-refresh on settle refreshing';
+    $('pullRefresh').style.transform='';
+    $('pullArrow').style.transform='';
+    $('pullText').textContent='Finding you again';
+    setTimeout(function(){ location.reload(); },PULL.reloadDelay);
+  }
+  document.addEventListener('touchend',releasePull,{passive:true});
+  document.addEventListener('touchcancel',resetPull,{passive:true});
+
+  /* Maps owns routing; Bilal only needs the result. Keeping this as minutes,
+     rather than a row of transport chips, supports walking, driving, transit,
+     cycling, a taxi or a lift with exactly the same small interface. */
+  function journeyUI(){
+    if(!PICKED) return;
+    var journey=journeyFor(PICKED), arm=$('arm');
+    /* Maps receives the mosque's name and full address, not an anonymous
+       coordinate. It resolves its own establishment pin and entrance; Near
+       still omits HERE and travel mode so Maps owns both private location and
+       live routing. A reviewed placeId, when present, makes the match exact. */
+    $('route').href=CORE.mapsUrl(PICKED);
+    $('route').setAttribute('aria-label','Directions to '+PICKED.n+' in Google Maps');
+    $('journeyForm').className='journey-form';
+    $('journeyForm').setAttribute('aria-hidden','true');
+    $('journeyForm').inert=true;
+    $('journeyEdit').setAttribute('aria-expanded','false');
+    if(journey){
+      $('journeySource').textContent=journey.source==='walk'
+        ? 'About '+journey.minutes+' min on foot'
+        : journey.minutes+' min journey';
+      $('journeyEdit').textContent='Change';
+      $('journeyMinutes').value=journey.minutes;
+    }else{
+      $('journeySource').textContent='No journey time set';
+      $('journeyEdit').textContent='Set time';
+      $('journeyMinutes').value='';
+    }
+    if(!ARMED){
+      arm.disabled=false;
+      arm.className='btn ghost';
+      $('armText').textContent=journey ? 'Alert me when to leave' : 'Set a journey time';
+      if(journey) arm.removeAttribute('aria-controls');
+      else arm.setAttribute('aria-controls','journeyForm');
+    }
+    note();
+  }
+
+  $('journeyEdit').onclick=function(){
+    var opening=$('journeyForm').className.indexOf('on')===-1;
+    $('journeyForm').className=opening ? 'journey-form on' : 'journey-form';
+    this.setAttribute('aria-expanded',opening?'true':'false');
+    $('journeyForm').setAttribute('aria-hidden',opening?'false':'true');
+    $('journeyForm').inert=!opening;
+    if(opening) setTimeout(function(){ $('journeyMinutes').focus(); $('journeyMinutes').select(); },MOTION.swift);
+  };
+  $('journeyForm').onsubmit=function(e){
+    e.preventDefault();
+    var minutes=parseInt($('journeyMinutes').value,10);
+    if(!(minutes>=1 && minutes<=180)){
+      $('journeyMinutes').focus();
+      return;
+    }
+    JOURNEYS[PICKED.g]={minutes:minutes,source:'set'};
+    reconcileCall(JOURNEYS[PICKED.g]);
+    journeyUI();
+    paint();
+  };
+
+  /* Installation comes after the answer, down in the footer. Native install
+     is one tap when the browser offers it; iOS and Android still get exact,
+     dismissible guidance when their menus own the last steps. */
+  var INSTALL_EVENT=null;
+  function installPlatform(){
+    if(/iphone|ipad|ipod/i.test(navigator.userAgent) ||
+       (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1)) return 'ios';
+    if(/android/i.test(navigator.userAgent)) return 'android';
+    return 'other';
+  }
+  function installed(){
+    return !!navigator.standalone ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+  function offerInstall(){
+    if(installed()) return;
+    $('install').className='install on';
+    if(!INSTALL_EVENT && installPlatform()!=='other') $('installBtn').textContent='Show me how';
+  }
+  function installShot(platform,index){
+    var icon='<img class="mini-icon" src="icon-192.png" alt="">';
+    if(platform==='ios' && index===0) return '<div class="shot-page"><span>bilal</span><b>Maghrib · 20:17</b></div>'+
+      '<div class="browser-bar"><span>aA</span><span class="browser-url">bilalathan.co.uk</span><span class="share-glyph">↑</span></div>';
+    if(platform==='ios' && index===1) return '<div class="share-card"><div class="share-source">'+icon+'<span>Bilal Near<br>bilalathan.co.uk</span></div>'+
+      '<div class="share-row"><span class="home-glyph">＋</span><b>Add to Home Screen</b><em>›</em></div></div>';
+    if(platform==='ios') return '<div class="confirm-top"><span>Cancel</span><b>Add to Home Screen</b><strong>Add</strong></div>'+
+      '<div class="confirm-app">'+icon+'<div><b>Bilal Near</b><span>bilalathan.co.uk/near</span></div></div>';
+    if(index===0) return '<div class="shot-page"><span>bilal</span><b>Maghrib · 20:17</b></div>'+
+      '<div class="browser-bar"><span>⌂</span><span class="browser-url">bilalathan.co.uk</span><span class="menu-glyph">⋮</span></div>';
+    if(index===1) return '<div class="shot-page"><span>bilal</span><b>Near</b></div><div class="android-menu">'+
+      '<div class="share-row"><span>↗</span><span>Share…</span><em></em></div>'+
+      '<div class="share-row install-row"><span>⇩</span><b>Install app</b><em></em></div></div>';
+    return '<div class="android-prompt"><div class="android-prompt-head">'+icon+'<div><b>Install Bilal?</b><span>bilalathan.co.uk</span></div></div>'+
+      '<div class="android-preview">next jama\'ah, without the search</div><div class="android-actions"><span>Cancel</span><span>Install</span></div></div>';
+  }
+  function paintInstallGuide(platform){
+    var steps=platform==='ios'
+      ? [{title:'Tap Share in Safari',copy:'Look for the square with the upward arrow in Safari’s toolbar.'},
+         {title:'Choose “Add to Home Screen”',copy:'Swipe up in the Share sheet if it is lower down.'},
+         {title:'Tap “Add”',copy:'Bilal appears with its own icon and opens without the browser bar.'}]
+      : [{title:'Open Chrome’s ⋮ menu',copy:'The three dots are beside the address bar.'},
+         {title:'Choose “Install app”',copy:'Some phones call this “Add to Home screen”. Both do the same thing.'},
+         {title:'Confirm “Install”',copy:'Bilal appears on your Home Screen and in the app drawer.'}];
+    $('installIos').setAttribute('aria-selected',platform==='ios'?'true':'false');
+    $('installAndroid').setAttribute('aria-selected',platform==='android'?'true':'false');
+    $('installSteps').innerHTML=steps.map(function(step,index){
+      return '<li class="install-step"><span class="install-number">'+(index+1)+'</span><div><h3>'+esc(step.title)+
+        '</h3><p>'+esc(step.copy)+'</p><div class="install-shot" aria-hidden="true">'+installShot(platform,index)+'</div></div></li>';
+    }).join('');
+    document.querySelector('.install-panel').scrollTop=0;
+  }
+  function showInstallGuide(platform){
+    dismissSplash();
+    paintInstallGuide(platform);
+    $('installSheet').className='install-sheet on';
+    $('installSheet').setAttribute('aria-hidden','false');
+    $('installSheet').inert=false;
+    document.body.classList.add('guide-open');
+    $('installBtn').setAttribute('aria-expanded','true');
+    $('installHint').textContent=platform==='ios' ? 'Three clear steps in Safari.' : 'Three clear steps in Chrome.';
+    setTimeout(function(){ $('installClose').focus(); },MOTION.swift);
+  }
+  function closeInstallGuide(restore){
+    $('installSheet').className='install-sheet';
+    $('installSheet').setAttribute('aria-hidden','true');
+    $('installSheet').inert=true;
+    document.body.classList.remove('guide-open');
+    $('installBtn').setAttribute('aria-expanded','false');
+    if(restore!==false){
+      $('installHint').textContent='One tap away. No account, no location history.';
+      if($('installBtn').offsetParent!==null) $('installBtn').focus();
+    }
+  }
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); INSTALL_EVENT=e; offerInstall();
+  });
+  window.addEventListener('appinstalled',function(){
+    INSTALL_EVENT=null;
+    closeInstallGuide(false);
+    $('installHint').textContent='Bilal is on your Home Screen.';
+    $('installBtn').style.display='none';
+    setTimeout(function(){ $('install').className='install'; },1800);
+  });
+  $('installBtn').onclick=function(){
+    if(INSTALL_EVENT){
+      INSTALL_EVENT.prompt();
+      INSTALL_EVENT.userChoice.then(function(choice){
+        if(choice && choice.outcome==='accepted') $('installHint').textContent='Adding Bilal to your Home Screen…';
+        INSTALL_EVENT=null;
+      });
+      return;
+    }
+    showInstallGuide(installPlatform()==='ios' ? 'ios' : 'android');
+  };
+  $('installIos').onclick=function(){ paintInstallGuide('ios'); };
+  $('installAndroid').onclick=function(){ paintInstallGuide('android'); };
+  $('installClose').onclick=closeInstallGuide;
+  $('installBackdrop').onclick=closeInstallGuide;
+  $('installDone').onclick=closeInstallGuide;
+  document.addEventListener('keydown',function(e){
+    if($('installSheet').className.indexOf('on')===-1) return;
+    if(e.key==='Escape'){ e.preventDefault(); closeInstallGuide(); return; }
+    if(e.key==='Tab'){
+      var focusable=$('installSheet').querySelectorAll('button:not([disabled]):not([tabindex="-1"])');
+      if(!focusable.length) return;
+      var first=focusable[0],last=focusable[focusable.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+  });
+  if(installPlatform()!=='other' && !installed()) setTimeout(offerInstall,900);
+  var INSTALL_LINK=(location.search.match(/[?&]install=(ios|android)/)||[])[1];
+  if(INSTALL_LINK && !installed()) setTimeout(function(){ showInstallGuide(INSTALL_LINK); },180);
+
+  function networkState(){
+    var offline=!navigator.onLine, net=$('net');
+    net.className=offline ? 'net on' : 'net';
+    net.setAttribute('aria-hidden',offline ? 'false' : 'true');
+    if(HERO_SHOWN) $('refreshHint').className='refresh-hint';
+  }
+  window.addEventListener('online',networkState);
+  window.addEventListener('offline',networkState);
+  networkState();
+
+  document.addEventListener('pointerup',function(e){
+    if(e.target.closest && e.target.closest('button,.route') && navigator.vibrate) navigator.vibrate(7);
+  });
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('/near-sw.js').catch(function(){});
+    });
+  }
 
   function note(){
-    var bits=[];
-    bits.push(ARMED ? 'Athan armed for this tab.' : 'Athan not armed. Nothing will make a sound.');
-    if(ARMED) bits.push('Arming lasts until you reload, so turn it on again after a refresh.');
-    $('footnote').textContent=bits.join(' ');
+    var bits=[], footnote=$('footnote');
+    if(!ARMED){
+      footnote.textContent='';
+      footnote.style.display='none';
+      return;
+    }
+    bits.push('Leave alert on for this visit.');
+    if(ARMED && PICKED && !journeyFor(PICKED)) bits.push('Set a journey time first.');
+    else if(ARMED) bits.push('Keep Bilal open; after a refresh, turn it on again.');
+    footnote.textContent=bits.join(' ');
+    footnote.style.display='';
   }
 
   /* ── the flow ────────────────────────────────────────────────────────── */
   function say(html, sub){
     $('msg').innerHTML=html;
     $('sub').innerHTML=sub||'';
+    if($('stage').animate && !REDUCED){
+      $('stage').animate([
+        {opacity:.5,transform:'translateY(5px)'},
+        {opacity:1,transform:'translateY(0)'}
+      ],{duration:MOTION.settle,easing:MOTION.out});
+    }
   }
 
   function loadDirectory(){
@@ -567,10 +1570,20 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
   }
 
   function askPostcode(reason){
+    MANUAL_LOCATION=true;
+    dismissSplash();
+    $('postcodeInstead').className='text-button postcode-alt';
     say(reason, 'Bilal can still find your nearest mosque from a postcode.');
     $('pcform').className='on';
     $('pc').focus();
   }
+
+  $('postcodeInstead').onclick=function(){
+    askPostcode('Use a postcode instead.');
+  };
+  $('splashPostcode').onclick=function(){
+    askPostcode('Use a postcode instead.');
+  };
 
   $('pcgo').onclick=function(){ postcode($('pc').value); };
   $('pc').addEventListener('keydown', function(e){ if(e.key==='Enter') postcode($('pc').value); });
@@ -585,6 +1598,7 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     var outcode=(trimmed.match(/^[A-Z]{1,2}\d[A-Z\d]?/)||[q])[0];
     var FULL=/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
     $('pcform').className='';
+    showSplash('looking up '+trimmed);
     say('<span class="spin"></span> Looking up '+esc(trimmed));
 
     function ask(u){ return fetch(u).then(function(r){ return r.json(); }); }
@@ -598,10 +1612,20 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     }).then(function(j){
       var r=j && j.result;
       if(!r || r.latitude==null) throw 0;
-      HERE={lat:r.latitude, lng:r.longitude};
-      $('where').textContent='near '+trimmed;
-      rank();
-    }).catch(function(){
+      return (directoryReady||Promise.resolve()).then(function(){
+        HERE={lat:r.latitude, lng:r.longitude};
+        $('where').textContent='near '+trimmed;
+        rank();
+      },function(){
+        throw {directory:true};
+      });
+    }).catch(function(error){
+      if(error && error.directory){
+        dismissSplash();
+        say('Could not load the mosque list.',
+            'Check your connection, then <a href="" style="color:var(--clay)">try again</a>.');
+        return;
+      }
       askPostcode('Could not find <b>'+esc(trimmed)+'</b>.');
     });
   }
@@ -611,8 +1635,10 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     located.forEach(function(m){ m._d = hav(HERE.lat, HERE.lng, m.y, m.x); });
     located.sort(function(a,b){ return a._d-b._d; });
     var near = located.slice(0, CANDIDATES);
+    splashStage(1,'checking jama\'ah nearby',.16);
 
     if(!near.length || near[0]._d > 60){
+      dismissSplash();
       say('No mosque we know of is anywhere near you.',
           'The directory holds 2,362 mosques and yours may simply not be in it yet.');
       return;
@@ -633,42 +1659,53 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
              '</div>';
     }).join('');
 
-    /* All five in flight at once. Each one settles its own row the moment it
-       lands, and the winner is decided only when every check is in, so the
-       leader can never be a nearer mosque that simply answered first. */
-    var checks = near.map(function(m,i){
-      return fetchTimes(m.g)
+    /* All five start together, but the answer no longer waits for the slowest.
+       As soon as the nearest still-possible usable mosque is known, reveal it.
+       A farther fast response can never jump a nearer unresolved one. */
+    var settled=new Array(near.length), completed=0, revealed=false;
+    function maybeReveal(){
+      var decision=CORE.firstDecidable(settled);
+      if(!revealed && decision.decided && decision.index!==-1){
+        revealed=true;
+        dismissSplash('your next jama\'ah is ready');
+        RESULTS=settled.filter(Boolean);
+        $('stage').style.display='none';
+        $('hero').style.display='';
+        $('foot').style.display='';
+        note();
+        promote(decision.result.m,decision.result.rows,decision.index>0,false,true);
+        setTimeout(function(){
+          $('hero').className='in'; HERO_SHOWN=true;
+        },30);
+      }
+      if(completed!==near.length) return;
+      RESULTS=settled.filter(Boolean);
+      if(revealed){ renderList(); return; }
+      dismissSplash();
+      setOthersOpen(true);
+      say('None of the mosques near you publish jama\'ah times.',
+          'That is a gap in the directory, not in the mosques. '+
+          '<a href="add.html" style="color:var(--clay)">Add one</a> if you know its times.');
+    }
+    near.forEach(function(m,i){
+      fetchTimes(m.g)
         .then(function(rows){
           var v=judge(rows);
+          SEEN[m.g]=rows;
           $('s'+i).className='s '+v.kind;
           $('s'+i).innerHTML='<b></b>'+esc(distLine(m._d))+' · '+esc(v.why);
-          return {m:m, rows:rows, v:v};
+          settled[i]={m:m, rows:rows, v:v};
         })
         .catch(function(){
           $('s'+i).className='s warn';
           $('s'+i).innerHTML='<b></b>'+esc(distLine(m._d))+' · could not check their times';
-          return null;
+          settled[i]=null;
+        })
+        .then(function(){
+          completed++;
+          splashStage(1,'checking jama\'ah nearby',.16+.76*(completed/near.length));
+          maybeReveal();
         });
-    });
-
-    Promise.all(checks).then(function(res){
-      RESULTS = res.filter(Boolean);
-      var usable=null, j;
-      for(j=0;j<RESULTS.length;j++){ if(RESULTS[j].v.use){ usable=RESULTS[j]; break; } }
-
-      if(!usable){
-        say('None of the mosques near you publish jama\'ah times.',
-            'That is a gap in the directory, not in the mosques. '+
-            '<a href="add.html" style="color:var(--clay)">Add one</a> if you know its times.');
-        return;
-      }
-
-      $('stage').style.display='none';
-      $('hero').style.display='';
-      $('foot').style.display='';
-      note();
-      promote(usable.m, usable.rows, RESULTS.indexOf(usable)>0);
-      setTimeout(function(){ $('hero').className='in'; }, 30);
     });
   }
 
@@ -677,17 +1714,14 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
      in-memory: the paired television keeps its own mosque whatever is clicked
      here, and a reload throws all of it away and resolves from scratch, which
      is the behaviour the footer promises. */
-  function promote(m, rows, passedCloser){
+  function promote(m, rows, passedCloser, chosen, deferList){
     /* Clicking through the list is browsing, not an instruction to be called
        now. If the new target's leave-time has already gone, mark it called so
        switching to it does not set the athan off in your hands. Arming, which
        IS an instruction, deliberately still fires inside a window. */
-    PICKED = m; ROWS = rows;
-    var nx = nextJamaah(rows);
-    if(nx && walkable(m._d)){
-      var leaveAt = nx.at.getTime() - walkMins(m._d)*60000;
-      if(nowMs() >= leaveAt) CALLED[callKey(nx)] = 1;
-    }
+    PICKED = m; ROWS = rows; DAY_SIGNATURE='';
+    var journey=journeyFor(m);
+    reconcileCall(journey);
 
     $('mname').textContent = m.n;
     $('maddr').textContent = m.a;
@@ -697,13 +1731,31 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     HEADING = passedCloser ? 'Nearer, but no usable times' : 'Also near you';
     $('othersHead').textContent = HEADING;
     $('q').value='';
+    journeyUI();
     paint();
-    renderList();
+    if(!deferList) renderList();
+    if(HERO_SHOWN && $('hero').animate && !REDUCED){
+      $('hero').animate([
+        {opacity:.48,transform:'translateY(7px)'},
+        {opacity:1,transform:'translateY(0)'}
+      ],{duration:MOTION.settle,easing:MOTION.out});
+    }
+    /* A phone user chooses from below the fold. Return the answer to their
+       thumb instead of silently changing content several screens above. */
+    if(chosen){
+      setOthersOpen(false);
+      window.scrollTo({top:0,behavior:REDUCED?'auto':'smooth'});
+    }
   }
 
-  function row(m, v, note){
+  function row(m, v, note, rows){
+    var nx=rows ? nextJamaah(rows) : null;
+    var soon=nx
+      ? '<span class="soon"><span>'+esc(LABEL[nx.prayer]+(iso(nx.at)!==iso(nowDate())?' · tomorrow':''))+
+        '</span><strong>'+esc(hhmm(nx.at))+'</strong></span>'
+      : '<span class="soon"><span>'+(rows?'No next time':'Not checked')+'</span></span>';
     return '<button class="item" data-g="'+esc(m.g)+'">'+
-           '<div class="n">'+esc(m.n)+'</div>'+
+           '<div class="item-top"><div class="n">'+esc(m.n)+'</div>'+soon+'</div>'+
            '<div class="a">'+esc(m.a)+'</div>'+
            '<div class="s '+(v?v.kind:'pend')+'"><b></b>'+
              esc(distLine(m._d))+' · '+esc(note || (v?v.why:'checking their times'))+
@@ -718,7 +1770,7 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
 
   function renderList(){
     var rest = RESULTS.filter(function(r){ return r.m !== PICKED; });
-    $('list').innerHTML = rest.map(function(r){ return row(r.m, r.v); }).join('');
+    $('list').innerHTML = rest.map(function(r){ return row(r.m, r.v, null, r.rows); }).join('');
     wire(rest.map(function(r){ return r.m; }));
   }
 
@@ -729,7 +1781,7 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     var m=null, i;
     for(i=0;i<pool.length;i++){ if(pool[i].g===id){ m=pool[i]; break; } }
     if(!m) return;
-    if(SEEN[id]) return promote(m, SEEN[id], false);
+    if(SEEN[id]) return promote(m, SEEN[id], false, true);
 
     var btn=$('list').querySelector('[data-g="'+id.replace(/"/g,'\\"')+'"] .s');
     if(btn){ btn.className='s pend'; btn.innerHTML='<b></b>'+esc(distLine(m._d))+' · checking their times'; }
@@ -743,7 +1795,7 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
         RESULTS.push({m:m, rows:rows, v:v});
         RESULTS.sort(function(a,b){ return a.m._d-b.m._d; });   // the list stays nearest-first
       }
-      promote(m, rows, false);
+      promote(m, rows, false, true);
     }).catch(function(){
       if(btn){ btn.className='s warn'; btn.innerHTML='<b></b>'+esc(distLine(m._d))+' · could not check their times'; }
     });
@@ -780,8 +1832,8 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
     }
     $('list').innerHTML = top.map(function(m){
       var known=null, i;
-      for(i=0;i<RESULTS.length;i++){ if(RESULTS[i].m.g===m.g) known=RESULTS[i].v; }
-      return row(m, known, known?null:'tap to check their times');
+      for(i=0;i<RESULTS.length;i++){ if(RESULTS[i].m.g===m.g) known=RESULTS[i]; }
+      return row(m, known&&known.v, known?null:'tap to check their next jama\'ah', known&&known.rows);
     }).join('');
     wire(top);
   });
@@ -793,20 +1845,34 @@ button.item:hover{background:rgba(246,239,231,.075);border-color:rgba(246,239,23
      clock and is simply correct again. */
   setInterval(function(){ try{ paint(); }catch(e){} }, 1000);
 
-  loadDirectory().then(function(){
-    return locate().then(function(pos){
-      HERE=pos;
+  /* Ask for location immediately while the directory is downloading. On a
+     cold mobile visit those two independent waits now overlap instead of
+     happening one after the other. */
+  showSplash('finding where you are');
+  directoryReady=loadDirectory();
+  var locationReady=locate();
+  setTimeout(function(){
+    if(!HERE && $('stage').style.display!=='none' && !$('pcform').className){
+      $('postcodeInstead').className='text-button postcode-alt on';
+    }
+  },700);
+  Promise.all([directoryReady,locationReady]).then(function(values){
+      if(MANUAL_LOCATION) return;
+      HERE=values[1];
       $('where').textContent='where you are now';
       rank();
     }).catch(function(why){
-      askPostcode(why==='nogeo'
-        ? 'This browser will not share your location.'
-        : 'Location was not shared.');
+      if(MANUAL_LOCATION) return;
+      directoryReady.then(function(){
+        askPostcode(why==='nogeo'
+          ? 'This browser will not share your location.'
+          : 'Location was not shared.');
+      }).catch(function(){
+        dismissSplash();
+        say('Could not load the mosque list.',
+            'Check your connection, then <a href="" style="color:var(--clay)">try again</a>.');
+      });
     });
-  }).catch(function(){
-    say('Could not load the mosque list.',
-        'Check your connection, then <a href="" style="color:var(--clay)">try again</a>.');
-  });
 })();
 </script>
 </body>

@@ -1307,8 +1307,20 @@ body.compact #driftWrap{
       /* The prime is ADVISORY ONLY. It races a 3.7MB download, so its failure
          says nothing about permission — that is what printed "blocked" over a
          screen whose audio was fine. Only real playback sets the truth, in
-         call(). */
-      window.__bilal.unlock = (state==='ok') ? 'ok' : 'unproven';
+         call().
+
+         ONE exception, and it is the whole of this state. A stalled download
+         does not reject: play() simply stays pending. NotAllowedError is the
+         single rejection that means the browser refused, and it says so —
+         "the user didn't interact with the document first". Folding that in
+         with the download race is what let a deaf screen read "athan ready"
+         through a missed maghrib, a missed isha and most of a night: the Echo
+         reported unlocked:'unproven', athanAttempts:0 and a NotAllowedError
+         sitting in lastError, and every surface called that normal. The race
+         keeps 'unproven'; a refusal is now named. */
+      var refused = !!err && (err.name==='NotAllowedError'
+                              || /^NotAllowedError/.test(String(err)));
+      window.__bilal.unlock = (state==='ok') ? 'ok' : refused ? 'refused' : 'unproven';
       /* A resolved play() is stronger proof than canplaythrough, which waits
          on the full 3.7MB buffer. Without this the footer read "no athan.mp3,
          tone only" while the file was merely still downloading. */
@@ -1343,6 +1355,11 @@ body.compact #driftWrap{
     // NOT a permission failure and must never be shown as one — that false alarm
     // is exactly what made a working screen look broken.
     if(u&&u.indexOf('BLOCKED')===0){ $('audioState').textContent='athan blocked by browser'; return; }
+    /* The footer's only job is to answer "will this sound". With the browser's
+       refusal in hand the answer is no, and it has to say so on the wall, where
+       the person who can fix it is standing. Press OK is the fix, so the line
+       is the instruction rather than the diagnosis. */
+    if(u==='refused'){ $('audioState').textContent='athan will NOT sound — press OK'; return; }
     if(!athanReady && u!=='unproven'){ $('audioState').textContent='no athan.mp3, tone only'; return; }
     var b=window.__bilal, played=b&&b.calls>0;
     /* The one line this footer could never say. 'athan played' was printed on a
@@ -1839,6 +1856,50 @@ body.compact #driftWrap{
     }, 2000);
   }
 
+  /* ---------- changing a screen's mosque without touching the screen ----------
+
+     A paired display reads bilal.config once, at load, and never asks again.
+     That was fine until someone needed to MOVE a screen: Burhan set his Taqwa
+     wall up in August, landed on the wrong mosque because his own was not in
+     the directory yet, and then could not change it. He read the six-character
+     device id off the corner of the screen, typed it into the setup page, and
+     was told his code had expired — because a device id was never a pairing
+     code, it just looks exactly like one.
+
+     So make it one. The row is keyed `dev-<device id>`, which the pairing flow
+     cannot mint or claim (it only ever writes bare six-character codes), so the
+     two live in the same table without being able to collide.
+
+     Threat model is unchanged and worth stating: anyone who can READ the id off
+     the screen can re-point it. That is already true of the pairing code, and
+     of the television generally — if you are close enough to read it, you are
+     close enough to unplug it.
+
+     Checked once shortly after load and then on the heartbeat's own half-hour,
+     so a screen that has gone quiet costs nothing extra. */
+  function remoteConfig(){
+    var id;
+    try{ id = window.BilalDiag && window.BilalDiag.id(); }catch(e){ return; }
+    if(!id) return;
+    fetch(SB + '?code=eq.' + encodeURIComponent('dev-' + id) + '&select=config',
+          {headers: sbHeaders()})
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        var cfg = rows && rows[0] && rows[0].config;
+        if(!cfg || !cfg.slug || cfg.slug === CFG.slug) return;
+        /* Write and reload rather than re-render. The rail, the sky, the athan
+           schedule and the cached timetable are all derived from the mosque at
+           load; swapping the slug underneath them in place is how you get a
+           screen showing one mosque's rail and another's athan. */
+        try{ localStorage.setItem('bilal.config', JSON.stringify({
+          slug: cfg.slug, walk: cfg.walk || CFG.walk, name: cfg.name || ''
+        })); }catch(e){ return; }
+        try{ localStorage.removeItem(CACHE); }catch(e){}
+        location.href = location.pathname;
+      })
+      .catch(function(){});
+  }
+
   /* ---------- the speed run ----------
      A demo television should not sit on one hour of one day. With
      ?demo=1&tour=1 it walks the whole day instead: for each prayer, the
@@ -1989,7 +2050,15 @@ body.compact #driftWrap{
 
   if(NEEDS_PAIRING){
     startPairing();
-  } else if(!CFG.quiet){
+  } else {
+    /* Only a paired screen listens. A screen mid-pairing already has a live
+       poll on its own code, and a demo panel must never move. */
+    if(!DEMO){
+      setTimeout(remoteConfig, 20000);
+      setInterval(remoteConfig, 30 * 60 * 1000);
+    }
+  }
+  if(!NEEDS_PAIRING && !CFG.quiet){
     $('gate').classList.add('show'); try{$('gateBtn').focus();}catch(e){}
   }
   audioState();
