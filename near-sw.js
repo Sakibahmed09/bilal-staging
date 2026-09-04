@@ -10,8 +10,8 @@
  * test fails the build when it drifts, and updating it is what makes the
  * browser notice. Shipping the page without it strands everyone on the old
  * copy, which is exactly how the 260:56 countdown survived its own fix. */
-const SHELL_FINGERPRINT = '573ff6786ba4';
-const VERSION = 'bilal-near-v23';
+const SHELL_FINGERPRINT = '89336de155ee';
+const VERSION = 'bilal-near-v24';
 const SHELL = VERSION + '-shell';
 const DATA = VERSION + '-data';
 const TIMES_HOST = 'bilal-times.ahmed-sakib.workers.dev';
@@ -25,6 +25,7 @@ const SHELL_PATHS = [
   '/icon-180.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-1024.png',
   '/mosques.json',
   '/fonts/prata-latin.woff2',
   '/fonts/archivo-latin.woff2'

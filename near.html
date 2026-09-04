@@ -155,9 +155,10 @@ img,audio{-webkit-touch-callout:none}
  *  data 1  status crossfades to “checking jama’ah nearby”; line tracks checks
  *  data 2  the living page is ready; the veil lifts in 280ms
  *
- * The splash never creates a wait longer than the work beneath it. A very
- * fast cached answer gets 900ms so the mark and name can actually arrive;
- * slower work continues in the living page after 1.45s so this never becomes
+ * The splash never creates a wait longer than the work beneath it. A browser
+ * visit gets 900ms so the mark and name can arrive; an installed launch gets
+ * only a 180ms data handoff because iOS already showed the launch canvas.
+ * Slower work continues in the living page after 1.45s, so this never becomes
  * a decorative wall between someone and the postcode route. */
 .splash{position:fixed;inset:0;z-index:24;display:grid;place-items:center;overflow:hidden;
   background:
@@ -319,6 +320,7 @@ body.is-loading #app{opacity:0;visibility:hidden}
   padding:11px 12px;outline:none;font-variant-numeric:tabular-nums}
 .journey-fields .btn{min-height:46px;padding:10px 15px}
 .journey-hint{color:var(--veil);font-size:12px;line-height:1.45;margin-top:8px}
+.field-error{min-height:20px;margin-top:6px;color:var(--clay-lift);font-size:12px;line-height:1.45}
 
 /* The rest of the day is present when it is wanted, never in competition
    with the one decision this screen exists to answer. */
@@ -516,7 +518,7 @@ body.guide-open{overflow:hidden}
   background:transparent;color:var(--cream);font-size:22px;line-height:1;cursor:pointer}
 .install-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:20px 0 7px;
   padding:4px;background:rgba(246,239,231,.055);border-radius:12px}
-.install-tab{appearance:none;min-height:40px;border:0;border-radius:9px;background:transparent;
+.install-tab{appearance:none;min-height:44px;border:0;border-radius:9px;background:transparent;
   color:var(--veil);font-size:13px;font-weight:600;cursor:pointer}
 .install-tab[aria-selected="true"]{background:var(--cream);color:var(--char)}
 .install-steps{list-style:none}
@@ -568,7 +570,7 @@ body.guide-open{overflow:hidden}
 .android-actions{display:flex;justify-content:flex-end;gap:18px;color:#9a5f49;font-size:12px;font-weight:700}
 .install-finish{width:100%;margin-top:3px}
 
-.find:focus,#placeQuery:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,164,143,.12)}
+.find:focus,#placeQuery:focus,#journeyMinutes:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,164,143,.12)}
 :focus-visible{outline:2px solid var(--clay-lift);outline-offset:3px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -579,6 +581,15 @@ body.guide-open{overflow:hidden}
   .btn.ghost:hover{background:rgba(217,164,143,.10);color:var(--clay-lift)}
   .route-primary:hover{color:var(--clay-lift)}
   .route-primary:hover .route-arrow{background:var(--clay-lift);transform:translate(2px,-2px)}
+}
+
+@media(hover:none),(pointer:coarse){
+  button:active,summary:active,.route-primary:active{opacity:.72}
+}
+
+@media(prefers-contrast:more){
+  :root{--veil:rgba(246,239,231,.76);--hair:rgba(246,239,231,.32)}
+  .install-panel,.item,.find,#placeQuery,#journeyMinutes{border-color:rgba(246,239,231,.48)}
 }
 
 @media(max-width:520px){
@@ -653,8 +664,13 @@ body.guide-open{overflow:hidden}
 }
 
 @media(display-mode:standalone){
-  #app{padding-bottom:calc(72px + var(--safe-bottom))}
+  #app{min-height:100vh;padding-bottom:calc(72px + var(--safe-bottom))}
+  @supports (-webkit-touch-callout:none){
+    .splash{min-height:calc(100vh + var(--safe-top) + var(--safe-bottom))}
+  }
 }
+
+html[data-ipad-windowed] .brand{margin-left:52px}
 
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -719,14 +735,16 @@ body.guide-open{overflow:hidden}
     <div class="second-sweep" id="secondSweep" aria-hidden="true"><span></span></div>
     <div class="pcount sr-only" id="pcount"></div>
     <div class="journey-meta" id="journeyMeta"><span id="journeySource"></span><button class="text-button" id="journeyEdit" type="button" aria-expanded="false" aria-controls="journeyForm">Change</button></div>
-    <form class="journey-form" id="journeyForm" aria-hidden="true" inert>
+    <form class="journey-form" id="journeyForm" aria-hidden="true" inert novalidate>
       <div class="journey-inner">
         <label for="journeyMinutes">How many minutes from here?</label>
         <div class="journey-fields">
-          <input id="journeyMinutes" type="number" min="1" max="180" step="1" inputmode="numeric" autocomplete="off">
+          <input id="journeyMinutes" type="number" min="1" max="180" step="1" inputmode="numeric"
+            enterkeyhint="done" autocomplete="off" required aria-describedby="journeyHint journeyError">
           <button class="btn ghost" type="submit">Use this</button>
         </div>
-        <div class="journey-hint">Walk, drive, transit, cycle or a lift. Bilal only needs the minutes.</div>
+        <div class="journey-hint" id="journeyHint">Walk, drive, transit, cycle or a lift. Bilal only needs the minutes.</div>
+        <div class="field-error" id="journeyError" role="alert"></div>
       </div>
     </form>
     <div class="destination">
@@ -810,10 +828,12 @@ body.guide-open{overflow:hidden}
       <button class="install-close" id="installClose" type="button" aria-label="Close install guide">×</button>
     </div>
     <div class="install-tabs" role="tablist" aria-label="Phone type">
-      <button class="install-tab" id="installIos" type="button" role="tab" aria-selected="true">iPhone</button>
-      <button class="install-tab" id="installAndroid" type="button" role="tab" aria-selected="false">Android</button>
+      <button class="install-tab" id="installIos" type="button" role="tab" aria-selected="true"
+        aria-controls="installSteps" tabindex="0">iPhone</button>
+      <button class="install-tab" id="installAndroid" type="button" role="tab" aria-selected="false"
+        aria-controls="installSteps" tabindex="-1">Android</button>
     </div>
-    <ol class="install-steps" id="installSteps"></ol>
+    <ol class="install-steps" id="installSteps" role="tabpanel" aria-labelledby="installIos"></ol>
     <button class="btn install-finish" id="installDone" type="button">Done</button>
    </div>
   </div>
@@ -852,13 +872,27 @@ body.guide-open{overflow:hidden}
      and the initial reveal is allowed to breathe. */
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var MOTION = {swift:160, settle:420, grand:760, out:'cubic-bezier(.16,1,.3,1)'};
-  var SPLASH = {minimum:900, maximum:1450};
   var PULL = {threshold:72, maximum:108, resistance:.44, reloadDelay:240};
   var NATIVE_IOS=/iP(?:hone|ad|od)/.test(navigator.platform||'') ||
     ((navigator.platform||'')==='MacIntel' && navigator.maxTouchPoints>1);
   var STANDALONE=(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
     navigator.standalone===true;
   var IOS_STANDALONE=NATIVE_IOS && STANDALONE;
+  /* The operating system has already shown Bilal's launch canvas in installed
+     mode. Keep only the data handoff there; repeating the full identity beat
+     makes a warm launch feel slower than a native app. */
+  var SPLASH = {minimum:STANDALONE?180:900, maximum:1450};
+
+  function syncIpadWindowing(){
+    var tablet=NATIVE_IOS && STANDALONE && Math.min(screen.width,screen.height)>=700;
+    var screenShort=Math.min(screen.width,screen.height),screenLong=Math.max(screen.width,screen.height);
+    var viewShort=Math.min(window.innerWidth,window.innerHeight),viewLong=Math.max(window.innerWidth,window.innerHeight);
+    var windowed=tablet && (viewShort<screenShort-2 || viewLong<screenLong-2);
+    if(windowed) document.documentElement.setAttribute('data-ipad-windowed','');
+    else document.documentElement.removeAttribute('data-ipad-windowed');
+  }
+  syncIpadWindowing();
+  window.addEventListener('resize',syncIpadWindowing);
 
   /* Time override for previewing, the same ?at=HH:MM the display takes. Every
      clock read below goes through nowMs() so the whole page moves together:
@@ -876,6 +910,22 @@ body.guide-open{overflow:hidden}
   function nowDate(){ return new Date(nowMs()); }
 
   var $ = function(id){ return document.getElementById(id); };
+  function keepFocusedFieldVisible(){
+    var field=document.activeElement,viewport=window.visualViewport;
+    if(!viewport || viewport.scale>1 || !field || !/^(INPUT|TEXTAREA)$/.test(field.tagName)) return;
+    var rect=field.getBoundingClientRect();
+    var fieldTop=rect.top+window.scrollY,fieldBottom=rect.bottom+window.scrollY;
+    var visibleTop=viewport.pageTop+16,visibleBottom=viewport.pageTop+viewport.height-16;
+    var target=null;
+    if(fieldBottom>visibleBottom) target=window.scrollY+(fieldBottom-visibleBottom);
+    else if(fieldTop<visibleTop) target=window.scrollY-(visibleTop-fieldTop);
+    if(target!==null) window.scrollTo({top:Math.max(0,target),behavior:'auto'});
+  }
+  function focusField(field,select){
+    try{ field.focus({preventScroll:true}); }catch(error){ field.focus(); }
+    if(select) field.select();
+    requestAnimationFrame(keepFocusedFieldVisible);
+  }
   function pad(n){ return (n<10?'0':'')+n; }
   function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function hhmm(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
@@ -1531,19 +1581,30 @@ body.guide-open{overflow:hidden}
     this.setAttribute('aria-expanded',opening?'true':'false');
     $('journeyForm').setAttribute('aria-hidden',opening?'false':'true');
     $('journeyForm').inert=!opening;
-    if(opening) setTimeout(function(){ $('journeyMinutes').focus(); $('journeyMinutes').select(); },MOTION.swift);
+    $('journeyError').textContent='';
+    $('journeyMinutes').removeAttribute('aria-invalid');
+    if(opening) focusField($('journeyMinutes'),true);
+    else $('journeyMinutes').blur();
+  };
+  $('journeyMinutes').oninput=function(){
+    $('journeyError').textContent='';
+    this.removeAttribute('aria-invalid');
   };
   $('journeyForm').onsubmit=function(e){
     e.preventDefault();
     var minutes=parseInt($('journeyMinutes').value,10);
     if(!(minutes>=1 && minutes<=180)){
-      $('journeyMinutes').focus();
+      $('journeyError').textContent='Enter a journey between 1 and 180 minutes.';
+      $('journeyMinutes').setAttribute('aria-invalid','true');
+      focusField($('journeyMinutes'),false);
       return;
     }
     JOURNEYS[PICKED.g]={minutes:minutes,source:'set'};
     reconcileCall(JOURNEYS[PICKED.g]);
+    $('journeyMinutes').blur();
     journeyUI();
     paint();
+    try{ $('journeyEdit').focus({preventScroll:true}); }catch(error){ $('journeyEdit').focus(); }
   };
 
   /* Installation comes after the answer, down in the footer. Native install
@@ -1608,6 +1669,9 @@ body.guide-open{overflow:hidden}
          {title:'Confirm “Install”',copy:'Bilal appears on your Home Screen and in the app drawer.'}];
     $('installIos').setAttribute('aria-selected',platform==='ios'?'true':'false');
     $('installAndroid').setAttribute('aria-selected',platform==='android'?'true':'false');
+    $('installIos').tabIndex=platform==='ios'?0:-1;
+    $('installAndroid').tabIndex=platform==='android'?0:-1;
+    $('installSteps').setAttribute('aria-labelledby',platform==='ios'?'installIos':'installAndroid');
     $('installSteps').innerHTML=steps.map(function(step,index){
       return '<li class="install-step"><span class="install-number">'+(index+1)+'</span><div><h3>'+esc(step.title)+
         '</h3><p>'+esc(step.copy)+'</p><div class="install-shot" aria-hidden="true">'+installShot(platform,index)+'</div></div></li>';
@@ -1621,6 +1685,7 @@ body.guide-open{overflow:hidden}
     $('installSheet').className='install-sheet on';
     $('installSheet').setAttribute('aria-hidden','false');
     $('installSheet').inert=false;
+    $('app').inert=true;
     document.body.classList.add('guide-open');
     $('installBtn').setAttribute('aria-expanded','true');
     $('installHint').textContent=platform==='ios' ? 'Three clear steps in Safari.' : 'Three clear steps in Chrome.';
@@ -1631,6 +1696,7 @@ body.guide-open{overflow:hidden}
     $('installSheet').className='install-sheet';
     $('installSheet').setAttribute('aria-hidden','true');
     $('installSheet').inert=true;
+    $('app').inert=false;
     document.body.classList.remove('guide-open');
     $('installBtn').setAttribute('aria-expanded','false');
     if(restore!==false){
@@ -1661,6 +1727,13 @@ body.guide-open{overflow:hidden}
   };
   $('installIos').onclick=function(){ paintInstallGuide('ios'); };
   $('installAndroid').onclick=function(){ paintInstallGuide('android'); };
+  $('installIos').onkeydown=$('installAndroid').onkeydown=function(e){
+    if(e.key!=='ArrowLeft' && e.key!=='ArrowRight') return;
+    e.preventDefault();
+    var next=this===$('installIos')?$('installAndroid'):$('installIos');
+    paintInstallGuide(next===$('installIos')?'ios':'android');
+    next.focus();
+  };
   $('installClose').onclick=closeInstallGuide;
   $('installBackdrop').onclick=closeInstallGuide;
   $('installDone').onclick=closeInstallGuide;
@@ -1670,9 +1743,11 @@ body.guide-open{overflow:hidden}
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
       if($('installSheet').className.indexOf('on')!==-1) syncInstallLayout();
+      requestAnimationFrame(keepFocusedFieldVisible);
     });
     window.visualViewport.addEventListener('scroll',function(){
       if($('installSheet').className.indexOf('on')!==-1) syncInstallLayout();
+      requestAnimationFrame(keepFocusedFieldVisible);
     });
   }
   document.addEventListener('keydown',function(e){
@@ -1769,7 +1844,7 @@ body.guide-open{overflow:hidden}
     $('placeForm').className='on';
     $('placeGo').disabled=false;
     $('placeGo').textContent='Find nearest';
-    $('placeQuery').focus();
+    focusField($('placeQuery'),false);
   }
 
   $('placeInstead').onclick=function(){
@@ -1808,7 +1883,7 @@ body.guide-open{overflow:hidden}
       };
     });
     var first=$('placeOptions').querySelector('button');
-    if(first) first.focus();
+    if(first){ try{ first.focus({preventScroll:true}); }catch(error){ first.focus(); } }
   }
 
   function placeFailure(error){
