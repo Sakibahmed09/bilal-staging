@@ -493,9 +493,10 @@ body.guide-open{overflow:hidden}
 /* iOS 26 clips fixed takeovers to its inner viewport. The sheet owns the full
    document while this sticky viewport keeps the panel attached to what the
    person can actually see. Page dimensions are synced when the guide opens. */
-.install-sheet{position:absolute;top:0;left:0;z-index:30;
+.install-sheet{display:none;position:absolute;top:0;left:0;z-index:30;
   width:var(--install-page-width,100%);height:var(--install-page-height,100%);
   visibility:hidden;pointer-events:none;isolation:isolate;overscroll-behavior:contain}
+.install-sheet.ready,.install-sheet.on{display:block}
 .install-sheet.on{visibility:visible;pointer-events:auto}
 .install-backdrop{position:absolute;inset:0;width:100%;height:100%;appearance:none;border:0;
   background:rgba(12,10,8,.70);opacity:0;touch-action:none;
@@ -1634,14 +1635,19 @@ html[data-ipad-windowed] .brand{margin-left:52px}
     if(!INSTALL_EVENT && installPlatform()!=='other') $('installBtn').textContent='Show me how';
   }
   function syncInstallLayout(){
-    var scroll=document.scrollingElement || document.documentElement;
+    var root=document.documentElement, app=$('app');
     var viewport=document.documentElement.clientHeight;
     if(window.visualViewport && window.visualViewport.scale<=1){
       viewport=window.visualViewport.height*window.visualViewport.scale;
     }
-    document.documentElement.style.setProperty('--install-page-width',scroll.scrollWidth+'px');
-    document.documentElement.style.setProperty('--install-page-height',Math.max(scroll.scrollHeight,scroll.clientHeight)+'px');
-    document.documentElement.style.setProperty('--install-viewport-height',viewport+'px');
+    /* The guide is deliberately excluded from its own dimensions. Measuring
+       document.scrollHeight here fed the absolute sheet back into itself and
+       left its off-screen panel as a blank scrollable tail while hidden. */
+    var pageWidth=Math.max(root.clientWidth,app.offsetLeft+app.offsetWidth);
+    var pageHeight=Math.max(root.clientHeight,app.offsetTop+app.offsetHeight,window.scrollY+viewport);
+    root.style.setProperty('--install-page-width',Math.ceil(pageWidth)+'px');
+    root.style.setProperty('--install-page-height',Math.ceil(pageHeight)+'px');
+    root.style.setProperty('--install-viewport-height',Math.ceil(viewport)+'px');
   }
   function installShot(platform,index){
     var icon='<img class="mini-icon" src="icon-192.png" alt="">';
@@ -1682,14 +1688,20 @@ html[data-ipad-windowed] .brand{margin-left:52px}
     dismissSplash();
     paintInstallGuide(platform);
     syncInstallLayout();
-    $('installSheet').className='install-sheet on';
-    $('installSheet').setAttribute('aria-hidden','false');
-    $('installSheet').inert=false;
+    var sheet=$('installSheet');
+    /* Give the translated panel one painted frame before revealing it so the
+       entrance remains physical even though the closed sheet is display:none. */
+    sheet.className='install-sheet ready';
+    sheet.setAttribute('aria-hidden','false');
+    sheet.inert=false;
     $('app').inert=true;
     document.body.classList.add('guide-open');
     $('installBtn').setAttribute('aria-expanded','true');
     $('installHint').textContent=platform==='ios' ? 'Three clear steps in Safari.' : 'Three clear steps in Chrome.';
-    requestAnimationFrame(syncInstallLayout);
+    requestAnimationFrame(function(){
+      syncInstallLayout();
+      sheet.className='install-sheet on';
+    });
     setTimeout(function(){ $('installClose').focus({preventScroll:true}); },MOTION.swift);
   }
   function closeInstallGuide(restore){
@@ -1698,6 +1710,9 @@ html[data-ipad-windowed] .brand{margin-left:52px}
     $('installSheet').inert=true;
     $('app').inert=false;
     document.body.classList.remove('guide-open');
+    document.documentElement.style.removeProperty('--install-page-width');
+    document.documentElement.style.removeProperty('--install-page-height');
+    document.documentElement.style.removeProperty('--install-viewport-height');
     $('installBtn').setAttribute('aria-expanded','false');
     if(restore!==false){
       $('installHint').textContent='One tap away. No account, no location history.';
