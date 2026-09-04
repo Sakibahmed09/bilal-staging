@@ -4,13 +4,21 @@
  * the site root. That gives it a broad technical scope, so the fetch handler
  * is intentionally narrow: every route that is not part of Near falls straight
  * through to the network and remains owned by the television experience. */
-const VERSION = 'bilal-near-v10';
+/* The page is served cache-first, so a shipped change to the shell is invisible
+ * until this file's own bytes change and the browser reinstalls the worker.
+ * SHELL_FINGERPRINT is that guarantee: it tracks near.html and near-core.js, a
+ * test fails the build when it drifts, and updating it is what makes the
+ * browser notice. Shipping the page without it strands everyone on the old
+ * copy, which is exactly how the 260:56 countdown survived its own fix. */
+const SHELL_FINGERPRINT = '573ff6786ba4';
+const VERSION = 'bilal-near-v23';
 const SHELL = VERSION + '-shell';
 const DATA = VERSION + '-data';
 const TIMES_HOST = 'bilal-times.ahmed-sakib.workers.dev';
 const SHELL_PATHS = [
   '/near.html',
   '/near-core.js',
+  '/diag.js',
   '/near.webmanifest',
   '/favicon.ico',
   '/bilal-mark-192.png',
@@ -21,8 +29,11 @@ const SHELL_PATHS = [
   '/fonts/prata-latin.woff2',
   '/fonts/archivo-latin.woff2'
 ];
+/* Cached under the same versioned URL the page asks for, or the install warms
+   one entry and every launch fetches another. */
+const SHELL_VERSIONED = { '/near-core.js': '/near-core.js?v=8', '/diag.js': '/diag.js?v=2' };
 const SHELL_INSTALL_PATHS = SHELL_PATHS.map(function(path) {
-  return path === '/near-core.js' ? '/near-core.js?v=7' : path;
+  return SHELL_VERSIONED[path] || path;
 });
 /* Only the sky for the current prayer is fetched. Pre-caching all five made a
    first visit download nearly 700 KB of scenery while the user was waiting

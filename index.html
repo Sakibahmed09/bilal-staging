@@ -75,10 +75,16 @@
   }catch(e){}
 })();
 </script>
+<link rel="preload" href="fonts/prata-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&family=Amiri:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:Prata;font-style:normal;font-weight:400;font-display:swap;
+  src:url('fonts/prata-latin.woff2') format('woff2')}
+@font-face{font-family:Archivo;font-style:normal;font-weight:400 700;font-stretch:100%;font-display:swap;
+  src:url('fonts/archivo-latin.woff2') format('woff2')}
 /* ─────────────────────────────────────────────────────────────────────────
  * BILAL — always-on jama'ah display
  *
@@ -139,6 +145,13 @@ html,body{height:100%;overflow:hidden;background:var(--deep);color:var(--cream);
   font-family:var(--text);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 body{cursor:none}
 body.cursor{cursor:auto}
+/* Echo Show needs a real vertical gesture surface. With both root elements
+   hard-locked, Silk consumes the top-edge pull inside the page and never
+   reveals its browser controls. The extra two pixels are optically inert
+   because the display itself is fixed, but restore the platform gesture. */
+html.echo-touch{overflow-y:auto;overscroll-behavior-y:auto}
+html.echo-touch body{height:calc(100% + 2px);overflow:visible;touch-action:pan-y}
+html.echo-touch::-webkit-scrollbar{display:none}
 
 /* ── sky: two stacked layers that crossfade ─────────────────────────────── */
 /* Two stacked skies, always both present. The top one's opacity is driven by
@@ -244,14 +257,9 @@ body[data-state="leave"] #wash{opacity:1}
 
 /* ── header ─────────────────────────────────────────────────────────────── */
 header{display:flex;justify-content:space-between;align-items:flex-start}
-.mark{display:flex;align-items:baseline}
+.mark{display:block}
 .mark .word{font-family:var(--display);font-size:calc(var(--u)*2.1);line-height:1;
   letter-spacing:-.012em;color:var(--cream)}
-/* Prata's 'l' ascender is ~0.74 of the font size, so the tower is sized to
-   that, not to the em box. As a replaced element its bottom edge IS its
-   baseline, so it sits on the type's baseline on its own. */
-.mark svg{height:calc(var(--u)*1.56);width:auto;display:block;
-  margin:0 calc(var(--u)*.055)}
 .masjid{font-size:calc(var(--u)*.94);letter-spacing:.15em;text-transform:uppercase;
   color:var(--veil);font-weight:500;margin-top:calc(var(--u)*.62)}
 .right{text-align:right}
@@ -272,8 +280,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start}
 /* ── hero ───────────────────────────────────────────────────────────────── */
 main{flex:1;display:flex;flex-direction:column;justify-content:center;
   max-width:74%}                                  /* keep type off the minaret */
-.eyebrow{font-size:calc(var(--u)*.92);letter-spacing:.24em;text-transform:uppercase;
-  color:var(--clay);font-weight:600}
+.status-label{font-size:calc(var(--u)*.9);letter-spacing:0;
+  color:var(--clay);font-weight:400}
 /* Prata's descenders are deep and they are not equal. Measured ink below the
    baseline at display size:  fajr 42.5px · maghrib 37.1px · dhuhr/asr/isha 1.5px.
    'j' is the deepest, and sizing the gap to maghrib (as I first did) still let
@@ -367,7 +375,7 @@ body.pairing #shell{display:none}
   -webkit-overflow-scrolling:touch}
 #pair.show:before,#pair.show:after{content:'';margin:auto}
 #pair.show>*{flex-shrink:0}
-#pair .eyebrow{color:var(--clay)}
+#pair .status-label{color:var(--clay)}
 #pair .head{font-family:var(--display);font-size:calc(var(--u)*5.4);line-height:1.02;
   letter-spacing:-.032em;margin:calc(var(--u)*.5) 0 calc(var(--u)*.9);max-width:17ch}
 /* Wraps, because this screen is not only ever seen on a television: loading it
@@ -499,7 +507,7 @@ body.compact .mark .word{font-size:calc(var(--u)*1.5)}
 body.compact .now{font-size:calc(var(--u)*3.1)}
 body.compact .greg{font-size:calc(var(--u)*.85)}
 body.compact main{max-width:100%}
-body.compact .eyebrow{font-size:calc(var(--u)*.82);letter-spacing:.16em}
+body.compact .status-label{font-size:calc(var(--u)*.82)}
 body.compact .prayer{font-size:calc(var(--u)*5.6);margin:calc(var(--u)*.2) 0 calc(var(--u)*.1)}
 body.compact .line .t{font-size:calc(var(--u)*1.9)}
 body.compact .line .c{font-size:calc(var(--u)*1.9)}
@@ -547,17 +555,17 @@ body.compact #hero{display:flex;flex-wrap:wrap;align-items:baseline;
 /* Scoped to #hero, and that scope is the whole bug. flex:0 0 100% is right
    here, where #hero is a wrapping ROW and this forces the label onto its own
    line above the prayer name. Unscoped it also matched the pairing screen's
-   eyebrow, and #pair is a COLUMN, where a 100% basis means 100% of the HEIGHT.
+   status label, and #pair is a COLUMN, where a 100% basis means 100% of the HEIGHT.
    So the word "Set up" claimed 708px of an 800px panel and pushed the QR off
    the bottom. That is what stopped Sakib's sister setting hers up. */
-body.compact #hero .eyebrow{flex:0 0 100%;font-size:calc(var(--u)*.74);
-  letter-spacing:.2em;margin-bottom:calc(var(--u)*.05)}
+body.compact #hero .status-label{flex:0 0 100%;font-size:calc(var(--u)*.96);
+  margin-bottom:calc(var(--u)*.05)}
 body.compact .prayer{font-size:calc(var(--u)*4.5);margin:0}
 body.compact .line{align-items:baseline}
 body.compact .line .t{font-size:calc(var(--u)*2.6);color:var(--cream);opacity:1}
 body.compact .line .c{font-size:calc(var(--u)*2.6)}
 body.compact #hero .leave{flex:0 0 100%;margin-top:calc(var(--u)*.35)}
-body.compact #hero .eyebrow{margin-bottom:calc(var(--u)*.1)}
+body.compact #hero .status-label{margin-bottom:calc(var(--u)*.1)}
 body.compact .prayer{font-size:calc(var(--u)*5.2);margin:calc(var(--u)*.12) 0 calc(var(--u)*.18)}
 body.compact .rail{padding-top:calc(var(--u)*.85)}
 /* a bright grade (dhuhr) put cream on near-white sky in Sakib's photo, so the
@@ -598,8 +606,6 @@ body.compact #driftWrap{
 
   <header>
     <div>
-      <!-- Placeholder: plain wordmark until Sakib's real mark is dropped in.
-           Swap this span for <img src="logo.svg" class="logo"> when we have it. -->
       <div class="mark rise d1">
         <span class="word">bilal</span>
       </div>
@@ -614,7 +620,7 @@ body.compact #driftWrap{
 
   <main>
     <div id="hero">
-      <div class="eyebrow rise d2">next jama'ah</div>
+      <div class="status-label rise d2">next jama'ah</div>
       <div class="prayer rise d2" id="prayerName">&nbsp;</div>
       <div class="line rise d3">
         <span class="t" id="prayerTime">--:--</span>
@@ -691,6 +697,7 @@ body.compact #driftWrap{
      display) and never makes sound. Everything else runs exactly as the TV
      runs it, which is the point of showing it. */
   var DEMO = Q.get('demo')==='1';
+  var demoReadySent = false;
   /* Config resolves URL > paired > default. The default mosque only applies when
      a URL names none, so every existing bookmark keeps working untouched. */
   var SAVED={};
@@ -761,6 +768,8 @@ body.compact #driftWrap{
   var clkHM=null,clkS=null,railKey=null;
   var audioEl=null,cueEl=null,ctx=null,skyFromKey=null,skyToKey=null,lastKey=null;
   var revealed=false;   // has anything taken the shell out of opacity 0
+  var ECHO_SHOW=/Echo|AEO[A-Z0-9]*/i.test(navigator.userAgent||'');
+  if(ECHO_SHOW) document.documentElement.classList.add('echo-touch');
 
   function $(i){return document.getElementById(i);}
   function pad(n){return (n<10?'0':'')+n;}
@@ -782,8 +791,7 @@ body.compact #driftWrap{
        So: viewport for the generic case, AND the Amazon UA for the devices
        whose size lies about how far away they are. */
     var ua = navigator.userAgent || '';
-    var isEcho = /Echo|AEO[A-Z0-9]*/i.test(ua);
-    var small = (w < 820) || (h < 620) || (isEcho && h < 1000);
+    var small = (w < 820) || (h < 620) || (ECHO_SHOW && h < 1000);
     document.body.classList[small?'add':'remove']('compact');
     if(small){
       /* The 10px floor keeps type legible on a small panel, but it must never
@@ -1582,6 +1590,18 @@ body.compact #driftWrap{
     }
 
     rail(now,next,started);
+    /* The landing page keeps its static proof visible until this embedded
+       display has real mosque data. iframe load only proves that HTML arrived;
+       revealing on load used to replace the good poster with "no connection". */
+    if(DEMO && !demoReadySent && window.parent !== window){
+      demoReadySent = true;
+      try{
+        window.parent.postMessage({type:'bilal-demo-ready',sky:{
+          from:skyFromKey||'isha',to:skyToKey||'isha',
+          blend:parseFloat($('skyTo').style.opacity||'1')
+        }},location.origin);
+      }catch(e){}
+    }
   }
 
   function rail(now,next,started){
@@ -2029,19 +2049,45 @@ body.compact #driftWrap{
      audio, and this one also fills the screen. Prefixed call included, since
      Silk can be old enough to want it, and the whole thing is guarded because
      a browser refusing fullscreen must never take the display down. */
-  document.addEventListener('keydown',function(e){
-    if(!e || (e.key||'').toLowerCase()!=='f') return;
+  function enterFullscreen(){
     try{
       var d=document, el=d.documentElement;
+      if(d.fullscreenElement||d.webkitFullscreenElement) return;
+      if(el.requestFullscreen){ var q=el.requestFullscreen(); if(q&&q.catch) q.catch(function(){}); }
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }catch(err){}
+  }
+  function toggleFullscreen(){
+    try{
+      var d=document;
       if(d.fullscreenElement||d.webkitFullscreenElement){
         if(d.exitFullscreen) d.exitFullscreen();
         else if(d.webkitExitFullscreen) d.webkitExitFullscreen();
-      }else{
-        if(el.requestFullscreen){ var q=el.requestFullscreen(); if(q&&q.catch) q.catch(function(){}); }
-        else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      }
+      }else enterFullscreen();
     }catch(err){}
+  }
+  document.addEventListener('keydown',function(e){
+    if(!e || (e.key||'').toLowerCase()!=='f') return;
+    toggleFullscreen();
   });
+
+  /* Echo Show's familiar top-edge pull should still expose Silk's controls.
+     When Silk passes the gesture through, use the same user action to enter
+     Fullscreen directly. Nothing is prevented, so the browser remains free
+     to own the gesture on models that handle it themselves. */
+  var echoSwipe=null;
+  if(ECHO_SHOW){
+    document.addEventListener('touchstart',function(e){
+      if(!e.touches||e.touches.length!==1||e.touches[0].clientY>80){ echoSwipe=null; return; }
+      echoSwipe={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    },false);
+    document.addEventListener('touchend',function(e){
+      if(!echoSwipe||!e.changedTouches||!e.changedTouches.length){ echoSwipe=null; return; }
+      var t=e.changedTouches[0],dy=t.clientY-echoSwipe.y,dx=Math.abs(t.clientX-echoSwipe.x);
+      echoSwipe=null;
+      if(dy>64&&dx<dy*.7) enterFullscreen();
+    },false);
+  }
   document.addEventListener('mousemove',function(){
     document.body.classList.add('cursor');
     clearTimeout(window.__c);

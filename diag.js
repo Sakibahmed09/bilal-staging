@@ -316,7 +316,20 @@
       dpr: global.devicePixelRatio || 1,
       url: location.href.slice(0, 300),
       online: navigator.onLine !== false,
-      mosque: cfg ? { slug: cfg.slug, name: cfg.name, walk: cfg.walk } : null,
+      /* Near has no saved config: it resolves a mosque from where the phone is
+         and paints the name. Reading it back off the page keeps one shape of
+         answer in the table whether a wall chose the mosque or a pavement did. */
+      mosque: cfg ? { slug: cfg.slug, name: cfg.name, walk: cfg.walk }
+            : text('mname') ? { slug: null, name: text('mname'), walk: null }
+            : null,
+      /* Installed to a home screen, or a tab that will be lost by Thursday.
+         On Near that is the whole difference between a visit and a user. */
+      standalone: (function () {
+        try {
+          return navigator.standalone === true ||
+                 !!(global.matchMedia && global.matchMedia('(display-mode: standalone)').matches);
+        } catch (e) { return null; }
+      })(),
       cache: cache(cfg),
       /* The three lines that would have caught 9 August's failures without
          anyone filing anything: did the shell ever become visible, does the
@@ -346,6 +359,15 @@
      rows, one imaginary screen. Matching on the staging repo path rather than
      the host, because the host also serves the public gh-pages site. */
   var STAGING = /\/bilal-staging\//.test(location.pathname);
+
+  /* Near is a phone app, and a phone app is a different instrument. A display
+     is interesting for as long as it keeps breathing, so it beats every half
+     hour and its silence is the finding. Near is interesting once per open:
+     a phone in a pocket is not a fault, and a person who closes the app has
+     not gone dark. So Near files one row when it opens, never beats, and
+     never files a restart — those rows are what the dark-screen question is
+     read from, and one commuter checking asr twice a day would bury it. */
+  var NEAR = page() === 'near';
   var EMBEDDED = /[?&](demo|nodiag)=1/.test(location.search) || STAGING;
 
   /* note() caps what a report CARRIES; this caps what a fault SENDS. The
@@ -372,12 +394,16 @@
       message: message || null, diag: diag
     };
     try {
+      /* A failed report must not become the next thing reported. Without this
+         catch the rejected fetch reaches window.onunhandledrejection, which
+         calls send() again: while the backend is down every heartbeat spends
+         the hourly error budget filing "Failed to fetch" about itself. */
       return fetch(SB, {
         method: 'POST', keepalive: true,
         headers: { 'apikey': SBK, 'Authorization': 'Bearer ' + SBK,
                    'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify(body)
-      });
+      }).catch(function () {});
     } catch (e) { return Promise.resolve(); }
   }
 
@@ -387,21 +413,54 @@
                   at: new Date().toISOString() });
   }
 
+  /* MAX_ERRORS bounds what a report CONTAINS. Nothing bounded what a screen
+     SENDS: every window error called send() directly, one row per error, with
+     no ceiling. So the flood the cap above was written to stop went out anyway,
+     a POST at a time.
+
+     Measured 30 Aug while the backend was timing out: the busiest screen filed
+     10.8 reports an hour against a design rate of 2. That is the wrong shape.
+     A page errors most when the backend is least able to answer, so the volume
+     of complaint rises exactly as the capacity to receive it falls.
+
+     Six an hour is enough to see a screen in trouble and few enough that a
+     screen in a loop cannot become the load. Heartbeats are not spent from this
+     budget: two an hour is the signal that a display is alive. */
+  var ERROR_SENDS_PER_HOUR = 6;
+  var errorSends = [];
+  function errorBudgetOk() {
+    var cutoff = Date.now() - 3600000;
+    while (errorSends.length && errorSends[0] < cutoff) errorSends.shift();
+    if (errorSends.length >= ERROR_SENDS_PER_HOUR) return false;
+    errorSends.push(Date.now());
+    return true;
+  }
+
   global.addEventListener('error', function (e) {
     note('error', e.message, (e.filename || '').replace(/^.*\//, '') + ':' + e.lineno);
-    send('error', e.message);
+    if (errorBudgetOk()) send('error', e.message);
   });
   global.addEventListener('unhandledrejection', function (e) {
     var r = e.reason;
     note('rejection', (r && r.message) || r);
-    send('error', 'unhandled rejection: ' + ((r && r.message) || r));
+    if (errorBudgetOk()) send('error', 'unhandled rejection: ' + ((r && r.message) || r));
   });
 
   /* A screen that stops reporting is the signal. Half-hourly is often enough to
      notice a display that died overnight and rare enough that a handful of
      screens will not fill a table. */
-  setTimeout(function () { send('heartbeat'); }, 20000);
-  setInterval(function () { send('heartbeat'); }, 30 * 60 * 1000);
+  if (NEAR) {
+    /* Wait for the answer before filing, but not for ever. An open that never
+       resolves a mosque is the most interesting row in the table, so the
+       deadline sends regardless and the empty name is itself the finding. */
+    (function poll(deadline) {
+      if (text('mname') || Date.now() > deadline) return send('open');
+      setTimeout(function () { poll(deadline); }, 500);
+    })(Date.now() + 12000);
+  } else {
+    setTimeout(function () { send('heartbeat'); }, 20000);
+    setInterval(function () { send('heartbeat'); }, 30 * 60 * 1000);
+  }
 
   /* Its own row, and early, rather than riding the next heartbeat. A screen
      that has just come back from being missing is the one moment worth an
@@ -409,6 +468,7 @@
      inside a routine heartbeat would be found only by someone already looking
      for it, which is the whole failure this is meant to end. */
   setTimeout(function () {
+    if (NEAR) return;
     var o = outage();
     if (o) send('restart', 'gone ' + o.minutes + ' min, last event: ' + o.lastEvent);
   }, 22000);

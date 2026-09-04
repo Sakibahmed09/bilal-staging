@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bilal Near social card</title>
+<style>
+  @font-face{font-family:Prata;src:url('fonts/prata-latin.woff2') format('woff2');font-weight:400}
+  @font-face{font-family:Archivo;src:url('fonts/archivo-latin.woff2') format('woff2');font-weight:400 700}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1200px;height:630px;overflow:hidden;background:#17140f}
+  #card{position:relative;width:1200px;height:630px;overflow:hidden;
+    color:#f6efe7;font-family:Archivo,system-ui,sans-serif}
+  #sky{position:absolute;inset:0;background:url('sky/isha.jpg') 50% 52%/cover no-repeat;
+    transform:scale(1.015)}
+  #grade{position:absolute;inset:0;background:
+    radial-gradient(ellipse 52% 58% at 72% 46%,rgba(217,164,143,.12),rgba(217,164,143,0) 74%),
+    linear-gradient(90deg,rgba(23,20,15,.94) 0%,rgba(23,20,15,.76) 43%,rgba(23,20,15,.14) 78%,rgba(23,20,15,.04) 100%),
+    linear-gradient(180deg,rgba(23,20,15,.80) 0%,rgba(23,20,15,.18) 47%,rgba(23,20,15,.84) 100%)}
+  #grain{position:absolute;inset:0;opacity:.12;mix-blend-mode:soft-light;
+    background-image:url('sky/stars.png');background-size:760px auto}
+
+  .brand{position:absolute;top:52px;left:70px;display:flex;align-items:baseline;gap:1px}
+  .brand img{width:17px;height:42px;object-fit:cover;object-position:top}
+  .brand .bilal{font-family:Prata,Georgia,serif;font-size:31px;line-height:1;letter-spacing:-.02em}
+  .brand .near{font-family:Prata,Georgia,serif;font-size:18px;line-height:1;
+    color:#d9a48f;font-weight:400;margin-left:14px}
+
+  .name{position:absolute;left:64px;top:117px;font-family:Prata,Georgia,serif;
+    font-size:176px;line-height:.94;letter-spacing:-.055em}
+  .promise{position:absolute;left:610px;top:143px;width:455px;font-size:31px;
+    line-height:1.22;letter-spacing:-.022em;font-weight:500}
+  .promise span{display:block;color:rgba(246,239,231,.62);font-size:18px;
+    line-height:1.45;letter-spacing:0;margin-top:15px;max-width:29ch;font-weight:400}
+
+  .signal{position:absolute;left:70px;bottom:62px;width:550px}
+  .signal .line{height:1px;background:rgba(246,239,231,.24);margin:16px 0 15px;position:relative}
+  .signal .line:before{content:'';position:absolute;left:0;top:-1px;width:158px;height:3px;background:#d9a48f}
+  .signal .detail{font-family:Prata,Georgia,serif;font-size:39px;line-height:1.1;
+    letter-spacing:-.035em}
+  .signal .detail strong{color:#d9a48f;font-weight:400}
+  .signal .context{font-size:15px;color:rgba(246,239,231,.62);margin-top:9px}
+  .url{position:absolute;right:70px;bottom:66px;font-size:14px;line-height:1;
+    color:rgba(246,239,231,.72);font-weight:500}
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="sky"></div>
+  <div id="grade"></div>
+  <div id="grain"></div>
+
+  <div class="brand">
+    <span class="bilal">bila</span>
+    <img src="bilal-mark-192.png" alt="">
+    <span class="near">near</span>
+  </div>
+
+  <div class="name">near</div>
+  <div class="promise">The next trustworthy jama'ah, and when to leave.
+    <span>Live times from nearby mosques. Directions when you need them.</span>
+  </div>
+
+  <div class="signal">
+    <div class="line"></div>
+    <div class="detail">Leave in <strong>17 min</strong></div>
+    <div class="context">Islamic Centre · Dhuhr jama'ah at 13:30</div>
+  </div>
+  <div class="url">bilalathan.co.uk/near</div>
+</div>
+</body>
+</html>

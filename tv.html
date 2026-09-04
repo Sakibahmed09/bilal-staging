@@ -3,546 +3,1097 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>bilal · put it on a screen</title>
+<title>bilal · the athan that tells you when to leave</title>
 <meta name="theme-color" content="#17140f">
-<meta name="description" content="The athan on your phone calls you to nothing. Bilal calls you at leave time, your mosque's live jama'ah time minus your walk.">
+<meta name="description" content="Bilal is a screen for your home that calls you at leave time, using your mosque's real jama'ah timetable and your journey.">
 <meta property="og:title" content="bilal · the screen that calls you to jama'ah">
-<meta property="og:description" content="The athan on your phone calls you to nothing. Bilal calls you at leave time, your mosque's live jama'ah time minus your walk.">
+<meta property="og:description" content="Your mosque's real jama'ah time, your journey counted, and the athan when it is time to leave.">
 <meta property="og:image" content="https://bilalathan.co.uk/og.jpg">
 <meta property="og:url" content="https://bilalathan.co.uk/tv.html">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prata&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/prata-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  @font-face{font-family:Prata;src:url('fonts/prata-latin.woff2') format('woff2');font-display:swap}
+  @font-face{font-family:Archivo;src:url('fonts/archivo-latin.woff2') format('woff2');font-display:swap}
   :root{
-    --clay:#d9a48f; --cream:#f6efe7; --char:#221e1c; --deep:#17140f;
-    --veil:rgba(246,239,231,.5); --hair:rgba(246,239,231,.12);
-    --display:'Prata',Georgia,serif;
-    --text:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --clay:#d9a48f;
+    --clay-bright:#efbba5;
+    --cream:#f6efe7;
+    --cream-soft:#ded3c8;
+    --char:#221e1c;
+    --deep:#17140f;
+    --deep-warm:#211913;
+    --veil:rgba(246,239,231,.72);
+    --quiet:rgba(246,239,231,.5);
+    --hair:rgba(246,239,231,.14);
+    --hair-strong:rgba(246,239,231,.24);
+    --display:Prata,Georgia,serif;
+    --text:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --safe-x:max(22px,env(safe-area-inset-left),env(safe-area-inset-right));
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html{scroll-behavior:smooth}
-  body{background:var(--deep);color:var(--cream);font-family:var(--text);
-    -webkit-font-smoothing:antialiased;line-height:1.55;
-    padding:max(28px,env(safe-area-inset-top)) 22px calc(64px + env(safe-area-inset-bottom))}
-  .wrap{max-width:34rem;margin:0 auto;position:relative;z-index:1}
-
-  /* ── the night the page sits in ─────────────────────────────────────────
-     The display's own materials, nothing invented: its star tile gliding at
-     the far layer's speed (1054s to cross a screen, the pace dhikry taught
-     us reads as sky rather than a sliding poster), a few heroes twinkling on
-     their own periods AND delays because drift alone always looks printed,
-     and the isha rooftops rising faintly behind the footer. The demo
-     television already pulls every one of these files, so the atmosphere
-     costs the visitor nothing it wasn't already paying. All of it sits
-     behind .wrap and under 15% opacity: the instructions stay ink on paper. */
-  #night,#horizon,.hs{position:fixed;pointer-events:none}
-  #night{top:0;left:0;right:0;bottom:0;z-index:0;
-    background:url('sky/stars.png') repeat;background-size:760px auto;
-    opacity:0;animation:nightIn 2.4s ease .6s forwards,
-                        nightDrift 1054s linear infinite}
-  @keyframes nightIn{to{opacity:.13}}
-  @keyframes nightDrift{to{background-position:-760px -40px}}
-  #horizon{left:0;right:0;bottom:0;height:34vh;z-index:0;
-    background:url('sky/isha.jpg') center bottom/cover no-repeat;
-    opacity:0;animation:horizonIn 2.4s ease .9s forwards;
-    -webkit-mask-image:linear-gradient(to top,rgba(0,0,0,1),rgba(0,0,0,0));
-    mask-image:linear-gradient(to top,rgba(0,0,0,1),rgba(0,0,0,0))}
-  @keyframes horizonIn{to{opacity:.34}}
-  .hs{width:2px;height:2px;border-radius:50%;background:var(--cream);z-index:0;
-    opacity:0;animation:twinkle var(--p) ease-in-out var(--d) infinite}
-  @keyframes twinkle{0%,100%{opacity:.06}50%{opacity:.4}}
-  @media (prefers-reduced-motion:reduce){
-    #night{animation:none;opacity:.13}
-    #horizon{animation:none;opacity:.34}
-    .hs{animation:none;opacity:.18}
+  html{scroll-behavior:smooth;background:var(--deep)}
+  body{
+    min-height:100vh;
+    background:var(--deep);
+    color:var(--cream);
+    font-family:var(--text);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.55;
+    overflow-x:hidden;
+    padding-top:max(20px,env(safe-area-inset-top));
+    padding-right:max(22px,env(safe-area-inset-right));
+    padding-bottom:calc(56px + env(safe-area-inset-bottom));
+    padding-left:max(22px,env(safe-area-inset-left));
   }
+  button,a{font:inherit}
+  button{color:inherit}
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  [hidden]{display:none!important}
+  ::selection{background:var(--clay);color:var(--char)}
 
-  .mark{font-family:var(--display);font-size:26px;letter-spacing:-.01em}
-  h1{font-family:var(--display);font-size:clamp(29px,8.6vw,34px);line-height:1.1;
-     letter-spacing:-.025em;margin-top:26px;font-weight:400}
-  .lede{color:var(--veil);margin-top:14px;font-size:16px}
-  .lede b{color:var(--cream);font-weight:600}
+  .atmosphere,.horizon,.star{position:fixed;pointer-events:none}
+  .atmosphere{
+    inset:0;
+    z-index:0;
+    background:
+      radial-gradient(60% 42% at 72% 10%,rgba(112,74,53,.24),transparent 70%),
+      url('sky/landing-stars.webp') repeat;
+    background-size:auto,760px auto;
+    opacity:.16;
+    animation:sky-drift 1054s linear infinite;
+  }
+  .horizon{
+    z-index:0;
+    left:0;
+    right:0;
+    bottom:0;
+    height:42vh;
+    background:url('sky/isha.webp') center bottom/cover no-repeat;
+    opacity:.22;
+    transition:opacity 1.4s var(--ease);
+    -webkit-mask-image:linear-gradient(to top,#000,transparent);
+    mask-image:linear-gradient(to top,#000,transparent);
+  }
+  body[data-sky="fajr"] .atmosphere{opacity:.13}
+  body[data-sky="dhuhr"] .atmosphere,body[data-sky="asr"] .atmosphere{opacity:.07}
+  body[data-sky="maghrib"] .atmosphere{opacity:.11}
+  body[data-sky="dhuhr"] .star,body[data-sky="asr"] .star{opacity:0;animation:none}
+  .star{
+    z-index:0;
+    width:2px;
+    height:2px;
+    border-radius:50%;
+    background:var(--cream);
+    opacity:.14;
+    animation:twinkle var(--period) ease-in-out var(--delay) infinite;
+  }
+  @keyframes sky-drift{to{background-position:0 0,-760px -40px}}
+  @keyframes twinkle{0%,100%{opacity:.06}50%{opacity:.34}}
 
-  /* Section headings in the display face, sentence case. The small-caps
-     letter-spaced eyebrow was chrome pretending to be typography. */
-  h2{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:-.015em;
-     color:var(--cream);margin:44px 0 0;scroll-margin-top:26px}
+  .page{position:relative;z-index:1;max-width:1180px;margin:0 auto}
+  .site-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    min-height:52px;
+  }
+  .brand{
+    display:inline-block;
+    text-decoration:none;
+    min-height:44px;
+    padding:6px 0;
+  }
+  .brand span{font-family:var(--display);font-size:25px;line-height:1;letter-spacing:-.025em}
+  .near-nav{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    min-height:44px;
+    padding:7px 0;
+    text-decoration:none;
+    color:var(--veil);
+  }
+  .near-nav strong{font-family:var(--display);font-size:17px;font-weight:400;color:var(--cream)}
+  .near-nav span{display:none;font-size:12px;color:var(--quiet)}
+  .near-nav:after{content:'↗';color:var(--clay);font-size:17px;transition:transform .35s var(--ease)}
+  .near-nav:hover:after{transform:translate(2px,-2px)}
 
-  /* Routes are set on the page itself, not boxed into app furniture: a
-     hairline and air mark where one device ends and the next begins, the
-     same separators the rest of the page already speaks. */
-  .card{margin-top:34px;padding-top:24px;border-top:1px solid var(--hair)}
-  h2 + .card{border-top:0;padding-top:0;margin-top:18px}
-  .card h3{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:-.015em}
-  .card li::marker{color:var(--clay)}
-  ol{margin:12px 0 0;padding-left:1.3em}
-  li{margin-bottom:9px;font-size:15.5px}
-  li b{font-weight:700}
-  .note{font-size:13.5px;color:var(--veil);margin-top:13px;padding:0 0 4px}
-  .note b{color:var(--clay)}
-  /* every prose link speaks terracotta, visited included; the browser's
-     visited-purple has no place in this night */
-  .wrap a:not(.cta){color:var(--clay);text-decoration:underline;text-underline-offset:2px;
-    transition:color .25s ease}
-  .wrap a:not(.cta):visited{color:var(--clay)}
-  .wrap a:not(.cta):hover{color:var(--cream)}
+  h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.028em}
+  h1{font-size:clamp(42px,12vw,64px);line-height:1.03;max-width:11ch}
+  h2{font-size:clamp(34px,9.5vw,55px);line-height:1.08}
+  h3{font-size:clamp(25px,7vw,32px);line-height:1.17}
+  .lede{color:var(--veil);font-size:17px;line-height:1.65;max-width:35em}
+  .lede strong{color:var(--cream);font-weight:600}
 
-  /* The action is a compact button; its context rides beside it as a
-     whisper instead of inside it as freight. */
-  .go{display:flex;align-items:center;gap:14px;margin-top:30px;flex-wrap:wrap}
-  .cta{display:inline-block;background:var(--clay);color:var(--char);text-decoration:none;
-    font-weight:600;font-size:15px;letter-spacing:.01em;padding:12px 26px;border-radius:10px;
-    transition:background .25s ease,transform .25s ease}
-  .cta:hover{background:#efc0a8;transform:translateY(-1px)}
-  .cta:active{transform:none;background:#c9977f}
-  .cta-note{font-size:13.5px;color:var(--veil)}
-  ol.flow{margin-top:14px;padding-left:1.35em}
-  ol.flow li{margin-bottom:11px;font-size:15.5px;color:var(--veil)}
-  ol.flow li b{color:var(--cream)}
-  .card.hero h3{font-size:26px}
-  details.more{margin-top:36px;border-top:1px solid var(--hair);padding-top:8px}
-  details.more summary{cursor:pointer;font-family:var(--display);font-size:19px;
-    letter-spacing:-.015em;color:var(--veil);padding:10px 0;list-style:none;
-    transition:color .25s ease}
-  details.more summary:hover{color:var(--cream)}
-  details.more[open] summary{color:var(--cream)}
-  details.more summary::-webkit-details-marker{display:none}
-  details.more summary::marker{content:''}
-  details.more .why{color:var(--veil);font-size:14px;margin-top:10px}
-  details.more .note b{color:var(--cream)}
-  footer{margin-top:34px;color:var(--veil);font-size:13px;border-top:1px solid var(--hair);
-    padding-top:18px}
+  .hero{padding:clamp(46px,10vw,96px) 0 clamp(76px,15vw,138px)}
+  .hero-copy .lede{margin-top:21px;max-width:31em}
+  .actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:30px}
+  .button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:11px;
+    min-height:48px;
+    border:1px solid transparent;
+    border-radius:9px;
+    padding:12px 20px;
+    background:var(--clay);
+    color:var(--char);
+    font-size:15px;
+    font-weight:700;
+    text-decoration:none;
+    transition:background .25s ease,transform .35s var(--ease),border-color .25s ease;
+  }
+  .button:after{content:'↓';font-size:16px;line-height:1;transition:transform .35s var(--ease)}
+  .button:hover{background:var(--clay-bright);transform:translateY(-2px)}
+  .button:hover:after{transform:translateY(2px)}
+  .button:active{transform:translateY(0)}
+  .button.secondary{background:transparent;color:var(--cream);border-color:var(--hair-strong)}
+  .button.secondary:after{content:'↗';color:var(--clay)}
+  .button.secondary:hover{background:rgba(246,239,231,.06);border-color:rgba(246,239,231,.4)}
 
-  /* ── the founder's note ─────────────────────────────────────────────────
-     A letter, and it has to read as one without asking for a box back: the
-     page gave up its cards on purpose, so the difference is typographic
-     rather than furniture.
-
-     The clay tick above the heading is the display's own mark for the
-     prayer that matters right now (.stop.on in index.html, 2.4u wide and
-     2px tall, which is 44px at the unit the TV actually runs). Borrowing
-     it points the page at the product instead of at a design system.
-
-     Then: the first sentence takes the display face and stands alone,
-     because it is the best line here and it was buried mid-paragraph; the
-     measure narrows against the instructions above so the eye knows it has
-     changed register; and the name is signed in Prata rather than
-     captioned in grey. It also lands where the isha rooftops are already
-     rising behind the page, so the letter sits in the warmest part of the
-     night without a panel being drawn for it. */
-  .letter{margin-top:62px;max-width:32em}
-  /* The heading is a label on a letter, not a second headline: at full size
-     and full cream it sat level with the opening sentence and the eye read
-     two titles stacked. Quieter and smaller, so "The first athan was a man"
-     is the only thing shouting in here. */
-  .letter h2{margin-top:0;padding-top:21px;position:relative;
-    font-size:18px;color:var(--veil)}
-  .letter h2:before{content:'';position:absolute;top:0;left:0;
-    width:44px;height:2px;background:var(--clay)}
-  .letter .open{font-family:var(--display);font-size:clamp(21px,5.8vw,25px);
-    line-height:1.34;letter-spacing:-.018em;color:var(--cream);margin-top:19px}
-  .letter p{color:var(--veil);font-size:16px;line-height:1.74;margin-top:17px}
-  .letter .sign{font-family:var(--display);font-size:24px;letter-spacing:-.01em;
-    color:var(--clay);margin-top:30px}
-
-  /* ── the television ─────────────────────────────────────────────────────
-     One component, both breakpoints. On a phone it rides just under the
-     hero copy at full width; at desk width it becomes the hero's right
-     column. The panel warms up from the maghrib poster to the live page,
-     and the tour inside walks the mosque's whole day. */
-  .dtv{position:relative}
-  /* The device is a smart speaker, not a wall television: slim uniform
-     bezel, soft corners, a camera pin in the bezel, and a fabric-wrapped
-     speaker wedge it stands on. The glow is its screen spilling onto the
-     surface it sits on. */
-  .frame{position:relative;z-index:2;border-radius:22px;background:#0b0908;padding:7px;
-    box-shadow:0 18px 44px -18px rgba(0,0,0,.75);
-    transform:perspective(1300px) rotateX(1.4deg);transform-origin:50% 100%}
-  .frame:after{content:'';position:absolute;top:2.5px;left:50%;margin-left:-1.5px;
-    width:3px;height:3px;border-radius:50%;background:rgba(246,239,231,.22)}
-  .base{position:relative;z-index:1;height:42px;margin:-14px 24px 0;
-    border-radius:0 0 20px 20px;
+  .device-wrap{margin-top:48px;position:relative}
+  .device-wrap:before{
+    content:'';
+    position:absolute;
+    left:8%;
+    right:8%;
+    bottom:-24px;
+    height:50%;
+    background:radial-gradient(50% 72% at 50% 65%,rgba(217,164,143,.27),transparent 72%);
+    opacity:.75;
+  }
+  .device{
+    position:relative;
+    z-index:2;
+    border-radius:24px;
+    background:#0d0a09;
+    padding:7px;
+    box-shadow:0 28px 60px -28px rgba(0,0,0,.88);
+    transform:perspective(1200px) rotateX(1.5deg);
+    transform-origin:50% 100%;
+  }
+  .device:after{
+    content:'';
+    position:absolute;
+    top:3px;
+    left:50%;
+    width:3px;
+    height:3px;
+    margin-left:-1.5px;
+    border-radius:50%;
+    background:rgba(246,239,231,.24);
+  }
+  .screen{
+    position:relative;
+    aspect-ratio:4/3;
+    overflow:hidden;
+    border-radius:17px;
+    background:#2c211b url('sky/maghrib.webp') center/cover;
+  }
+  .screen img,.screen iframe{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center;
+    border:0;
+  }
+  .screen iframe{pointer-events:none;opacity:0;transition:opacity .8s ease}
+  .screen iframe.ready{opacity:1}
+  .device-base{
+    position:relative;
+    z-index:1;
+    height:44px;
+    margin:-13px 24px 0;
+    border-radius:0 0 19px 19px;
     -webkit-clip-path:polygon(4% 0,96% 0,100% 100%,0 100%);
     clip-path:polygon(4% 0,96% 0,100% 100%,0 100%);
     background:
-      linear-gradient(rgba(246,239,231,.05),rgba(246,239,231,0) 30%),
       radial-gradient(circle at 1.5px 1.5px,rgba(246,239,231,.09) 1px,transparent 1.7px) 0 0/4px 4px,
-      linear-gradient(#2b2621,#191612)}
-  /* the surface it stands on: a contact shadow pooling under the wedge */
-  .base:after{content:'';position:absolute;left:6%;right:6%;bottom:-13px;height:20px;
-    background:radial-gradient(50% 100% at 50% 30%,rgba(0,0,0,.6),rgba(0,0,0,0) 72%)}
-  .frame:before{content:'';position:absolute;z-index:-1;
-    left:-6%;right:-6%;top:32%;bottom:-16%;
-    background:radial-gradient(58% 58% at 50% 62%,rgba(217,164,143,.32),
-      rgba(217,164,143,.08) 55%,rgba(217,164,143,0) 78%);
-    filter:blur(36px)}
-  .screen{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/9;
-    background:url('sky/maghrib.jpg') center/cover}
-  .screen iframe{width:100%;height:100%;border:0;display:block;
-    pointer-events:none;opacity:0;transition:opacity .9s ease .15s}
-  .screen iframe.on{opacity:1}
-  /* the guaranteed reveal: if the load event never fires the class on, the
-     panel must not sit on the poster forever pretending to be a still */
-  .screen iframe{animation:reveal 1ms linear 3s forwards}
+      linear-gradient(#2b2621,#191612);
+  }
+  .device-base:after{
+    content:'';
+    position:absolute;
+    left:5%;
+    right:5%;
+    bottom:-16px;
+    height:23px;
+    background:radial-gradient(50% 100% at 50% 20%,rgba(0,0,0,.64),transparent 74%);
+  }
+  .device-caption{display:flex;justify-content:space-between;gap:16px;margin-top:24px;color:var(--quiet);font-size:12px}
+  .device-caption strong{color:var(--veil);font-weight:600}
+  .live-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--clay);vertical-align:1px}
 
-  /* phones: the demo sits under the hero copy; the desk copy stays hidden */
-  .dhero{display:block;margin-top:30px}
-  .dcopy{display:none}
+  .chapter{position:relative;padding:clamp(76px,14vw,140px) 0;border-top:1px solid var(--hair)}
+  .chapter-head{max-width:720px}
+  .chapter-head .lede{margin-top:21px}
+
+  .thesis{padding-top:clamp(82px,14vw,148px)}
+  .thesis h2{max-width:14ch}
+  .thesis-grid{margin-top:52px}
+  .truth{
+    display:grid;
+    grid-template-columns:38px 1fr;
+    gap:18px;
+    padding:23px 0;
+    border-top:1px solid var(--hair);
+  }
+  .truth:first-child{border-top-color:var(--hair-strong)}
+  .truth-num{font-family:var(--display);font-size:22px;color:var(--clay)}
+  .truth h3{font-family:var(--text);font-size:16px;font-weight:700;letter-spacing:0}
+  .truth p{margin-top:7px;color:var(--veil);font-size:15px;line-height:1.65;max-width:42em}
+
+  #setup{scroll-margin-top:22px}
+  .setup-shell{margin-top:44px}
+  .route-tabs{
+    display:grid;
+    grid-template-columns:1fr;
+    border-top:1px solid var(--hair-strong);
+  }
+  .route-tab{
+    position:relative;
+    min-height:58px;
+    border:0;
+    border-bottom:1px solid var(--hair);
+    background:transparent;
+    color:var(--quiet);
+    text-align:left;
+    cursor:pointer;
+    padding:15px 34px 15px 0;
+    font-size:15px;
+    font-weight:600;
+    transition:color .25s ease,background .25s ease;
+  }
+  .route-tab:after{
+    content:'+';
+    position:absolute;
+    right:3px;
+    top:50%;
+    color:var(--clay);
+    font-family:var(--display);
+    font-size:22px;
+    font-weight:400;
+    transform:translateY(-52%);
+  }
+  .route-tab[aria-selected="true"]{color:var(--cream)}
+  .route-tab[aria-selected="true"]:after{content:'●';font-size:9px}
+  .route-tab small{display:block;margin-top:2px;color:var(--quiet);font-size:12px;font-weight:400}
+  .route-panel{max-width:38rem;padding:36px 0 4px;animation:panel-in .48s var(--ease) both}
+  @keyframes panel-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+  .route-panel h3{max-width:20ch}
+  .steps{list-style:none;counter-reset:steps;margin-top:27px}
+  .steps li{
+    counter-increment:steps;
+    position:relative;
+    padding:19px 0 19px 47px;
+    border-top:1px solid var(--hair);
+    color:var(--veil);
+    font-size:15.5px;
+    line-height:1.65;
+  }
+  .steps li:before{
+    content:counter(steps);
+    position:absolute;
+    top:17px;
+    left:0;
+    font-family:var(--display);
+    font-size:24px;
+    color:var(--clay);
+  }
+  .steps li strong{color:var(--cream);font-weight:600}
+  .route-note{max-width:53em;margin-top:22px;color:var(--quiet);font-size:13.5px;line-height:1.7}
+  .route-note strong{color:var(--veil);font-weight:600}
+  .copy-row{display:flex;align-items:stretch;max-width:560px;margin-top:24px}
+  .copy-value{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--hair-strong);
+    border-right:0;
+    border-radius:8px 0 0 8px;
+    padding:12px 14px;
+    color:var(--cream);
+    font-size:13px;
+    overflow-wrap:anywhere;
+    background:rgba(246,239,231,.025);
+  }
+  .copy-button{
+    flex:0 0 auto;
+    min-width:72px;
+    min-height:46px;
+    border:1px solid var(--hair-strong);
+    border-radius:0 8px 8px 0;
+    background:transparent;
+    color:var(--clay);
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .25s ease,color .25s ease;
+  }
+  .copy-button:hover{background:rgba(246,239,231,.06);color:var(--cream)}
+
+  .alternatives{margin-top:28px;border-top:1px solid var(--hair-strong)}
+  .alternative{border-bottom:1px solid var(--hair)}
+  .alternative summary{
+    position:relative;
+    min-height:58px;
+    display:flex;
+    align-items:center;
+    cursor:pointer;
+    list-style:none;
+    padding:15px 38px 15px 0;
+    color:var(--veil);
+    font-size:15px;
+    font-weight:600;
+  }
+  .alternative summary::-webkit-details-marker{display:none}
+  .alternative summary::marker{content:''}
+  .alternative summary:after{
+    content:'+';
+    position:absolute;
+    right:2px;
+    top:50%;
+    color:var(--clay);
+    font-family:var(--display);
+    font-size:22px;
+    font-weight:400;
+    transform:translateY(-54%) rotate(0);
+    transition:transform .35s var(--ease);
+  }
+  .alternative[open] summary{color:var(--cream)}
+  .alternative[open] summary:after{transform:translateY(-54%) rotate(45deg)}
+  .alternative-body{padding:0 0 25px;color:var(--veil);font-size:14px;line-height:1.7;max-width:54em}
+  .alternative-body p+p{margin-top:10px}
+  .alternative-body strong{color:var(--cream)}
+  .alternative-body a{color:var(--clay);text-underline-offset:3px}
+
+  .near-product{overflow:hidden}
+  .near-visual{
+    position:relative;
+    margin-top:42px;
+    border-radius:20px;
+    overflow:hidden;
+    background:#17130f;
+    box-shadow:0 35px 70px -42px rgba(0,0,0,.9);
+  }
+  .near-visual img{width:100%;height:auto;aspect-ratio:390/844}
+  .near-visual picture{display:block}
+  .near-copy{margin-top:35px}
+  .near-copy h2{max-width:10ch}
+  .near-copy .lede{margin-top:20px}
+  .near-note{max-width:36em;margin-top:20px;color:var(--quiet);font-size:13px;line-height:1.65}
+  .near-product .button{margin-top:28px}
+  .near-product .button:after{content:'↗'}
+
+
+  .film{border-top:1px solid var(--hair)}
+  .film-head{max-width:720px}
+  .film-head h2{max-width:16ch}
+  .film-head .lede{margin-top:19px}
+  .film-stage{position:relative}
+  .film-frame{
+    position:relative;
+    margin-top:clamp(34px,5vw,52px);
+    background:var(--deep);
+    border:1px solid var(--hair);
+    border-radius:4px;
+    overflow:hidden;
+    aspect-ratio:16/9;
+    transform-origin:center;
+  }
+  .film-frame picture{display:block;width:100%;height:100%}
+  .film-frame img,.film-frame video{width:100%;height:100%;display:block;object-fit:cover}
+  .film-frame video{background:#000}
+  .film-play{
+    position:absolute;inset:0;width:100%;height:100%;
+    display:flex;align-items:flex-end;justify-content:flex-start;
+    gap:0;padding:clamp(18px,3vw,30px);
+    background:linear-gradient(180deg,rgba(23,20,15,0) 28%,rgba(23,20,15,.55) 62%,rgba(23,20,15,.9) 100%);
+    border:0;cursor:pointer;color:var(--cream);text-align:left;
+    font-family:var(--text);transition:background .4s var(--ease);
+  }
+  .film-play .film-cta{display:flex;align-items:center;gap:14px;font-size:15px;letter-spacing:.01em;text-shadow:0 1px 12px rgba(23,20,15,.9)}
+  .film-cta-copy{display:flex;align-items:baseline;gap:10px}
+  .film-play i{
+    width:44px;height:44px;flex:none;border-radius:50%;
+    background:var(--clay);display:grid;place-items:center;
+    transition:transform 140ms cubic-bezier(.23,1,.32,1),background 180ms cubic-bezier(.23,1,.32,1);
+  }
+  .film-play:active i{transform:scale(.96)}
+  .film-play i:after{
+    content:'';width:0;height:0;margin-left:3px;
+    border-left:11px solid var(--deep);
+    border-top:7px solid transparent;border-bottom:7px solid transparent;
+  }
+  .film-play b{font-weight:600}
+  .film-play em{font-style:normal;color:var(--cream-soft);opacity:.72}
+  .film-swipe{display:none}
+  .film-swipe:after{
+    content:'';width:8px;height:8px;border-top:1.5px solid currentColor;border-left:1.5px solid currentColor;
+    transform:rotate(45deg) translateY(2px);opacity:.82;
+  }
+  .film-close,.film-toggle{
+    position:absolute;z-index:5;border:1px solid rgba(246,239,231,.2);border-radius:50%;
+    background:rgba(23,20,15,.82);color:var(--cream);cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+  }
+  .film-close{
+    top:max(15px,env(safe-area-inset-top));left:max(15px,env(safe-area-inset-left));
+    width:46px;height:46px;
+  }
+  .film-close:before,.film-close:after{
+    content:'';position:absolute;left:14px;top:22px;width:17px;height:1.5px;background:currentColor;border-radius:2px;
+  }
+  .film-close:before{transform:rotate(45deg)}
+  .film-close:after{transform:rotate(-45deg)}
+  .film-toggle{
+    left:50%;top:50%;width:66px;height:66px;transform:translate(-50%,-50%) scale(.86);
+    opacity:0;pointer-events:none;transition:opacity 160ms cubic-bezier(.23,1,.32,1),transform 240ms cubic-bezier(.23,1,.32,1);
+  }
+  .film-frame.is-paused .film-toggle,.film-frame.is-ended .film-toggle{
+    opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);
+  }
+  .film-toggle:before{
+    content:'';position:absolute;left:27px;top:22px;width:0;height:0;
+    border-left:15px solid var(--cream);border-top:10px solid transparent;border-bottom:10px solid transparent;
+  }
+  .film-loader{
+    position:absolute;z-index:4;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;
+    border:2px solid rgba(246,239,231,.18);border-top-color:var(--clay);border-radius:50%;
+    opacity:0;pointer-events:none;animation:film-spin .85s linear infinite;transition:opacity 180ms cubic-bezier(.23,1,.32,1);
+  }
+  .film-frame.is-loading .film-loader{opacity:1}
+  @keyframes film-spin{to{transform:rotate(360deg)}}
+  .film-timeline{
+    position:absolute;z-index:5;left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));
+    bottom:max(17px,env(safe-area-inset-bottom));height:24px;display:flex;align-items:center;gap:12px;
+    pointer-events:none;
+  }
+  .film-rail{position:relative;flex:1;height:2px;background:rgba(246,239,231,.24);overflow:hidden}
+  .film-progress{position:absolute;inset:0;background:var(--clay);transform:scaleX(0);transform-origin:left center;will-change:transform}
+  .film-time{min-width:36px;color:rgba(246,239,231,.76);font-size:11px;line-height:1;text-align:right;font-variant-numeric:tabular-nums}
+  .film-scroll-cue,.film-sound{display:none}
+  @media (hover:hover) and (pointer:fine){
+    .film-play:hover{background:linear-gradient(180deg,rgba(23,20,15,0) 20%,rgba(23,20,15,.66) 58%,rgba(23,20,15,.95) 100%)}
+    .film-play:hover i{transform:scale(1.05);background:var(--clay-bright)}
+  }
+  .film-note{margin-top:14px;color:var(--quiet);font-size:12.5px;line-height:1.6}
+  .letter{max-width:760px}
+  .letter-mark{width:48px;height:2px;background:var(--clay);margin-bottom:24px}
+  .letter .open{font-family:var(--display);font-size:clamp(30px,8vw,45px);line-height:1.22;letter-spacing:-.025em;color:var(--cream)}
+  .letter p{max-width:42em;margin-top:20px;color:var(--veil);font-size:16px;line-height:1.78}
+  .letter .sign{font-family:var(--display);font-size:24px;color:var(--clay);line-height:1.2;margin-top:29px}
+
+  .closing{text-align:left;padding-bottom:clamp(62px,12vw,110px)}
+  .closing h2{max-width:13ch}
+  .closing .lede{margin-top:19px}
+  .closing .actions{margin-top:27px}
+
+  footer{
+    display:grid;
+    gap:19px;
+    border-top:1px solid var(--hair);
+    padding-top:28px;
+    color:var(--quiet);
+    font-size:12.5px;
+    line-height:1.65;
+  }
+  footer a{color:var(--clay);text-underline-offset:3px}
+  .footer-links{display:flex;gap:10px 17px;flex-wrap:wrap}
+  .footer-links a{display:inline-flex;align-items:center;min-height:44px}
+  footer p a{display:inline-flex;align-items:center;min-height:44px}
+
+  :focus-visible{outline:2px solid var(--clay-bright);outline-offset:4px}
+
+  @media (min-width:640px){
+    :root{--safe-x:max(32px,env(safe-area-inset-left),env(safe-area-inset-right))}
+    body{padding-left:var(--safe-x);padding-right:var(--safe-x)}
+    .near-nav span{display:block}
+    .route-tabs{grid-template-columns:repeat(3,1fr)}
+    .route-tab{padding-right:24px;border-right:1px solid var(--hair)}
+    .route-tab:last-child{border-right:0}
+    .route-tab:after{display:none}
+    .route-tab[aria-selected="true"]:before{
+      content:'';
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:-1px;
+      height:2px;
+      background:var(--clay);
+    }
+    .steps li{padding-left:58px}
+  }
+
+  @media (max-width:639px){
+    .screen{aspect-ratio:16/9}
+    .near-visual{max-width:390px}
+    .film{padding-bottom:0}
+    .film-stage{
+      left:50%;width:100vw;height:180vh;height:180svh;margin:34px 0 0 -50vw;
+    }
+    .film-frame{
+      position:sticky;top:0;width:100%;height:100vh;height:100svh;max-width:none;margin:0;
+      border:0;border-radius:0;aspect-ratio:auto;background:#090806;contain:paint;
+      transform:scale(.9);transform-origin:center;opacity:.5;will-change:transform,opacity;
+    }
+    .film-frame video{object-fit:contain;background:#090806}
+    .film-frame picture img{object-fit:contain;background:#090806}
+    .film-play{display:none}
+    .film-close{display:none}
+    .film-scroll-cue{
+      position:absolute;z-index:5;left:0;right:0;bottom:max(28px,env(safe-area-inset-bottom));
+      display:flex;flex-direction:column;align-items:center;gap:10px;color:rgba(246,239,231,.84);
+      font-size:12px;letter-spacing:.045em;text-shadow:0 1px 10px rgba(9,8,6,.9);pointer-events:none;
+      transform:translate3d(0,0,0);will-change:transform,opacity;
+    }
+    .film-scroll-cue:after{
+      content:'';width:9px;height:9px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+      transform:rotate(45deg);
+    }
+    .film-sound{
+      position:absolute;z-index:6;top:max(17px,env(safe-area-inset-top));right:max(17px,env(safe-area-inset-right));
+      display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 13px;border:1px solid rgba(246,239,231,.22);
+      border-radius:999px;background:rgba(23,20,15,.84);color:var(--cream);font-size:12px;font-weight:600;
+      -webkit-appearance:none;appearance:none;opacity:0;pointer-events:none;
+      transition:opacity 180ms cubic-bezier(.23,1,.32,1),transform 180ms cubic-bezier(.23,1,.32,1);
+      transform:translate3d(0,-5px,0);
+    }
+    .film-frame.is-scroll-playing .film-sound{opacity:1;pointer-events:auto;transform:translate3d(0,0,0)}
+    .film-sound:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--clay)}
+    .film-frame.is-sounding .film-sound{opacity:.5;pointer-events:auto;transform:translate3d(0,0,0)}
+    .film-timeline{bottom:max(17px,env(safe-area-inset-bottom))}
+    .film-note{display:none}
+  }
 
   @media (min-width:960px){
-    body{padding-top:44px}
-    .wrap{max-width:1120px}
-    /* One left axis for the whole page. The hero copy, the band, the route
-       cards and the footer all hang off the same rail; centring the reading
-       column floated the headings away from the content they title. */
-    .wrap>h2,.wrap>.lede,.wrap>.card,.wrap>details,.wrap>.cta,.wrap>footer{
-      max-width:700px}
-
-    .mhero{display:none}
-    .dhero{display:grid;grid-template-columns:5fr 6.4fr;gap:60px;align-items:center;
-      padding:44px 0 36px;min-height:540px}
-    /* grid items default to min-width auto, and the 1280px iframe inside the
-       right column will happily blow the whole grid out through that door */
-    .dhero>div{min-width:0}
-    .dhero h1{font-size:clamp(37px,3.5vw,46px);line-height:1.08;margin-top:0}
-    .dhero .lede{font-size:17px;line-height:1.6;max-width:30em}
-    .dhero .go{margin-top:28px}
-
-    .qr{display:flex;align-items:center;gap:16px;margin-top:26px;max-width:26em}
-    .qr canvas{width:88px;height:88px;border-radius:10px;display:block;flex:0 0 auto}
-    .qr b{display:block;font-size:15px;font-weight:600}
-    .qr span{display:block;font-size:13px;color:var(--veil);margin-top:3px;line-height:1.5}
-
-    /* the same device, desk-sized */
-    .dcopy{display:block}
-    .frame{border-radius:30px;padding:10px;
-      box-shadow:0 30px 70px -24px rgba(0,0,0,.8)}
-    .frame:after{top:4px;width:3px;height:3px}
+    body{padding-top:max(28px,env(safe-area-inset-top));padding-left:max(46px,env(safe-area-inset-left));padding-right:max(46px,env(safe-area-inset-right))}
+    .site-header{min-height:58px}
+    .hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(480px,6.7fr);gap:clamp(54px,6vw,92px);align-items:center;min-height:650px}
+    h1{font-size:clamp(52px,5vw,72px)}
+    .device-wrap{margin-top:0}
+    .screen{aspect-ratio:16/9}
+    .device{padding:10px;border-radius:30px}
     .screen{border-radius:22px}
-    .base{height:56px;margin:-18px 34px 0;border-radius:0 0 26px 26px}
-    h2{font-size:26px}
-
-    /* the steps read as one band of three at desk width */
-    ol.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:34px;
-      padding-left:0;list-style:none;counter-reset:step;margin-top:20px}
-    ol.flow li{counter-increment:step;position:relative;padding-top:40px;margin-bottom:0}
-    ol.flow li:before{content:counter(step);position:absolute;top:0;left:0;
-      font-family:var(--display);font-size:27px;color:var(--clay);opacity:.9}
-
-    /* ── entrance ─────────────────────────────────────────────────────────
-       ANIMATION STORYBOARD (desktop only, fires once on load)
-
-          0ms   page paints deep, nothing moves yet
-         60ms   headline rises
-        140ms   lede follows
-        220ms   url box follows
-        300ms   qr card follows
-        240ms   the television fades in, settling from 98.4% scale
-        820ms   the glow under it blooms on slowly, like a set warming up
-
-       One class drives it all: body.go. Rises share a curve and differ
-       only in delay, which is what makes it read as one gesture. */
-    .rise{opacity:0;transform:translateY(14px);
-      transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
-    body.go .rise{opacity:1;transform:none}
-    .dhero h1.rise{transition-delay:.06s}
-    .dhero .lede.rise{transition-delay:.14s}
-    .dhero .url.rise{transition-delay:.22s}
-    .dhero .qr.rise{transition-delay:.3s}
-    .dtv{opacity:0;transform:scale(.984);
-      transition:opacity .7s cubic-bezier(.2,.7,.2,1) .24s,transform .7s cubic-bezier(.2,.7,.2,1) .24s}
-    body.go .dtv{opacity:1;transform:none}
-    .frame:before{opacity:0;transition:opacity 1.2s ease .82s}
-    body.go .frame:before{opacity:1}
-
-    /* The guaranteed reveal. Everything above waits at opacity 0 for a class
-       that JavaScript applies, and this page's history says exactly what that
-       earns you: a script that dies early leaves a black rectangle where the
-       pitch should be, and nobody reports a page that looks deliberately
-       empty. Animations outrank transitions in the cascade, so at 2.6s these
-       force the finished frame whether or not the storyboard ever ran. When
-       it did run, every value already matches and nothing visibly happens. */
-    .rise,.dtv{animation:reveal 1ms linear 2.6s forwards}
-    .frame:before{animation:reveal 1ms linear 3s forwards}
+    .device-base{height:57px;margin:-17px 36px 0;border-radius:0 0 26px 26px}
+    .device-caption{padding:0 4px;margin-top:29px}
+    .thesis{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(480px,.97fr);gap:clamp(70px,9vw,130px);align-items:start}
+    .thesis-grid{margin-top:2px}
+    .truth{grid-template-columns:42px 1fr;padding:26px 0}
+    .setup-layout{display:grid;grid-template-columns:minmax(260px,.58fr) minmax(0,1.42fr);gap:clamp(62px,9vw,130px);align-items:start;margin-top:50px}
+    .setup-shell{margin-top:0}
+    .route-tabs{display:block;border-top:1px solid var(--hair-strong)}
+    .route-tab{display:block;width:100%;min-height:72px;border-right:0;padding:18px 35px 18px 0}
+    .route-tab:after{display:block}
+    .route-tab[aria-selected="true"]:before{left:-15px;right:auto;top:50%;bottom:auto;width:2px;height:34px;transform:translateY(-50%)}
+    .route-panel{padding-top:0;min-height:430px}
+    .route-panel h3{font-size:36px}
+    .near-product{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);gap:clamp(52px,7vw,96px);align-items:center}
+    .near-visual{order:1;margin-top:0;border-radius:26px}
+    .near-visual img{aspect-ratio:16/9}
+    .near-copy{margin-top:0}
+    footer{grid-template-columns:1fr auto;align-items:end}
+    .footer-links{justify-content:flex-end}
   }
-  @keyframes reveal{to{opacity:1;transform:none}}
 
   @media (prefers-reduced-motion:reduce){
-    .rise,.dtv,.frame:before,.screen iframe{transition:none!important;opacity:1!important;transform:none!important}
+    html{scroll-behavior:auto}
+    *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    .film-loader{animation:none;border-color:var(--clay)}
+  }
+  @media (max-width:639px) and (prefers-reduced-motion:reduce){
+    .film-stage{height:100vh;height:100svh}
+    .film-frame{position:relative;opacity:1!important;transform:none!important;will-change:auto}
+    .film-scroll-cue{display:none}
   }
 </style>
 </head>
-<body>
-<!-- the night: star tile, twinkling heroes on their own clocks, rooftops.
-     Positions keep the heroes to the margins and the sky above the fold,
-     away from where anyone is reading. -->
-<div id="night"></div>
-<div id="horizon"></div>
-<i class="hs" style="top:9%;left:12%;--p:3.1s;--d:.4s"></i>
-<i class="hs" style="top:16%;left:88%;--p:4.3s;--d:1.7s"></i>
-<i class="hs" style="top:6%;left:64%;--p:3.7s;--d:2.9s"></i>
-<i class="hs" style="top:24%;left:4%;--p:5.1s;--d:.9s"></i>
-<i class="hs" style="top:11%;left:38%;--p:4.7s;--d:3.6s"></i>
-<i class="hs" style="top:31%;left:94%;--p:3.4s;--d:2.2s"></i>
-<i class="hs" style="top:4%;left:81%;--p:5.6s;--d:1.1s"></i>
-<i class="hs" style="top:20%;left:53%;--p:4.1s;--d:4.4s"></i>
-<i class="hs" style="top:38%;left:2%;--p:4.9s;--d:2.7s"></i>
-<div class="wrap">
-  <div class="mark">bilal</div>
+<body data-sky="isha">
+<div class="atmosphere" aria-hidden="true"></div>
+<div class="horizon" id="horizonFrom" aria-hidden="true"></div>
+<div class="horizon" id="horizonTo" aria-hidden="true" style="opacity:0"></div>
+<i class="star" aria-hidden="true" style="top:8%;left:9%;--period:3.1s;--delay:.4s"></i>
+<i class="star" aria-hidden="true" style="top:15%;left:89%;--period:4.3s;--delay:1.7s"></i>
+<i class="star" aria-hidden="true" style="top:5%;left:64%;--period:3.7s;--delay:2.9s"></i>
+<i class="star" aria-hidden="true" style="top:28%;left:4%;--period:5.1s;--delay:.9s"></i>
+<i class="star" aria-hidden="true" style="top:10%;left:39%;--period:4.7s;--delay:3.6s"></i>
+<i class="star" aria-hidden="true" style="top:33%;left:95%;--period:3.4s;--delay:2.2s"></i>
 
-  <div class="mhero">
-  <h1>The athan that plays when it's time to leave.</h1>
-  <p class="lede">Bilal is a screen for your home showing your mosque's own
-     jama'ah times, your walk already counted.</p>
+<main class="page" id="top">
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Bilal home">
+      <span>bilal</span>
+    </a>
+    <a class="near-nav" href="near">
+      <strong>near</strong>
+      <span>jama'ah around you</span>
+    </a>
+  </header>
 
-  <div class="go">
-    <a class="cta" href="#how">Set it up</a>
-    <span class="cta-note">three steps, two minutes</span>
-  </div>
-  </div>
-
-  <section class="dhero">
-    <div class="dcopy">
-      <h1 class="rise">The athan that plays when it's time to leave.</h1>
-      <p class="lede rise">Bilal is a screen for your home showing your mosque's own
-         jama'ah times, your walk already counted.</p>
-      <div class="go rise">
-        <a class="cta" href="#how">Set it up</a>
-        <span class="cta-note">three steps, two minutes</span>
-      </div>
-      <div class="qr rise">
-        <canvas id="dqr" width="264" height="264" role="img"
-                aria-label="QR code that opens this page on your phone"></canvas>
-        <div><b>Carry on from your phone</b>
-             <span>Scan it and this page opens in your hand, ready for the TV steps.</span></div>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <h1 id="hero-title">The athan that plays when it's time to leave.</h1>
+      <p class="lede">Bilal shows your mosque's own jama'ah times, counts your journey, then calls the house at the moment you need to move.</p>
+      <div class="actions">
+        <a class="button start-setup" href="#setup">Choose your screen</a>
+        <a class="button secondary" href="near">Out now? Open Near</a>
       </div>
     </div>
-    <div class="dtv">
-      <div class="frame"><div class="screen">
-        <iframe id="demo" title="The live Bilal display" tabindex="-1" aria-hidden="true"></iframe>
-      </div></div>
-      <div class="base" aria-hidden="true"></div>
+
+    <div class="device-wrap" aria-label="Bilal running on a home screen">
+      <div class="device">
+        <div class="screen">
+          <img src="landing-display.webp?v=2" alt="The Bilal home display against the living night sky" width="1280" height="720" fetchpriority="high">
+          <iframe id="demo" title="A live Bilal home display" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+      </div>
+      <div class="device-base" aria-hidden="true"></div>
+      <div class="device-caption">
+        <span><i class="live-dot"></i><strong>Bilal at home</strong></span>
+        <span>your mosque · your journey</span>
+      </div>
     </div>
   </section>
 
-  <p class="lede" style="margin-top:36px">The athan on your phone calls you to nothing:
-     it fires at the start time, while the jama'ah forms without you. Hearing Bilal means
-     <b>go now and you'll make it</b>.</p>
+  <section class="chapter film" aria-labelledby="film-title">
+    <div class="film-head">
+      <h2 id="film-title">Where the athan has been for 1,400 years.</h2>
+      <p class="lede">A short film about the call to prayer, the rooms it has filled, and the one it lost.</p>
+    </div>
+    <div class="film-stage" id="filmStage">
+    <div class="film-frame">
+      <video id="film" preload="none" playsinline controls hidden
+             data-landscape-src="film.mp4?v=1"
+             data-portrait-src="film-portrait.mp4?v=1"></video>
+      <picture id="filmPosterPicture">
+        <source media="(max-width:639px)" srcset="film-poster-portrait.webp?v=1">
+        <img id="filmPoster" src="film-poster.webp?v=1"
+             alt="A terraced street at dusk with minarets risen above the rooftops"
+             width="1280" height="720" loading="lazy" decoding="async">
+      </picture>
+      <button class="film-play" id="filmPlay" type="button">
+        <span class="film-cta"><i aria-hidden="true"></i><span class="film-cta-copy"><b>Watch the film</b><em>1 min 29</em></span></span>
+        <span class="film-swipe">Swipe up</span>
+      </button>
+      <button class="film-close" id="filmClose" type="button" aria-label="Close film" hidden></button>
+      <button class="film-toggle" id="filmToggle" type="button" aria-label="Play film" hidden></button>
+      <button class="film-sound" id="filmSound" type="button" aria-label="Turn film sound on" hidden>Sound</button>
+      <span class="film-scroll-cue" id="filmScrollCue">Keep scrolling</span>
+      <i class="film-loader" id="filmLoader" aria-hidden="true" hidden></i>
+      <div class="film-timeline" id="filmTimeline" aria-hidden="true" hidden>
+        <span class="film-rail"><i class="film-progress" id="filmProgress"></i></span>
+        <time class="film-time" id="filmTime">1:29</time>
+      </div>
+    </div>
+    </div>
+    <p class="film-note">Best with sound on.</p>
+  </section>
 
-  <h2 id="how">How it goes</h2>
-  <ol class="flow">
-    <li><b>Open the site on the screen.</b> It shows a QR code.
-        <span style="opacity:.72">(There's a short code underneath if your camera
-        won't focus, or if the screen has redrawn it.)</span></li>
-    <li><b>Scan that code with this phone.</b> Pick your mosque and how far you walk.
-        The screen picks it up on its own.</li>
-    <li><b>One press for sound.</b> The screen reloads itself and asks once. After that
-        it can call you to jama'ah for as long as it stays on.
-        <span style="opacity:.72">(The TV app skips this, it arms itself.)</span></li>
-  </ol>
-  <p class="lede" style="margin-top:14px;font-size:14.5px">Same three moments whatever
-     screen you use.</p>
+  <section class="chapter thesis" aria-labelledby="thesis-title">
+    <div class="chapter-head">
+      <h2 id="thesis-title">The moment that matters is when you must move.</h2>
+      <p class="lede">A start time is information. An athan in the room, timed to your actual jama'ah, is a call.</p>
+    </div>
+    <div class="thesis-grid">
+      <article class="truth">
+        <span class="truth-num">1</span>
+        <div><h3>Your mosque's real time</h3><p>Bilal reads the timetable your mosque publishes. It does not guess jama'ah from a calculation.</p></div>
+      </article>
+      <article class="truth">
+        <span class="truth-num">2</span>
+        <div><h3>Your journey already counted</h3><p>Tell it how long you need to get there, whether you walk, drive, cycle, take transit or get a lift.</p></div>
+      </article>
+      <article class="truth">
+        <span class="truth-num">3</span>
+        <div><h3>The athan at leave time</h3><p>When Bilal sounds, there is no calculation left to do. Go now and you will make the jama'ah.</p></div>
+      </article>
+    </div>
+  </section>
 
-  <h2>On a smart speaker</h2>
-
-  <div class="card hero">
-    <h3>Amazon Echo Show</h3>
-    <ol>
-      <li>Say <b>"Alexa, open Silk browser"</b></li>
-      <li>Go to <b>bilalathan.co.uk</b>, then follow the three steps above</li>
-    </ol>
-    <p class="note"><b>Nothing to configure and nothing to work around.</b> It's a
-       touchscreen, so the sound step is just a tap. Echo Shows normally close the browser
-       after about ten minutes, but the site keeps itself awake.</p>
-  </div>
-
-  <h2>On a TV</h2>
-
-  <div class="card hero">
-    <h3>The app, for Fire TV and Android TV</h3>
-    <ol>
-      <li>Get <b>Downloader</b> (free, orange icon) from your TV's app store and open it.
-          If the TV asks, flip the switch that lets Downloader install apps,
-          it shows you where</li>
-      <li>Type <b>bilalathan.co.uk/bilal.apk</b> into Downloader, install Bilal, open it</li>
-      <li>Follow the phone steps above, <b>no press for sound needed</b></li>
-    </ol>
-    <p class="note"><b>This is the proper answer on a TV.</b> The screen stays on without
-       any settings, the athan arms itself, and after a power cut it starts itself
-       back up. The same file lives at <a href="app.html">bilalathan.co.uk/app</a>,
-       checked byte for byte in your browser, if you'd rather fetch it yourself.
-       <b>The catch:</b> the two newest sticks, Fire TV Stick 4K Select and the
-       2026 Fire TV Stick HD, run Vega OS and can't install apps like this at all.
-       For those, use the Silk browser below.</p>
-  </div>
-
-  <details class="more">
-    <summary>No app? Four other ways</summary>
-    <p class="why">All four work. Each one asks something of you first, which is the only
-       reason the Show and the app are above them.</p>
-
-    <div class="card">
-      <h3>A laptop or desktop</h3>
-      <ol>
-        <!-- "./" is load bearing, for the reason set out on the spare-phone card
-             below. target=_blank matters here too: this is the one route where
-             the reader is already holding the screen, so the tab they are
-             reading has to survive them trying it. -->
-        <li>Open <b><a href="./?display=1" target="_blank" rel="noopener">bilalathan.co.uk/?display=1</a></b>
-            on the computer
-            <span style="opacity:.72">(nothing to install, it runs in the tab)</span></li>
-        <li>The screen offers you a link to pick your mosque, so you can set it up
-            <b>without reaching for your phone</b></li>
-        <li>Press <b>F</b> for fullscreen, then leave the tab open</li>
-      </ol>
-      <p class="note"><b>The catch:</b> computers go to sleep, and a sleeping screen
-         calls nothing. It won't tell you it missed one either. Everything above stays
-         awake by itself, so put one of those in the room you actually pray in. This one
-         is for hearing it work in the next few minutes, or for a desk you sit at all day.</p>
+  <section class="chapter" id="setup" aria-labelledby="setup-title">
+    <div class="chapter-head">
+      <h2 id="setup-title">Choose the screen in your room.</h2>
+      <p class="lede">Start with what you already own. We will show you one route, from first open to first athan.</p>
     </div>
 
-    <div class="card">
-      <h3>Fire TV in the Silk browser</h3>
-      <ol>
-        <li>Open the <b>Silk browser</b>. If it isn't installed, search Silk in Find. It's free</li>
-        <li>Go to <b>bilalathan.co.uk</b>, then follow the three steps above</li>
-        <li>Settings → Display &amp; Sounds → <b>Screensaver → Never</b></li>
-      </ol>
-      <p class="note"><b>The catch:</b> Fire TV has a second sleep timer, around 14 minutes,
-         that Amazon hide completely. Turning the screensaver off does not stop it. The app
-         above doesn't have this problem. The browser route is for the Vega OS sticks that
-         can't install it.</p>
-    </div>
+    <div class="setup-layout">
+      <div class="route-tabs" role="tablist" aria-label="Choose a screen">
+        <button class="route-tab" type="button" role="tab" id="tab-show" aria-selected="true" aria-controls="panel-show" tabindex="0" data-route="show">Echo Show<small>the easiest route</small></button>
+        <button class="route-tab" type="button" role="tab" id="tab-tv" aria-selected="false" aria-controls="panel-tv" tabindex="-1" data-route="tv">Fire TV or Android TV<small>the best TV route</small></button>
+        <button class="route-tab" type="button" role="tab" id="tab-other" aria-selected="false" aria-controls="panel-other" tabindex="-1" data-route="other">Something else<small>four good fallbacks</small></button>
+      </div>
 
-    <div class="card">
-      <h3>A spare phone or tablet</h3>
-      <ol>
-        <!-- "./" is load bearing. A bare href="?display=1" resolves against the
-             CURRENT document, so from /tv.html it went to /tv.html?display=1: the
-             landing page again, with a parameter only the display reads, and no
-             way for the reader to tell that the link had quietly failed. The
-             directory-relative form lands on the display at the site root, and
-             keeps working on the staging repo where the site sits at a subpath. -->
-        <li>Open <b><a href="./?display=1">bilalathan.co.uk/?display=1</a></b>
-            <span style="opacity:.72">(the <b>?display=1</b> tells a phone to show the
-            screen rather than this page)</span></li>
-        <li>Scan the code it shows <b>with your main phone</b>, then follow the steps above</li>
-        <li>Leave it on charge where you'll walk past it</li>
-      </ol>
-      <p class="note"><b>The catch:</b> you have to remember that parameter, or the phone
-         shows you this page again. Otherwise it's the cheapest way to cover a second room,
-         and each screen calls its own athan.</p>
-    </div>
+      <div class="route-panels">
+        <section class="route-panel" role="tabpanel" id="panel-show" aria-labelledby="tab-show" data-panel="show">
+          <h3>Ask Alexa for the browser. Bilal does the rest.</h3>
+          <ol class="steps">
+            <li>Say <strong>“Alexa, open Silk browser.”</strong></li>
+            <li>Open <strong>bilalathan.co.uk</strong>. The display will show a QR code.</li>
+            <li>Scan it with your phone, choose your mosque and enter your journey. Tap once on the Show to allow the athan.</li>
+          </ol>
+          <div class="copy-row">
+            <span class="copy-value">bilalathan.co.uk</span>
+            <button class="copy-button" type="button" data-copy="https://bilalathan.co.uk">Copy</button>
+          </div>
+          <p class="route-note"><strong>Why we recommend it:</strong> it is already a room-scale screen with a speaker and touchscreen. Bilal keeps the page awake when Silk would normally close it.</p>
+        </section>
 
-    <div class="card">
-      <h3>A smart TV with a browser</h3>
-      <ol>
-        <li>Open the TV's built-in browser. Most Samsung and LG sets have one</li>
-        <li>Go to <b>bilalathan.co.uk</b>, then follow the three steps above</li>
-      </ol>
-      <p class="note"><b>The catch:</b> whether it stays on depends entirely on the make,
-         and we can't test every set. Give it ten minutes before you rely on it.</p>
-    </div>
-  </details>
+        <section class="route-panel" role="tabpanel" id="panel-tv" aria-labelledby="tab-tv" data-panel="tv" hidden>
+          <h3>Install the small TV app once.</h3>
+          <ol class="steps">
+            <li>Get <strong>Downloader</strong> from your TV's app store and open it. If asked, allow Downloader to install apps.</li>
+            <li>Enter <strong>bilalathan.co.uk/bilal.apk</strong>, then install and open Bilal.</li>
+            <li>Scan the QR code with your phone and choose your mosque and journey. The app arms sound itself.</li>
+          </ol>
+          <div class="copy-row">
+            <span class="copy-value">bilalathan.co.uk/bilal.apk</span>
+            <button class="copy-button" type="button" data-copy="https://bilalathan.co.uk/bilal.apk">Copy</button>
+          </div>
+          <p class="route-note"><strong>The app is the dependable TV route:</strong> it stays awake, starts again after a power cut and needs no extra tap for sound. Fire TV Stick 4K Select and the 2026 Fire TV Stick HD run Vega OS, so use the Silk browser route under “Something else” instead.</p>
+        </section>
 
-  <section class="letter">
-    <h2>Why I built this</h2>
+        <section class="route-panel" role="tabpanel" id="panel-other" aria-labelledby="tab-other" data-panel="other" hidden>
+          <h3>Four more ways to put Bilal in a room.</h3>
+          <p class="route-note">Each works. Open only the screen you are considering, and we will tell you the honest tradeoff.</p>
+
+          <div class="alternatives">
+            <details class="alternative">
+              <summary>A laptop or desktop</summary>
+              <div class="alternative-body">
+                <p>Open <strong><a href="./?display=1" target="_blank" rel="noopener">bilalathan.co.uk/?display=1</a></strong>, choose your mosque from the link on screen, then press <strong>F</strong> for fullscreen.</p>
+                <p><strong>Good for:</strong> hearing Bilal work in the next few minutes. Computers sleep, so it is not the most dependable room screen.</p>
+              </div>
+            </details>
+            <details class="alternative">
+              <summary>Fire TV in the Silk browser</summary>
+              <div class="alternative-body">
+                <p>Open Silk, go to <strong>bilalathan.co.uk</strong>, scan the QR code, then set Settings → Display &amp; Sounds → Screensaver → <strong>Never</strong>.</p>
+                <p><strong>Good for:</strong> Vega OS Fire TV sticks that cannot install the app. Amazon also hides a second sleep timer, so test it before relying on it.</p>
+              </div>
+            </details>
+            <details class="alternative">
+              <summary>A spare phone or tablet</summary>
+              <div class="alternative-body">
+                <p>Open <strong><a href="./?display=1">bilalathan.co.uk/?display=1</a></strong>, scan its code with your main phone, then leave the device on charge where you will pass it.</p>
+                <p><strong>Good for:</strong> the cheapest second room. The <strong>?display=1</strong> is what tells a phone to become the display.</p>
+              </div>
+            </details>
+            <details class="alternative">
+              <summary>A smart TV browser</summary>
+              <div class="alternative-body">
+                <p>Open the TV's browser, go to <strong>bilalathan.co.uk</strong> and follow the QR setup.</p>
+                <p><strong>Good for:</strong> Samsung, LG and other TVs with a browser. Whether the page stays awake depends on the model, so give it ten minutes before trusting it.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter near-product" aria-labelledby="near-title">
+    <div class="near-visual">
+      <picture>
+        <source media="(min-width:640px)" srcset="near-screenshot-wide.webp">
+        <img src="near-screenshot.webp" alt="Bilal Near finding a nearby mosque, showing when to leave and opening directions" width="390" height="844" loading="lazy">
+      </picture>
+    </div>
+    <div class="near-copy">
+      <h2 id="near-title">Need to pray somewhere now?</h2>
+      <p class="lede">Near finds the next trustworthy jama'ah around you, tells you when to leave and opens the mosque pin in Maps.</p>
+      <p class="near-note">Location is checked once and never kept. Add Near to your Home Screen when you want it close.</p>
+      <a class="button" href="near">Find jama'ah near me</a>
+    </div>
+  </section>
+
+  <section class="chapter letter" aria-label="Why I built this">
+    <div class="letter-mark" aria-hidden="true"></div>
     <p class="open">The first athan was a man.</p>
-    <p>The Prophet ﷺ asked Bilal (RA) to call people to prayer, and when his voice went
-       up over Madinah people left what they were doing and walked.</p>
-    <p>If you can hear that from your house, you don't need this. I can't, and most of
-       us can't. What we have instead is athan apps, and they're not fit for purpose.
-       Most don't even make a sound anymore, it's a notification you can mute or swipe
-       away, and nobody has ever stood up for a notification. The ones that do play give
-       you the prayer's start time, which isn't when anything happens at your masjid.</p>
-    <p>So that's the experiment. If I hear the athan out loud at the time I was meant to
-       leave, the way it was always meant to work, can I build the habit? Set it up once
-       and find out.</p>
-    <!-- The closer answers the second paragraph: that one tells you who does not
-         need this and admits my own house is one that does, so the warmth at the
-         end is a hope between two houses rather than a wish at a customer. -->
-    <p>I hope it does for your house what it's done for mine.</p>
-    <p class="sign">- Sakib</p>
+    <p>The Prophet ﷺ asked Bilal (RA) to call people to prayer, and when his voice went up over Madinah people left what they were doing and walked.</p>
+    <p>If you can hear that from your house, you do not need this. I cannot, and most of us cannot. What we have instead is athan apps, and they are not fit for purpose. Most do not even make a sound anymore. The ones that do play give you the prayer's start time, which is not when anything happens at your masjid.</p>
+    <p>So that is the experiment. If I hear the athan out loud at the time I was meant to leave, the way it was always meant to work, can I build the habit? Set it up once and find out.</p>
+    <p>I hope it does for your house what it has done for mine.</p>
+    <p class="sign">Sakib</p>
   </section>
 
-  <div class="go">
-    <a class="cta" href="s.html">Set your mosque</a>
-    <span class="cta-note">already on a screen? choose your masjid and your walk</span>
-  </div>
+  <section class="chapter closing" aria-labelledby="closing-title">
+    <h2 id="closing-title">Give jama'ah a voice in the room.</h2>
+    <p class="lede">Choose the screen you already have. Bilal will guide you from there.</p>
+    <div class="actions">
+      <a class="button start-setup" href="#setup">Choose your screen</a>
+      <a class="button secondary" href="near">Open Near instead</a>
+    </div>
+  </section>
 
-  <footer>Times come straight from your mosque's own timetable, not a calculation.
-     <br><a href="help.html">Help</a> &middot; <a href="bug.html">Something not working? Tell us</a>
-     <br>made by <a href="https://x.com/mertesakib">sakib</a></footer>
-</div>
+  <footer>
+    <p>Times come straight from your mosque's own timetable, not a calculation.<br>Made by <a href="https://x.com/mertesakib">Sakib</a>.</p>
+    <nav class="footer-links" aria-label="Help and product links">
+      <a href="near">Bilal Near</a>
+      <a href="app.html">TV app</a>
+      <a href="help.html">Help</a>
+      <a href="bug.html">Report a problem</a>
+    </nav>
+  </footer>
+</main>
 
-<script src="qr.js"></script>
+<p id="copy-status" role="status" aria-live="polite" hidden></p>
 <script>
-
-  /* ── desktop boot ─────────────────────────────────────────────────────────
-     The hero's television is the real display, loaded lazily and only at desk
-     width so a phone never downloads a second copy of the product to read an
-     instructions page. It renders at 1280x720, believing it is a TV, and is
-     scaled to fit its frame; ?demo=1 keeps it silent and stops it writing
-     config into the visitor's browser. */
   (function(){
-    var mq = window.matchMedia ? window.matchMedia('(min-width:960px)') : null;
-    var booted = false;
+    var desktop = window.matchMedia ? window.matchMedia('(min-width:960px)') : null;
+    var demoBooted = false;
+    var skyKeys={fajr:1,dhuhr:1,asr:1,maghrib:1,isha:1};
 
-    function boot(){
-      /* The demo loads at every width now, phones included; innerWidth of
-         zero still means a background tab whose layout has not happened. */
-      if(booted || !innerWidth) return;
-      booted = true;
-      var f = document.getElementById('demo');
-      f.src = 'index.html?demo=1&tour=1&masjid=darul-ummah-goresbrook-1649608083137&walk=10';
-      f.addEventListener('load', function(){ f.className = 'on'; });
-      desk();
+    /* Before the live display answers, the landing still belongs to the hour
+       it is being visited. Once the embedded Bilal has real mosque data, its
+       exact prayer-window blend takes over. Atmosphere is product truth here,
+       not a generic star field pasted behind every visit. */
+    function setLandingSky(from,to,blend){
+      if(!skyKeys[from]) from='isha';
+      if(!skyKeys[to]) to=from;
+      blend=Math.max(0,Math.min(1,Number(blend)||0));
+      var a=document.getElementById('horizonFrom'),b=document.getElementById('horizonTo');
+      a.style.backgroundImage="url('sky/"+from+".jpg')";
+      b.style.backgroundImage="url('sky/"+to+".jpg')";
+      a.style.opacity=(.22*(1-blend)).toFixed(3);
+      b.style.opacity=(.22*blend).toFixed(3);
+      document.body.setAttribute('data-sky',blend>.5?to:from);
+    }
+    function hourSky(){
+      var override=(location.search.match(/[?&]at=(\d{1,2}):(\d{2})/)||[])[1];
+      var hour=override==null ? new Date().getHours() : parseInt(override,10);
+      if(hour<5) return 'isha';
+      if(hour<8) return 'fajr';
+      if(hour<15) return 'dhuhr';
+      if(hour<19) return 'asr';
+      if(hour<21) return 'maghrib';
+      return 'isha';
+    }
+    var initialSky=hourSky();
+    setLandingSky(initialSky,initialSky,0);
+
+    function bootDemo(){
+      if(demoBooted || !desktop || !desktop.matches || window.innerWidth < 960) return;
+      var frame = document.getElementById('demo');
+      if(!frame) return;
+      demoBooted = true;
+      frame.src = 'index.html?demo=1&tour=1&masjid=darul-ummah-goresbrook-1649608083137&walk=10';
+      window.addEventListener('message',function(event){
+        if(event.origin !== location.origin || event.source !== frame.contentWindow) return;
+        if(event.data && event.data.type === 'bilal-demo-ready'){
+          frame.className = 'ready';
+          if(event.data.sky) setLandingSky(event.data.sky.from,event.data.sky.to,event.data.sky.blend);
+        }
+      });
     }
 
-    var desked = false;
-    function desk(){
-      if(desked || !mq || !mq.matches) return;
-      desked = true;
+    if(desktop){
+      if(desktop.addEventListener) desktop.addEventListener('change',bootDemo);
+      else if(desktop.addListener) desktop.addListener(bootDemo);
+    }
+    bootDemo();
 
-      /* The QR carries the site root: a phone that scans it gets routed to
-         this page by the same logic that routed the phone in your hand. If
-         drawing fails the card goes rather than showing an empty tile. */
-      try{
-        var dir = location.href.replace(/[^\/]*(\?.*)?(#.*)?$/,'');
-        window.BilalQR.draw(document.getElementById('dqr'), dir,
-          { size: 264, dark: '#221E1C', light: '#F6EFE7', quiet: 2 });
-      }catch(e){
-        var q = document.querySelector('.qr'); if(q) q.style.display = 'none';
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('[role="tabpanel"]'));
+
+    function chooseRoute(route,moveFocus){
+      tabs.forEach(function(tab){
+        var active = tab.getAttribute('data-route') === route;
+        tab.setAttribute('aria-selected',active ? 'true' : 'false');
+        tab.setAttribute('tabindex',active ? '0' : '-1');
+        if(active && moveFocus) tab.focus();
+      });
+      panels.forEach(function(panel){
+        panel.hidden = panel.getAttribute('data-panel') !== route;
+      });
+    }
+
+    tabs.forEach(function(tab,index){
+      tab.addEventListener('click',function(){ chooseRoute(tab.getAttribute('data-route'),false); });
+      tab.addEventListener('keydown',function(event){
+        var next = null;
+        if(event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % tabs.length;
+        if(event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + tabs.length) % tabs.length;
+        if(event.key === 'Home') next = 0;
+        if(event.key === 'End') next = tabs.length - 1;
+        if(next === null) return;
+        event.preventDefault();
+        chooseRoute(tabs[next].getAttribute('data-route'),true);
+      });
+    });
+
+    document.querySelectorAll('.start-setup').forEach(function(link){
+      link.addEventListener('click',function(){
+        window.setTimeout(function(){ if(tabs[0]) tabs[0].focus({preventScroll:true}); },450);
+      });
+    });
+
+    document.querySelectorAll('.copy-button').forEach(function(button){
+      button.addEventListener('click',function(){
+        var value = button.getAttribute('data-copy');
+        function done(){
+          var old = button.textContent;
+          button.textContent = 'Copied';
+          window.setTimeout(function(){ button.textContent = old; },1600);
+        }
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(value).then(done,function(){ window.prompt('Copy this address',value); });
+        }else{
+          window.prompt('Copy this address',value);
+        }
+      });
+    });
+
+    document.querySelectorAll('.alternative').forEach(function(item){
+      item.addEventListener('toggle',function(){
+        if(!item.open) return;
+        document.querySelectorAll('.alternative').forEach(function(other){
+          if(other !== item) other.open = false;
+        });
+      });
+    });
+  })();
+
+  (function(){
+    var b=document.getElementById('filmPlay'),
+        v=document.getElementById('film'),
+        p=document.getElementById('filmPoster'),
+        pp=document.getElementById('filmPosterPicture'),
+        stage=document.getElementById('filmStage'),
+        frame=b&&b.parentNode,
+        toggle=document.getElementById('filmToggle'),
+        sound=document.getElementById('filmSound'),
+        cue=document.getElementById('filmScrollCue'),
+        loader=document.getElementById('filmLoader'),
+        timeline=document.getElementById('filmTimeline'),
+        progress=document.getElementById('filmProgress'),
+        time=document.getElementById('filmTime'),
+        mobile=window.matchMedia&&window.matchMedia('(max-width:639px)'),
+        reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)'),
+        started=false,userPaused=false,filmActive=false,scrollAmount=0,
+        progressFrame=0,scrollFrame=0;
+    if(!b||!v||!p||!pp||!stage||!frame||!toggle||!sound||!cue||!loader||!timeline||!progress||!time) return;
+
+    function isMobile(){return !!(mobile&&mobile.matches)}
+    function wantsStillness(){return !!(reduced&&reduced.matches)}
+    function clamp(value){return Math.max(0,Math.min(1,value))}
+    function sourceFor(portrait){return v.getAttribute(portrait?'data-portrait-src':'data-landscape-src')}
+    function prepare(portrait){
+      var source=sourceFor(portrait);
+      v.poster=p.currentSrc||p.src;v.controls=!portrait;
+      if(v.getAttribute('src')!==source){v.src=source;v.load()}
+    }
+    function clock(seconds){
+      seconds=Math.max(0,Math.ceil(seconds||0));
+      return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+    }
+    function paintProgress(){
+      var duration=isFinite(v.duration)?v.duration:89;
+      progress.style.transform='scaleX('+clamp(v.currentTime/duration)+')';
+      time.textContent=clock(duration-v.currentTime);
+    }
+    function progressLoop(){
+      if(!filmActive) return;
+      paintProgress();
+      if(!v.paused&&!v.ended) progressFrame=requestAnimationFrame(progressLoop);
+    }
+    function playMobile(){
+      frame.classList.add('is-loading');
+      var promise=v.play();
+      if(promise&&promise.catch) promise.catch(function(){
+        frame.classList.remove('is-loading');frame.classList.add('is-paused');
+        toggle.setAttribute('aria-label','Play film');toggle.tabIndex=0;
+      });
+    }
+    function startScrollFilm(){
+      if(started) return;
+      started=true;filmActive=true;userPaused=false;
+      prepare(true);v.muted=true;
+      b.hidden=true;pp.hidden=true;v.hidden=false;
+      toggle.hidden=false;toggle.tabIndex=-1;sound.hidden=false;loader.hidden=false;timeline.hidden=false;
+      frame.classList.add('is-scroll-playing','is-loading');
+      sound.textContent='Sound';sound.setAttribute('aria-label','Turn film sound on');
+      playMobile();
+    }
+    function updateFilmScroll(){
+      scrollFrame=0;
+      if(!isMobile()){frame.style.transform='';frame.style.opacity='';return}
+      var rect=stage.getBoundingClientRect(),height=(window.visualViewport&&window.visualViewport.height)||window.innerHeight,
+          enter=clamp((height*.92-rect.top)/(height*.84)),
+          leave=clamp((rect.bottom-height*.12)/height),
+          amount=Math.min(enter,leave),scale=.9+.1*amount;
+      scrollAmount=amount;filmActive=amount>.1;
+      if(wantsStillness()){frame.style.transform='none';frame.style.opacity='1'}
+      else{
+        frame.style.transform='scale('+scale+')';
+        frame.style.opacity=String(.5+amount*.5);
+        cue.style.opacity=String(clamp(1-enter*1.8));
+        cue.style.transform='translate3d(0,'+(-enter*14)+'px,0)';
       }
-
-      // the routes read as an open list at desk width, not a folded phone menu
-      var d = document.querySelector('details.more');
-      if(d) d.setAttribute('open','');
+      if(enter>.04) startScrollFilm();
+      if(!started) return;
+      if(filmActive&&!userPaused&&v.paused&&!v.ended) playMobile();
+      if(!filmActive&&!v.paused) v.pause();
+    }
+    function requestScrollPaint(){
+      if(!scrollFrame) scrollFrame=requestAnimationFrame(updateFilmScroll);
+    }
+    function unlockSound(event){
+      if(event.target===sound||event.target===toggle) return;
+      if(!isMobile()||!started||scrollAmount<.28||!v.muted) return;
+      v.muted=false;frame.classList.add('is-sounding');
+      sound.textContent='Sound on';sound.setAttribute('aria-label','Mute film');
+    }
+    function toggleSound(event){
+      event.stopPropagation();v.muted=!v.muted;
+      frame.classList.toggle('is-sounding',!v.muted);
+      sound.textContent=v.muted?'Sound':'Sound on';
+      sound.setAttribute('aria-label',v.muted?'Turn film sound on':'Mute film');
+      if(v.paused&&!userPaused) playMobile();
+    }
+    function togglePlayback(){
+      if(v.ended){v.currentTime=0;userPaused=false;playMobile();return}
+      if(v.paused){userPaused=false;playMobile()}else{userPaused=true;v.pause()}
+    }
+    function playDesktop(){
+      prepare(false);v.hidden=false;pp.hidden=true;b.hidden=true;
+      var promise=v.play();
+      if(promise&&promise.catch) promise.catch(function(){v.hidden=true;pp.hidden=false;b.hidden=false});
     }
 
-    window.addEventListener('resize', function(){ boot(); desk(); });
-    /* A tab opened in the background loads at 0x0 with rAF suspended, so the
-       width check above says phone and nothing boots. Becoming visible is the
-       moment that lie corrects itself, so listen for it. */
-    document.addEventListener('visibilitychange', function(){ boot(); desk(); });
-    if(mq){
-      if(mq.addEventListener) mq.addEventListener('change', desk);
-      else if(mq.addListener) mq.addListener(desk);
-    }
-    boot();
-
-    /* Two frames so every .rise starts life painted at opacity 0, then one
-       class runs the whole storyboard. Reduced motion shows it all at once. */
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){
-      document.body.className += ' go';
-    }); });
+    b.addEventListener('click',function(){if(!isMobile()) playDesktop()});
+    sound.addEventListener('click',toggleSound);
+    toggle.addEventListener('click',function(event){event.stopPropagation();togglePlayback()});
+    v.addEventListener('click',function(){if(isMobile()) togglePlayback()});
+    v.addEventListener('waiting',function(){if(filmActive&&!v.paused) frame.classList.add('is-loading')});
+    v.addEventListener('playing',function(){
+      frame.classList.remove('is-loading','is-paused','is-ended');
+      toggle.setAttribute('aria-label','Pause film');toggle.tabIndex=-1;
+      cancelAnimationFrame(progressFrame);progressLoop();
+    });
+    v.addEventListener('pause',function(){
+      cancelAnimationFrame(progressFrame);paintProgress();
+      if(filmActive&&userPaused&&!v.ended){frame.classList.add('is-paused');toggle.setAttribute('aria-label','Play film');toggle.tabIndex=0}
+    });
+    v.addEventListener('ended',function(){
+      userPaused=true;frame.classList.remove('is-loading');frame.classList.add('is-paused','is-ended');
+      toggle.setAttribute('aria-label','Replay film');toggle.tabIndex=0;paintProgress();
+    });
+    v.addEventListener('loadedmetadata',paintProgress);
+    document.addEventListener('touchend',unlockSound,{passive:true});
+    window.addEventListener('scroll',requestScrollPaint,{passive:true});
+    window.addEventListener('resize',requestScrollPaint,{passive:true});
+    requestScrollPaint();
   })();
 </script>
-<script src="diag.js"></script>
 </body>
 </html>
