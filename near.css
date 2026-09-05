@@ -1061,14 +1061,6 @@ input {
 .refresh-status.ready .icon {
   transform: rotate(180deg);
 }
-.refresh-status.busy .icon {
-  animation: refresh-turn 700ms linear infinite;
-}
-@keyframes refresh-turn {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .phone.pulling .screen {
   transition: none;
 }
