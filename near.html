@@ -85,14 +85,19 @@
 <link rel="stylesheet" href="near-atmosphere.css">
 <link rel="stylesheet" href="near-install.css">
 <link rel="stylesheet" href="near-preference.css">
+<link rel="stylesheet" href="near-opening.css">
+<link rel="stylesheet" href="near-request.css">
 <link rel="stylesheet" href="near-native.css">
 <script type="module" src="near-app.mjs"></script>
-</head><body>
+</head><body class="is-loading">
+<div class="splash-viewport" id="splashViewport" role="dialog" aria-modal="true" aria-labelledby="splashName"><div class="splash"><div class="splash-inner"><img class="splash-mark" src="bilal-mark-192.png" width="70" height="70" alt=""><h1 class="splash-name" id="splashName">bilal</h1><div class="splash-status" id="splashStatus" role="status">finding where you are</div><div class="splash-progress" aria-hidden="true"><span id="splashProgress"></span></div><button class="splash-postcode" id="splashPlace" type="button">Search an address instead</button></div></div></div>
+<noscript><style>.splash-viewport{display:none}body.is-loading .screen{opacity:1;visibility:visible}</style></noscript>
 <svg class="svg-library" aria-hidden="true"><defs>
 <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 19 19 5M6 5h13v13"/></symbol><symbol id="right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol><symbol id="down" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol><symbol id="x" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="search" viewBox="0 0 24 24"><path d="m16 16 5 5"/><circle cx="10.5" cy="10.5" r="6.5"/></symbol>
 </defs></svg>
 <div class="phone" id="phone" data-sky="asr">
 <div class="atmosphere" aria-hidden="true"><div class="sky-palette" id="skyPalette"></div><div class="drift-mask"><div class="clouds drift"></div><div class="stars stars-far drift"></div><div class="stars stars-near drift"></div><div class="starlight"><i class="spark" style="--x:24%;--y:38px;--period:11.7s;--delay:-4.2s"></i><i class="spark" style="--x:40%;--y:77px;--period:16.3s;--delay:-9.4s"></i><i class="spark" style="--x:63%;--y:39px;--period:13.1s;--delay:-1.3s"></i><i class="spark" style="--x:13%;--y:91px;--period:19.7s;--delay:-11.1s"></i><i class="spark" style="--x:57%;--y:108px;--period:14.9s;--delay:-7.7s"></i></div></div><div class="horizon-light"></div><div class="sky-shade"></div></div>
+<div class="refresh-hint" id="refreshHint" aria-hidden="true"><span class="refresh-hint-mark"></span><span>pull to refresh</span></div>
 <div class="refresh-status" id="refreshStatus" role="status" aria-atomic="true"><svg class="icon" aria-hidden="true"><use href="#down"/></svg><span id="refreshText"></span></div>
 <main class="screen" id="screen"><header class="brandrow"><span class="brand">bilal</span><button class="location" id="location"><span id="locationLabel">Your location</span><svg class="icon" aria-hidden="true"><use href="#down"/></svg></button></header>
 <div class="notice" id="notice" hidden><span id="noticeText" role="status"></span><button id="noticeRetry" class="textbtn">Retry</button></div>

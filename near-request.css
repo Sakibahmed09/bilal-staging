@@ -1,0 +1,191 @@
+.request-entry {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 8px;
+}
+.request-entry .text-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+.request-entry .text-link span:last-child {
+  color: var(--clay);
+  transition: transform 180ms var(--ease);
+}
+.request-entry .text-link:active span:last-child {
+  transform: translateX(3px);
+}
+.request-entry p {
+  margin: 0 0 9px;
+  max-width: 32ch;
+}
+.request-empty {
+  padding-top: 25px;
+}
+.request-empty strong {
+  display: block;
+  font-family: Prata, serif;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.request-empty p {
+  max-width: 33ch;
+}
+.sheet[data-view="request"] .sheet-content {
+  padding-bottom: 0;
+}
+.sheet .request-promise {
+  margin: 0 0 25px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--quiet);
+  text-wrap: pretty;
+}
+.request-promise strong {
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.request-form {
+  margin: 0;
+}
+.request-field {
+  display: block;
+  margin: 0 0 23px;
+}
+.request-field > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 12px;
+}
+.request-field small {
+  font-size: 11px;
+  color: var(--quiet);
+}
+.request-field input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 49px;
+  border: 0;
+  border-bottom: 1px solid #bdcbb84d;
+  border-radius: 0;
+  padding: 12px 0 9px;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 160ms;
+}
+.request-field input:focus {
+  border-bottom-color: var(--clay);
+  box-shadow: 0 1px var(--clay);
+}
+.request-field input[aria-invalid="true"] {
+  border-bottom-color: #edc2aa;
+}
+.request-field input::placeholder {
+  color: #b8c2ab70;
+}
+.request-field input:autofill {
+  -webkit-text-fill-color: var(--ink);
+  box-shadow: 0 0 0 100px var(--sheet) inset;
+}
+.request-field:has(+ .request-hint) {
+  margin-bottom: 7px;
+}
+.sheet .request-hint {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.sheet .request-error {
+  margin: 12px 0 0 !important;
+  min-height: 0;
+}
+.request-error:not(:empty) {
+  padding-bottom: 5px;
+}
+.request-submit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+.request-submit span:last-child {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 180ms var(--ease);
+}
+.request-submit:active span:last-child {
+  transform: translateX(3px);
+}
+.request-submit[data-sending]::after {
+  content: "";
+  position: absolute;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: #514637;
+  animation: request-sending 1.3s ease-in-out infinite;
+}
+.request-submit[data-sending] span:last-child {
+  visibility: hidden;
+}
+@keyframes request-sending {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(440%);
+  }
+}
+.request-skip {
+  display: block;
+  min-height: 44px;
+  width: 100%;
+  padding: 11px 0 0;
+  background: none;
+  border: 0;
+  color: var(--quiet);
+  font-size: 12px;
+}
+.request-skip:active {
+  color: var(--ink);
+}
+.sheet .request-receipt {
+  font-family: Prata, serif;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--clay);
+  margin: 0 0 13px;
+  overflow-wrap: anywhere;
+}
+.keyboard-open .sheet[data-view="request"] .request-promise {
+  font-size: 12px;
+  margin-bottom: 17px;
+}
+.keyboard-open .sheet[data-view="request"] .request-field {
+  margin-bottom: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .request-submit[data-sending]::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}

@@ -23,6 +23,7 @@ export function createNearSession({
     notice: null,
     reason: "nearby",
     busy: false,
+    progress: { done: 0, total: 0 },
     explicit: false,
     unavailable: [],
   };
@@ -76,6 +77,7 @@ export function createNearSession({
       ? { id: state.selected.mosque.id }
       : memory?.visit;
     state.busy = true;
+    state.progress = { done: 0, total: 0 };
     if (!state.selected) state.screen = place ? "loading" : "locate";
     emit();
     const [directory, position] = await Promise.allSettled([
@@ -131,6 +133,7 @@ export function createNearSession({
       emit();
       return;
     }
+    state.progress = { done: 0, total: candidates.length };
     if (!state.selected) {
       state.screen = "loading";
       emit();
@@ -144,6 +147,11 @@ export function createNearSession({
           };
         } catch (error) {
           return { m, error };
+        } finally {
+          if (token === generation) {
+            state.progress.done++;
+            emit();
+          }
         }
       }),
     );

@@ -15,6 +15,8 @@ import { createNearSession } from "./near-session.mjs";
 import { createMosqueMemory } from "./near-preference.mjs";
 import { createAtmosphere } from "./near-atmosphere.mjs";
 import { attachInstallUI } from "./near-install-ui.mjs";
+import { attachMosqueRequest } from "./near-request-ui.mjs";
+import { createOpening } from "./near-opening.mjs";
 import { core, distance } from "./near-data.mjs";
 import { dayKey, wallMinute, ukTime } from "./near-time.mjs";
 
@@ -82,7 +84,8 @@ let opener,
   pull = null,
   refreshing = false;
 let refreshID = 0,
-  refreshTimer;
+  refreshTimer,
+  refreshOpeningTimer;
 let timetableSignature = "",
   renderSignature = "",
   lockedY = 0,
@@ -92,6 +95,14 @@ const atmosphere = createAtmosphere({
   root: $("phone"),
   layers: $("skyPalette"),
   reduced,
+});
+const opening = createOpening({
+  viewport: $("splashViewport"),
+  screen: $("screen"),
+  standalone: nativeIOS || matchMedia("(display-mode: standalone)").matches,
+  reduced,
+  preview,
+  onSearch: showLocation,
 });
 const journey = (m) => journeyFor(m, custom);
 const travelLabel = (m) =>
@@ -107,6 +118,7 @@ function announce(text) {
   $("announcement").textContent = text;
 }
 function syncState(state) {
+  opening.update(state);
   ({ scenario, pool, custom, selected, area, notice } = state);
   preferenceReason = state.reason;
   const context = JSON.stringify([state.here, dayKey(now())]);
@@ -232,6 +244,10 @@ function render() {
   $("location").title = area;
   const status = session.state.screen;
   installUI.refresh({ hasAnswer: !status && !!selected });
+  $("refreshHint").classList.toggle(
+    "on",
+    !status && !!selected && !refreshing && !pull?.active && !opening.visible,
+  );
   $("answer").hidden = !!status || !selected;
   $("statusScreen").hidden = !status;
   const notices = {
@@ -384,6 +400,7 @@ function landChange(change, message) {
   if (message) announce(message);
 }
 function sheet(title, html) {
+  opening.dismiss({ immediate: true });
   sheetCleanup();
   sheetTick = () => {};
   stopHold();
@@ -784,10 +801,25 @@ $("sheetHead").addEventListener("pointerup", () => releaseSheet());
 $("sheetHead").addEventListener("pointercancel", () => releaseSheet(true));
 $("sheetHead").addEventListener("lostpointercapture", () => releaseSheet(true));
 
+const mosqueRequests = attachMosqueRequest({
+  sheet,
+  close,
+  esc,
+  preview,
+  storage: preview ? null : safeStorage("sessionStorage"),
+  actions(html) {
+    $("sheetActions").innerHTML = html;
+    $("sheetActions").hidden = false;
+  },
+  setCleanup(fn) {
+    sheetCleanup = fn;
+  },
+});
+
 function showOthers() {
   sheet(
     "Jama’ahs nearby",
-    `${searchField("mosqueSearch", "Search mosques", "Mosque name")}<div id="mosqueResults"></div><p class="detail" id="comparisonNote">Times shown are starts. A jama’ah may continue after its start.</p><div class="sr-only" role="status" id="searchCount"></div>`,
+    `${searchField("mosqueSearch", "Search mosques", "Mosque name")}<div id="mosqueResults"></div><p class="detail" id="comparisonNote">Times shown are starts. A jama’ah may continue after its start.</p><div class="request-entry" id="requestEntry"><button class="text-link" id="addMissingMosque"><span>Can’t find your mosque?</span><span aria-hidden="true">→</span></button><p>Send their website. Help bring your local jama’ah to Bilal.</p></div><div class="sr-only" role="status" id="searchCount"></div>`,
   );
   $("sheet").dataset.view = "mosques";
   const view = generation;
@@ -915,13 +947,19 @@ function showOthers() {
               `<button class="place-choice" data-check="${esc(m.g)}">${esc(m.n)}<small>${esc(m.a || "")} · Tap to check times</small></button>`,
           )
           .join("");
-    if (!html)
+    const noMatches = !html;
+    if (noMatches)
       html =
-        '<div class="empty-result"><strong>No matching mosque.</strong><p>Try another name, or search a different area.</p><button class="text-link" id="changeSearchArea">Change area</button></div>';
+        '<div class="empty-result request-empty"><strong>Let’s bring your mosque to Bilal.</strong><p>We haven’t found it in the directory. Send their website and we’ll take it from here.</p><button class="solid" id="addSearchMosque">Add your mosque</button><button class="text-link" id="changeSearchArea">Try another area</button></div>';
+    $("comparisonNote").hidden = noMatches;
+    $("requestEntry").hidden = noMatches;
     $("mosqueResults").innerHTML = html;
     $("searchCount").textContent =
       `${new Set(rows.map((o) => o.mosque.id)).size} mosques with times`;
     $("changeSearchArea")?.addEventListener("click", showLocation);
+    const add = () => mosqueRequests.show($("mosqueSearch").value.trim());
+    $("addSearchMosque")?.addEventListener("click", add);
+    $("addMissingMosque").onclick = add;
     $("mosqueResults")
       .querySelectorAll("[data-choice]")
       .forEach(
@@ -1095,7 +1133,7 @@ $("location").onclick = showLocation;
 $("about").onclick = () => {
   sheet(
     "Bilal",
-    `<p class="mission">Bringing us together in the masjid, one jama’ah at a time.</p><a class="mission-link" href="https://bilalathan.co.uk/" target="_blank" rel="noopener" aria-label="Discover Bilal (opens a new tab)">Discover Bilal${icon("arrow")}</a>${installUI.installed() ? "" : '<button class="text-link about-install" id="aboutInstall">Add Bilal to Home Screen →</button>'}<details class="privacy-detail"><summary>Your privacy and these times</summary><p>Your location is used to find nearby mosques. Bilal keeps no location or address history on this device. A usual mosque is saved only when you ask. Public timetables are kept for offline access.</p><p>Times come from the mosque listings available to Bilal. A congregation may continue after its published start; its end time isn’t known. Walking times are estimates, not live routes.</p><a class="text-link" href="${selected ? reportUrl() : "bug.html?from=near"}">Report a problem</a></details>`,
+    `<p class="mission">Bringing us together in the masjid, one jama’ah at a time.</p><a class="mission-link" href="https://bilalathan.co.uk/" target="_blank" rel="noopener" aria-label="Discover Bilal (opens a new tab)">Discover Bilal${icon("arrow")}</a>${installUI.installed() ? "" : '<button class="text-link about-install" id="aboutInstall">Add Bilal to Home Screen →</button>'}<details class="privacy-detail"><summary>Your privacy and these times</summary><p>Your location is used to find nearby mosques. Bilal keeps no location or address history on this device. A usual mosque is saved only when you ask. Public timetables are kept for offline access.</p><p>Times come from the mosque listings available to Bilal. A congregation may continue after its published start; its end time isn’t known. Walking times are estimates, not live routes.</p><p>If you request a mosque, Bilal receives its name and website. An email is optional and is used only to update you about that request. Your draft is kept in this browser tab; your email isn’t stored on this device.</p><a class="text-link" href="${selected ? reportUrl() : "bug.html?from=near"}">Report a problem</a></details>`,
   );
   $("aboutInstall")?.addEventListener("click", () => installUI.show());
 };
@@ -1123,8 +1161,8 @@ function renderStatus(status) {
     ],
     empty: [
       "No times nearby yet",
-      "We don’t have usable, published jama’ah times for this area. Try a nearby postcode or town.",
-      "Search another area",
+      "Your local mosque could help someone else find their jama’ah too. Send us its website and we’ll check its prayer times.",
+      "Add your mosque",
     ],
     failure: [
       "Times couldn’t load",
@@ -1137,11 +1175,13 @@ function renderStatus(status) {
   if (signature === renderSignature) return;
   renderSignature = signature;
   $("statusScreen").innerHTML =
-    `<h2>${title}</h2><p>${body}</p>${["locate", "loading"].includes(status) ? '<div class="loading-rule" aria-hidden="true"></div>' : ""}<button class="${["locate", "loading"].includes(status) ? "text-link" : "solid"}" id="statusAction">${action}</button>${status === "location" ? '<button class="text-link" id="statusRetry">Try my location again</button>' : ""}${status === "failure" ? '<button class="text-link" id="statusSearch">Search another area</button>' : ""}${["empty", "failure"].includes(status) && (pool.length || session.state.unavailable.length) ? '<button class="text-link" id="statusMosques">See the mosques in this area</button>' : ""}`;
+    `<h2>${title}</h2><p>${body}</p>${["locate", "loading"].includes(status) ? '<div class="loading-rule" aria-hidden="true"></div>' : ""}<button class="${["locate", "loading"].includes(status) ? "text-link" : "solid"}" id="statusAction">${action}</button>${status === "location" ? '<button class="text-link" id="statusRetry">Try my location again</button>' : ""}${["empty", "failure"].includes(status) ? '<button class="text-link" id="statusSearch">Search another area</button>' : ""}${["empty", "failure"].includes(status) && (pool.length || session.state.unavailable.length) ? '<button class="text-link" id="statusMosques">See the mosques in this area</button>' : ""}`;
   $("statusAction").onclick =
     status === "failure"
       ? () => session.start({ refresh: true })
-      : showLocation;
+      : status === "empty"
+        ? () => mosqueRequests.show()
+        : showLocation;
   if ($("statusRetry"))
     $("statusRetry").onclick = () => session.start({ refresh: true });
   if ($("statusMosques")) $("statusMosques").onclick = showOthers;
@@ -1263,22 +1303,42 @@ window.addEventListener("resize", syncIpadWindowing);
 function resetRefresh() {
   refreshID++;
   clearTimeout(refreshTimer);
+  clearTimeout(refreshOpeningTimer);
   refreshing = false;
   $("phone").classList.remove("pulling");
   $("screen").style.transform = "";
   $("refreshStatus").className = "refresh-status";
   $("refreshText").textContent = "";
+  $("refreshStatus").style.transform = "";
+  $("refreshStatus").querySelector(".icon").style.transform = "";
+  $("refreshHint").classList.toggle(
+    "on",
+    !!selected && !session.state.screen && !opening.visible,
+  );
 }
-async function refreshLocation() {
+async function refreshLocation({ openingBeat = false } = {}) {
   if (refreshing) return;
   refreshing = true;
   const id = ++refreshID;
   disarmAlert();
   $("refreshStatus").className = "refresh-status visible busy";
-  $("refreshText").textContent = "Updating location…";
-  if (!nativeIOS) $("screen").style.transform = "translateY(32px)";
+  $("refreshText").textContent = "Finding you again";
+  $("refreshStatus").style.transform = "translateY(0)";
+  $("refreshStatus").querySelector(".icon").style.transform = "";
+  $("refreshHint").classList.remove("on");
+  if (!nativeIOS && !reduced.matches)
+    $("screen").style.transform = "translateY(52px)";
+  if (openingBeat && !preview) {
+    refreshOpeningTimer = setTimeout(() => {
+      if (id !== refreshID || !session.state.busy) return;
+      opening.show("finding where you are");
+      opening.update(session.state);
+    }, 240);
+  }
   await session.start({ refresh: true });
+  clearTimeout(refreshOpeningTimer);
   if (id !== refreshID) return;
+  $("refreshStatus").className = "refresh-status visible finished";
   $("refreshText").textContent =
     session.state.notice === "locationError"
       ? "Couldn’t update location"
@@ -1295,14 +1355,14 @@ $("noticeRetry").onclick = refreshLocation;
 function pullStart(x, y, target) {
   if (
     refreshing ||
+    opening.visible ||
     !$("overlay").hidden ||
     window.scrollY > 0 ||
     target.closest("button,a,input,[role=slider]")
   )
     return;
-  const header = document.querySelector(".brandrow").getBoundingClientRect();
-  if (y < 0 || y > header.bottom + 50) return;
-  pull = { x, y, distance: 0, active: false };
+  if (y < 0) return;
+  pull = { x, y, distance: 0, active: false, ready: false };
 }
 function pullMove(x, y, event) {
   if (!pull) return;
@@ -1316,27 +1376,39 @@ function pullMove(x, y, event) {
   if (!nativeIOS && event.cancelable) event.preventDefault();
   pull.active = true;
   $("phone").classList.add("pulling");
-  pull.distance = core.pullDistance(dy, dx, true, 0.48, 80);
-  if (!nativeIOS)
+  pull.distance = core.pullDistance(dy, dx, true, 0.44, 108);
+  $("refreshHint").classList.remove("on");
+  if (!nativeIOS && !reduced.matches)
     $("screen").style.transform = `translateY(${pull.distance}px)`;
   $("refreshStatus").className =
-    `refresh-status visible${pull.distance >= 52 ? " ready" : ""}`;
+    `refresh-status visible${pull.distance >= 72 ? " ready" : ""}`;
   $("refreshText").textContent =
-    pull.distance >= 52
-      ? "Release to update location"
-      : "Pull to update location";
+    pull.distance >= 72 ? "Release to refresh" : "Pull to refresh";
+  $("refreshStatus").style.transform = reduced.matches
+    ? "none"
+    : `translateY(${-54 + pull.distance}px)`;
+  $("refreshStatus").querySelector(".icon").style.transform =
+    `rotate(${Math.min(180, (pull.distance / 72) * 180)}deg)`;
+  const ready = pull.distance >= 72;
+  if (ready && !pull.ready && !reduced.matches) {
+    try {
+      navigator.vibrate?.(8);
+    } catch {}
+  }
+  pull.ready = ready;
 }
 function pullEnd(cancel = false) {
   if (!pull) return;
-  const ready = !cancel && pull.active && pull.distance >= 52;
+  const ready = !cancel && pull.active && pull.distance >= 72;
   pull = null;
   $("phone").classList.remove("pulling");
-  if (ready) refreshLocation();
+  if (ready) refreshLocation({ openingBeat: true });
   else if (!refreshing) resetRefresh();
 }
 $("phone").addEventListener(
   "touchstart",
   (e) => {
+    if (ios && !nativeIOS) return;
     if (e.touches.length === 1)
       pullStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
     else pullEnd(true);
@@ -1368,8 +1440,15 @@ $("phone").addEventListener("pointermove", (e) => {
 $("phone").addEventListener("pointerup", (e) => {
   if (e.pointerType === "mouse") pullEnd();
 });
-$("phone").addEventListener("pointercancel", () => pullEnd(true));
-$("phone").addEventListener("lostpointercapture", () => pullEnd(true));
+// Native touch scrolling cancels its compatibility pointer stream. The touch
+// stream still owns the gesture until touchend; only mouse cancellation may
+// cancel the mouse fallback. Otherwise installed iOS loses refresh mid-pull.
+$("phone").addEventListener("pointercancel", (e) => {
+  if (e.pointerType === "mouse") pullEnd(true);
+});
+$("phone").addEventListener("lostpointercapture", (e) => {
+  if (e.pointerType === "mouse") pullEnd(true);
+});
 const installUI = attachInstallUI({
   sheet,
   close,
