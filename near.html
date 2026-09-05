@@ -151,6 +151,13 @@ button,a,summary,[role="tab"]{touch-action:manipulation}
 button,summary,[role="tab"]{-webkit-user-select:none;user-select:none}
 img,audio{-webkit-touch-callout:none}
 
+/* Full-bleed paint must not enlarge the document. In particular, the sky's
+   entrance scale and Safari's safe-area overscan belong inside a clipped
+   viewport, while the root canvas below still paints native rubber-banding. */
+.atmosphere-viewport,.splash-viewport{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+.atmosphere-viewport{z-index:0}
+.splash-viewport{z-index:24}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * LOADING STORYBOARD
  *
@@ -165,7 +172,7 @@ img,audio{-webkit-touch-callout:none}
  * only a 180ms data handoff because iOS already showed the launch canvas.
  * Slower work continues in the living page after 1.45s, so this never becomes
  * a decorative wall between someone and the postcode route. */
-.splash{position:fixed;inset:0;z-index:24;display:grid;place-items:center;overflow:hidden;
+.splash{position:absolute;inset:0;z-index:24;display:grid;place-items:center;overflow:hidden;pointer-events:auto;
   background:
     radial-gradient(circle at 64% 22%,rgba(217,164,143,.20),transparent 31%),
     radial-gradient(circle at 24% 76%,rgba(116,80,62,.23),transparent 38%),var(--deep);
@@ -222,11 +229,11 @@ img,audio{-webkit-touch-callout:none}
 .refresh-hint-mark{width:7px;height:7px;border-right:1px solid currentColor;
   border-bottom:1px solid currentColor;transform:rotate(45deg) translateY(-1px)}
 
-#sky{position:fixed;top:0;left:0;right:0;height:var(--sky-height);z-index:0;
+#sky{position:absolute;top:0;left:0;right:0;height:var(--sky-height);z-index:0;
   background-position:66% center;background-size:auto 100%;
   opacity:0;transform:scale(1.018);transition:opacity 1.2s var(--out),transform 1.8s var(--out)}
 #sky.on{opacity:1;transform:none}
-#scrim{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;pointer-events:none;
+#scrim{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1;pointer-events:none;
   background:var(--near-wash)}
 #scrim:after{content:'';position:absolute;inset:0;opacity:0;
   background:radial-gradient(circle at 50% 37%,rgba(217,164,143,.24),transparent 54%)}
@@ -695,8 +702,11 @@ html[data-ipad-windowed] .brand{margin-left:52px}
 </style>
 </head>
 <body class="is-loading">
+<div class="atmosphere-viewport" aria-hidden="true">
 <div id="sky"></div>
 <div id="scrim"></div>
+</div>
+<div class="splash-viewport" id="splashViewport">
 <div class="splash" id="splash" data-stage="0">
   <div class="splash-inner">
     <img class="splash-mark" src="bilal-mark-192.png" width="70" height="70" alt="">
@@ -705,6 +715,7 @@ html[data-ipad-windowed] .brand{margin-left:52px}
     <div class="splash-progress" aria-hidden="true"><span id="splashProgress"></span></div>
     <button class="splash-postcode" id="splashPlace" type="button">Search an address instead</button>
   </div>
+</div>
 </div>
 <div class="pull-refresh" id="pullRefresh" role="status" aria-live="polite" aria-hidden="true">
   <span class="pull-arrow" id="pullArrow" aria-hidden="true">↓</span><span id="pullText">Pull to refresh</span>
@@ -974,6 +985,7 @@ html[data-ipad-windowed] .brand{margin-left:52px}
     SPLASH_CLOSED=false;
     SPLASH_STARTED=Date.now();
     document.body.classList.add('is-loading');
+    $('splashViewport').hidden=false;
     $('splash').className='splash';
     $('splash').setAttribute('aria-hidden','false');
     splashStage(0,status||'finding where you are',.08);
@@ -995,7 +1007,10 @@ html[data-ipad-windowed] .brand{margin-left:52px}
           {opacity:1,transform:'translateY(0)'}
         ],{duration:MOTION.grand,easing:MOTION.out});
       }
-      SPLASH_HIDE_TIMER=setTimeout(function(){ $('splash').setAttribute('aria-hidden','true'); },300);
+      SPLASH_HIDE_TIMER=setTimeout(function(){
+        $('splash').setAttribute('aria-hidden','true');
+        $('splashViewport').hidden=true;
+      },300);
     },wait);
   }
 
