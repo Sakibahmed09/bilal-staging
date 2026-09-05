@@ -1,0 +1,132 @@
+.row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.row-copy small {
+  font-size: 10px;
+  color: var(--quiet);
+  font-weight: 400;
+  line-height: 1.6;
+}
+.row.has-later {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.row.has-later .icon {
+  color: var(--clay);
+}
+.usual-control {
+  margin: 18px 0 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.usual-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--clay);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+.usual-action > span:last-child {
+  transition: transform 180ms var(--ease);
+}
+.usual-action:active > span:last-child {
+  transform: translateX(3px);
+}
+.usual-control .usual-explanation {
+  font-size: 10px;
+  color: var(--quiet);
+  line-height: 1.7;
+  margin: 0 0 9px;
+}
+.usual-kept {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 44px;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.usual-kept .textbtn {
+  font-size: 11px;
+}
+.preference-feedback {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--clay);
+  margin: 6px 0 0;
+}
+.preference-feedback:empty {
+  display: none;
+}
+.choice-remember {
+  width: auto;
+  min-height: 44px;
+  margin: -5px 0 9px;
+  padding: 8px 0;
+  font-size: 11px;
+  gap: 12px;
+}
+.usual-location {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 17px;
+}
+.sheet .usual-location > p {
+  font-size: 11px;
+  margin: 0 0 4px;
+}
+.usual-location-name {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  margin-bottom: 10px;
+}
+.usual-location .text-link {
+  border: 0;
+  margin: 0;
+  padding: 11px 0;
+}
+.review-reset {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid #818c7540;
+  color: #5e6754;
+  font-size: 11px;
+  min-height: 44px;
+  padding: 10px 0;
+  text-align: left;
+  margin: 0 0 15px;
+}
+.sky-reviewing .review-reset {
+  display: none;
+}
+.review-reset:focus-visible {
+  outline-color: #556249;
+}
+@media (hover: hover) {
+  .usual-action:hover > span:last-child {
+    transform: translateX(3px);
+  }
+  .review-reset:hover {
+    color: #30372e;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .usual-action:active > span:last-child,
+  .usual-action:hover > span:last-child {
+    transform: none;
+  }
+}

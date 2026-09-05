@@ -1,0 +1,355 @@
+/* The invitation follows the decision; it remains available after dismissal. */
+.install-offer {
+  margin-top: 20px;
+  flex: none;
+}
+.install-invite {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.install-invite > img {
+  width: 37px;
+  height: 37px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #eadfcb19;
+  transition: transform 180ms var(--ease);
+}
+.install-invite > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.install-invite strong {
+  font-size: 12px;
+  font-weight: 400;
+  color: #d1d5c7;
+}
+.install-invite em {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--clay);
+}
+.install-invite em > span:last-child {
+  display: inline-block;
+  transition: transform 180ms var(--ease);
+}
+.install-invite:active > img {
+  transform: scale(0.96);
+}
+.install-invite:active em > span:last-child {
+  transform: translateX(3px);
+}
+.install-offer:not([hidden]) ~ .footer {
+  padding-top: 13px;
+}
+.sheet[data-view="install"] {
+  height: min(768px, calc(100dvh - 24px));
+}
+.sheet[data-view="install"] .sheet-head {
+  padding-bottom: 13px;
+}
+.sheet .install-intro {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0 0 17px;
+  color: #c6cebc;
+}
+.install-tabs {
+  display: flex;
+  position: relative;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.install-tabs button {
+  border: 0;
+  background: none;
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--quiet);
+  font-size: 12px;
+}
+.install-tabs button[aria-selected="true"] {
+  color: var(--clay);
+}
+.install-tab-line {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 50%;
+  height: 1px;
+  background: var(--clay);
+  transform: translateX(calc(var(--install-tab, 0) * 100%));
+  transition: transform 230ms var(--ease);
+}
+.sheet .install-handoff > p {
+  font-size: 11px;
+  margin: 0 0 3px;
+}
+.install-url {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+  gap: 6px;
+}
+.install-url a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  text-decoration: none;
+  font-size: 12px;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+}
+.install-url a .icon {
+  width: 12px;
+  height: 12px;
+  color: var(--quiet);
+}
+.install-url button {
+  border: 0;
+  background: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  margin-right: -10px;
+  color: var(--quiet);
+  display: grid;
+  place-items: center;
+}
+.install-url button:active {
+  transform: scale(0.94);
+}
+.install-url .copied {
+  color: var(--clay);
+}
+.install-qr summary,
+.install-help summary {
+  font-size: 11px;
+  color: var(--quiet);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 13px 20px 13px 0;
+  position: relative;
+  list-style: none;
+}
+.install-qr summary::-webkit-details-marker,
+.install-help summary::-webkit-details-marker {
+  display: none;
+}
+.install-qr summary:after,
+.install-help summary:after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  top: 19px;
+  width: 8px;
+  height: 8px;
+  background:
+    linear-gradient(var(--clay), var(--clay)) center/100% 1px no-repeat,
+    linear-gradient(var(--clay), var(--clay)) center/1px 100% no-repeat;
+  transition: background-size 160ms var(--ease);
+}
+.install-qr[open] summary:after,
+.install-help[open] summary:after {
+  background-size:
+    100% 1px,
+    1px 0;
+}
+.install-qr > div {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 2px 0 18px;
+}
+.install-qr img {
+  width: 148px;
+  height: 148px;
+  flex: none;
+}
+.sheet .install-qr p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 0;
+}
+.install-steps {
+  list-style: none;
+  padding: 0;
+  margin: 17px 0 7px;
+}
+.install-steps li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  margin: 0 0 22px;
+}
+.install-number {
+  font:
+    18px/1.45 Prata,
+    serif;
+  color: #cab197;
+  font-variant-numeric: lining-nums;
+}
+.install-steps h3 {
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 500;
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+.sheet .install-steps p {
+  font-size: 11px;
+  line-height: 1.65;
+  margin: 0;
+  color: var(--quiet);
+}
+.install-menu-example {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 41px;
+  width: fit-content;
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  background: #181e16;
+  border: 1px solid #dce8c816;
+  border-radius: 5px;
+  font-size: 11px;
+  color: #e2e6d7;
+}
+.install-menu-example .install-glyph {
+  width: 17px;
+  height: 17px;
+}
+.install-menu-example .more-glyph {
+  stroke-width: 3.5;
+}
+.install-path-arrow {
+  color: #8f9e84;
+}
+.install-menu-row {
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.5;
+}
+.install-app-example {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 0;
+  margin-top: 2px;
+}
+.install-app-example img {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #dce8c818;
+  flex: none;
+}
+.install-app-example > span {
+  font-size: 11px;
+  line-height: 1.5;
+  flex: 1;
+}
+.install-app-example small {
+  display: block;
+  font-size: 9px;
+  color: var(--quiet);
+  margin-top: 1px;
+}
+.install-app-example > b {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--clay);
+  padding-left: 4px;
+}
+.install-help {
+  border-top: 1px solid var(--line);
+}
+.sheet .install-help p {
+  font-size: 11px;
+  margin: 0 0 13px;
+  line-height: 1.7;
+}
+.install-return {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--clay);
+  min-height: 48px;
+  font-size: 12px;
+  padding: 14px 0;
+  margin-top: 4px;
+  text-align: left;
+  gap: 16px;
+}
+.install-return:active {
+  opacity: 0.6;
+}
+.install-help summary:focus-visible,
+.install-qr summary:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+.install-copy-fallback input {
+  width: 100%;
+  background: none;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  padding: 12px 4px;
+  margin: 5px 0;
+}
+.about-install {
+  margin-top: 22px;
+  width: 100%;
+}
+@media (hover: hover) {
+  .install-invite:hover em > span:last-child {
+    transform: translateX(3px);
+  }
+  .install-url a:hover,
+  .install-url button:hover,
+  .install-help summary:hover,
+  .install-qr summary:hover {
+    color: var(--clay);
+  }
+}
+@media (max-width: 360px) {
+  .install-steps li {
+    gap: 10px;
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .install-qr > div {
+    gap: 12px;
+  }
+  .install-qr img {
+    width: 111px;
+    height: 111px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .install-invite:active > img,
+  .install-invite:active em > span:last-child,
+  .install-invite:hover em > span:last-child {
+    transform: none;
+  }
+}

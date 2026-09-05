@@ -2,16 +2,18 @@
   var api=factory();
   if(typeof module==='object' && module.exports) module.exports=api;
   if(root) root.BilalNearCore=api;
-})(typeof self!=='undefined' ? self : this,function(){
+})(typeof globalThis!=='undefined' ? globalThis : typeof self!=='undefined' ? self : this,function(){
   'use strict';
 
   var PRAYERS=['fajr','dhuhr','asr','maghrib','isha'];
 
   function validDate(d){ return d instanceof Date && !isNaN(d.getTime()); }
   function pad(n){ return n<10 ? '0'+n : String(n); }
-  function dateKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  var zoneDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'});
+  var zoneTime=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+  function dateKey(d){ return zoneDate.format(d); }
   function rowKey(row,prayer){ return String(row.date||'')+'/'+prayer; }
-  function wallMinutes(d){ return d.getHours()*60+d.getMinutes(); }
+  function wallMinutes(d){ var t=zoneTime.format(d).split(':'); return Number(t[0])*60+Number(t[1]); }
 
   /* A jama'ah just after midnight belongs after a begins time just before
      midnight. Smaller negative gaps are genuinely backwards. */
@@ -167,7 +169,7 @@
 
     /* Honest fallback when today's row is absent. It keeps late night dark
        and avoids borrowing the colour of a future result. */
-    var hour=now.getHours();
+    var hour=Math.floor(wallMinutes(now)/60);
     if(hour<5) return 'isha';
     if(hour<8) return 'fajr';
     if(hour<15) return 'dhuhr';
@@ -242,7 +244,7 @@
     if(typeof lat!=='number'||typeof lng!=='number') return false;
     var dhuhr=row.jamaah && row.jamaah.dhuhr, asr=row.jamaah && row.jamaah.asr;
     if(!validDate(dhuhr)||!validDate(asr)) return false;
-    if(dhuhr.getMinutes()%5===0) return false;
+    if(wallMinutes(dhuhr)%5===0) return false;
     var sun=solarNoonUTC(row.date,lng);
     if(!sun) return false;
     if(apartMinutes(dhuhr,sun.at)>12) return false;
@@ -332,7 +334,7 @@
 
   return {PRAYERS:PRAYERS,effectiveJamaah:effectiveJamaah,auditRows:auditRows,
     nextJamaah:nextJamaah,lastJamaah:lastJamaah,salahPhase:salahPhase,
-    currentAtmosphere:currentAtmosphere,
+    currentAtmosphere:currentAtmosphere,solarNoonUTC:solarNoonUTC,
     judge:judge,looksComputed:looksComputed,firstDecidable:firstDecidable,
     pullDistance:pullDistance,mapsUrl:mapsUrl};
 });

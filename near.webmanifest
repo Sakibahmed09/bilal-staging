@@ -7,9 +7,12 @@
   "scope": "/near",
   "display": "standalone",
   "prefer_related_applications": false,
-  "background_color": "#17140f",
-  "theme_color": "#17140f",
-  "categories": ["lifestyle", "navigation"],
+  "background_color": "#191b16",
+  "theme_color": "#191b16",
+  "categories": [
+    "lifestyle",
+    "navigation"
+  ],
   "screenshots": [
     {
       "src": "/near-screenshot.webp",

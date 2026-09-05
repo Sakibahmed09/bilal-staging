@@ -1,0 +1,296 @@
+/* The approved canvas, without the concept's enclosing phone or review UI.
+   The document owns vertical scrolling; no invisible sheet adds a scroll tail. */
+:root {
+  color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --near-sky: url(sky/isha.webp);
+  --visible-height: 100dvh;
+  --visible-top: 0px;
+}
+html {
+  min-height: 100%;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, #191b1640, var(--bg) 520px), var(--near-sky);
+  background-position: 65% top;
+  background-size: auto 610px;
+  background-repeat: no-repeat;
+  overflow-x: clip;
+  overscroll-behavior-y: auto;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: transparent;
+  color: var(--ink);
+  min-height: 100svh;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+.phone {
+  min-height: 100svh;
+  height: auto;
+  width: 100%;
+  overflow: visible;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overscroll-behavior-y: auto;
+}
+.screen {
+  position: relative;
+  max-width: 470px;
+  margin: 0 auto;
+  height: auto;
+  min-height: 100svh;
+  overflow: visible;
+  overscroll-behavior-y: auto;
+  padding: calc(18px + var(--safe-top))
+    max(26px, env(safe-area-inset-right, 0px)) calc(23px + var(--safe-bottom))
+    max(26px, env(safe-area-inset-left, 0px));
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+}
+.brandrow {
+  margin-bottom: 43px;
+}
+.hero h2 {
+  font-size: 42px;
+}
+.destination h3 {
+  font-size: 25px;
+}
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  contain: paint;
+}
+.refresh-status {
+  position: fixed;
+  top: calc(9px + var(--safe-top));
+  left: 26px;
+  right: 26px;
+}
+.overlay {
+  position: fixed;
+  inset: var(--visible-top) 0 auto;
+  height: var(--visible-height);
+  z-index: 20;
+  overflow: hidden;
+}
+.sheet {
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+  max-height: calc(var(--visible-height) - var(--safe-top) - 18px);
+}
+.sheet-content {
+  padding-bottom: calc(24px + var(--safe-bottom));
+  overflow-x: hidden;
+}
+.sheet[data-view="mosques"] {
+  height: min(740px, calc(var(--visible-height) - var(--safe-top) - 18px));
+}
+.report-time {
+  display: block;
+  font-size: 11px;
+  border-bottom: 0;
+  margin: 4px 0 10px;
+}
+.privacy-detail {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+.privacy-detail summary {
+  padding: 12px 0;
+  font-size: 11px;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--quiet);
+}
+.privacy-detail p,
+.place-credit {
+  font-size: 11px !important;
+}
+.privacy-detail a,
+.place-credit a {
+  color: var(--clay);
+}
+.unavailable-mosque {
+  border-top: 1px solid var(--line);
+  padding: 17px 0;
+}
+.unavailable-mosque strong {
+  font-size: 13px;
+  font-weight: 400;
+}
+.unavailable-mosque p {
+  margin: 5px 0;
+}
+.unavailable-mosque a {
+  display: block;
+}
+.calling .horizon-light {
+  opacity: 0.18 !important;
+  transition: opacity 600ms ease-out;
+}
+.no-script {
+  position: relative;
+  margin: 20px auto;
+  max-width: 400px;
+  padding: 20px;
+  background: var(--sheet);
+  color: var(--ink);
+}
+html[data-preview] .footer:after {
+  content: "Preview · sample times";
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  color: var(--quiet);
+}
+@media (min-width: 701px) {
+  .screen {
+    padding-top: 44px;
+    padding-bottom: 32px;
+  }
+  .sky-palette {
+    height: 660px;
+  }
+  .sky-layer {
+    background-size: auto 740px;
+  }
+  .sky-shade {
+    background:
+      linear-gradient(180deg, #191b1629 0, #191b1657 200px, var(--bg) 610px),
+      linear-gradient(90deg, #191b166b, transparent);
+  }
+  .sheet {
+    border-radius: 18px 18px 0 0;
+  }
+  .brandrow {
+    margin-bottom: 48px;
+  }
+  .hero {
+    margin-bottom: 43px;
+  }
+}
+@media (max-width: 360px) {
+  .screen {
+    padding-left: max(22px, env(safe-area-inset-left, 0px));
+    padding-right: max(22px, env(safe-area-inset-right, 0px));
+  }
+  .hero h2 {
+    font-size: 36px;
+  }
+  .destination h3 {
+    font-size: 23px;
+  }
+}
+@media (max-height: 700px) {
+  .brandrow {
+    margin-bottom: 32px;
+  }
+  .hero {
+    min-height: 108px;
+    margin-bottom: 27px;
+  }
+}
+/* The root canvas carries the sky into native iOS rubber-band space. Only
+   decoration overscans the safe area, inside its fixed clipped viewport. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    min-height: -webkit-fill-available;
+  }
+  .sky-palette {
+    top: calc(0px - var(--safe-top));
+    height: calc(550px + var(--safe-top));
+  }
+  .sky-layer {
+    background-size: auto calc(610px + var(--safe-top));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calling .horizon-light {
+    transition: none;
+  }
+}
+
+@media (max-width: 650px) {
+  html[data-ipad-windowed] .brand {
+    margin-left: 52px;
+  }
+}
+
+/* The iOS input accessory floats above the keyboard but is not subtracted
+   from visualViewport. Reserve its space inside the painted sheet. */
+.keyboard-open .sheet-content {
+  padding-bottom: 18px;
+}
+.ios-keyboard .sheet {
+  padding-bottom: 60px;
+}
+.keyboard-open .sheet[data-view="journey"] .minute-control {
+  margin-top: 12px;
+  gap: 10px;
+}
+.keyboard-open .sheet[data-view="journey"] .minute-value input {
+  font-size: 56px;
+  letter-spacing: -2.5px;
+}
+.keyboard-open .sheet[data-view="journey"] .minute-ruler {
+  height: 54px;
+  margin: 4px 0;
+}
+.keyboard-open .sheet[data-view="journey"] .entry-hint {
+  margin-bottom: 12px;
+}
+.keyboard-open .sheet[data-view="journey"] .journey-preview {
+  padding-top: 12px;
+  min-height: 65px;
+}
+.keyboard-open .sheet[data-view="journey"] .solid {
+  margin-top: 10px;
+}
+
+/* Use both viewport edges when the keyboard is closed: installed WebKit's
+   viewport units can exclude the status area while fixed insets include it. */
+html:not(.keyboard-open) .overlay {
+  inset: 0;
+  height: auto;
+}
+
+.sheet-actions {
+  flex: none;
+  padding: 0 26px calc(24px + var(--safe-bottom));
+}
+.sheet[data-view="journey"] .sheet-content {
+  padding-bottom: 0;
+}
+.keyboard-open .sheet-actions {
+  padding-bottom: 18px;
+}
+@media (max-width: 360px) {
+  .sheet-actions {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+}
+
+.keyboard-open .sheet[data-view="journey"] .minute-ruler,
+.keyboard-open .sheet[data-view="journey"] .entry-hint {
+  display: none;
+}
+
+/* The root colour also paints the system-owned safe-area extension. */
+html.sheet-open {
+  background: var(--sheet);
+  overflow-y: hidden;
+  overscroll-behavior: none;
+}
