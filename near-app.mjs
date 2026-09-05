@@ -466,7 +466,7 @@ function close(after) {
         opener.focus({ preventScroll: true });
       syncMotion();
     },
-    reduced.matches ? 0 : 170,
+    reduced.matches ? 0 : $("sheet").dataset.view === "mosques" ? 300 : 170,
   );
 }
 $("close").onclick = () => close();

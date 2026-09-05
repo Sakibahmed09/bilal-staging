@@ -1173,6 +1173,30 @@ input {
 /* Filtering never moves the search field away from the user's hand. */
 .sheet[data-view="mosques"] {
   height: min(740px, calc(100dvh - 24px));
+  /* Move the complete surface, without fading its text or resizing rows. */
+  transform: translate3d(0, 100%, 0);
+  opacity: 1;
+  will-change: transform;
+  transition: none;
+}
+.overlay.open .sheet[data-view="mosques"] {
+  transform: translate3d(0, 0, 0);
+  transition: transform 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.overlay.closing .sheet[data-view="mosques"] {
+  transform: translate3d(0, 100%, 0);
+  opacity: 1;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.8, 0.4);
+}
+.overlay.sheet-drag .sheet[data-view="mosques"] {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet[data-view="mosques"],
+  .overlay.closing .sheet[data-view="mosques"] {
+    transform: none;
+    will-change: auto;
+  }
 }
 .sheet[data-view="mosques"] .search-field {
   position: sticky;
