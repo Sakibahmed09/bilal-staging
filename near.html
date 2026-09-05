@@ -124,6 +124,11 @@
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --sky-height:76svh;
+  --near-sky:none;
+  --near-wash:linear-gradient(to right,rgba(23,20,15,.34) 0%,rgba(23,20,15,.18) 62%,rgba(23,20,15,.04) 100%),
+    linear-gradient(to bottom,rgba(23,20,15,.40) 0%,rgba(23,20,15,.25) 22%,
+      rgba(23,20,15,.84) 53%,var(--deep) 69%,var(--deep) 100%);
+  --near-sky-x:66%;
   --swift:160ms;
   --settle:420ms;
   --grand:760ms;
@@ -222,10 +227,7 @@ img,audio{-webkit-touch-callout:none}
   opacity:0;transform:scale(1.018);transition:opacity 1.2s var(--out),transform 1.8s var(--out)}
 #sky.on{opacity:1;transform:none}
 #scrim{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;pointer-events:none;
-  background:
-    linear-gradient(to right,rgba(23,20,15,.34) 0%,rgba(23,20,15,.18) 62%,rgba(23,20,15,.04) 100%),
-    linear-gradient(to bottom,rgba(23,20,15,.40) 0%,rgba(23,20,15,.25) 22%,
-      rgba(23,20,15,.84) 53%,var(--deep) 69%,var(--deep) 100%)}
+  background:var(--near-wash)}
 #scrim:after{content:'';position:absolute;inset:0;opacity:0;
   background:radial-gradient(circle at 50% 37%,rgba(217,164,143,.24),transparent 54%)}
 body.calling #scrim:after{animation:call-glow 1.4s var(--out) both}
@@ -601,11 +603,10 @@ body.guide-open{overflow:hidden}
   /* The source photograph is landscape. On a phone it is treated as a
      portrait crop: the full minaret rises on the right edge while the open
      sky becomes the reading field. This is art direction, not a smaller TV. */
-  #sky{background-position:64% center;background-size:auto 100%}
-  #scrim{background:
-    linear-gradient(to right,rgba(23,20,15,.66) 0%,rgba(23,20,15,.36) 66%,rgba(23,20,15,.08) 100%),
+  :root{--near-sky-x:64%;--near-wash:linear-gradient(to right,rgba(23,20,15,.66) 0%,rgba(23,20,15,.36) 66%,rgba(23,20,15,.08) 100%),
     linear-gradient(to bottom,rgba(23,20,15,.35) 0%,rgba(23,20,15,.20) 24%,
       rgba(23,20,15,.84) 56%,var(--deep) 72%,var(--deep) 100%)}
+  #sky{background-position:64% center;background-size:auto 100%}
   .brandrow{margin-bottom:clamp(21px,4.4svh,32px)}
   .mname{max-width:92%;font-size:clamp(23px,6.3vw,27px);line-height:1.1;
     letter-spacing:-.025em;text-wrap:pretty}
@@ -653,6 +654,18 @@ body.guide-open{overflow:hidden}
    Let the living sky and its scrim paint through both safe areas instead; the
    app content is still inset, so controls never sit under the hardware. */
 @supports (-webkit-touch-callout:none){
+  /* The native rubber-band exposes the root canvas. Paint the atmosphere
+     there too, rather than relying only on an absolute child of body.
+     Keep the crop and scrim identical to the living layers; the root does
+     not add layout height or participate in the refresh gesture. */
+  html{
+    background-color:var(--deep);
+    background-image:var(--near-wash),var(--near-sky);
+    background-repeat:no-repeat;
+    background-position:center calc(0px - var(--safe-top)),center calc(0px - var(--safe-top)),var(--near-sky-x) calc(0px - var(--safe-top));
+    background-size:100% calc(100svh + var(--safe-top) + var(--safe-bottom)),100% calc(100svh + var(--safe-top) + var(--safe-bottom)),auto calc(var(--sky-height) + var(--safe-top));
+  }
+  body{background:transparent}
   #sky{position:absolute;top:calc(0px - var(--safe-top));
     height:calc(var(--sky-height) + var(--safe-top))}
   #scrim{position:absolute;top:calc(0px - var(--safe-top));bottom:auto;
@@ -1186,7 +1199,9 @@ html[data-ipad-windowed] .brand{margin-left:52px}
   function sky(prayer){
     var el=$('sky');
     var changed=LAST_PRAYER && LAST_PRAYER!==prayer;
-    el.style.backgroundImage="url('sky/"+prayer+".webp')";
+    var skyImage="url('sky/"+prayer+".webp')";
+    el.style.backgroundImage=skyImage;
+    document.documentElement.style.setProperty('--near-sky',skyImage);
     el.setAttribute('data-prayer',prayer);
     el.className='on';
     if(changed && el.animate && !REDUCED){
