@@ -303,3 +303,17 @@ html.sheet-open .screen {
 html.sheet-open .atmosphere {
   top: var(--visible-top);
 }
+
+/* WebKit can round the keyboard edge beyond visualViewport by a few pixels.
+   Paint that seam without growing the dialog, moving its button, or creating
+   a scrollable tail. Fixed paint escapes the overlay's content clipping. */
+.ios-keyboard .overlay::after {
+  content: "";
+  position: fixed;
+  top: calc(var(--visible-top) + var(--visible-height));
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--sheet);
+  pointer-events: none;
+}
