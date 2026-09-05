@@ -1025,9 +1025,17 @@ input {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  width: max-content;
+  max-width: calc(100% - 52px);
+  margin-inline: auto;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid rgba(246, 239, 231, 0.15);
+  border-radius: 999px;
+  background: #211d1a;
+  font-size: 11.5px;
   line-height: 1.5;
-  color: var(--clay);
+  color: var(--ink);
   opacity: 0;
   transform: translateY(-8px);
   pointer-events: none;
@@ -1041,15 +1049,25 @@ input {
   transform: none;
 }
 .refresh-status .icon {
-  width: 13px;
-  height: 13px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  padding: 4px;
+  border: 1px solid rgba(217, 164, 143, 0.5);
+  border-radius: 50%;
+  color: var(--clay);
   transition: transform 180ms var(--ease);
 }
 .refresh-status.ready .icon {
   transform: rotate(180deg);
 }
 .refresh-status.busy .icon {
-  opacity: 0;
+  animation: refresh-turn 700ms linear infinite;
+}
+@keyframes refresh-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .phone.pulling .screen {
   transition: none;
