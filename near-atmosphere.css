@@ -18,7 +18,7 @@
   position: absolute;
   inset: 0;
   background-position: 65% 0;
-  background-size: auto 610px;
+  background-size: cover;
   background-repeat: no-repeat;
   opacity: 0;
 }

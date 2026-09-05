@@ -5,7 +5,8 @@ export const LIGHT_ANCHORS = [
   { at: 0, sky: "isha", cloud: 0.045, stars: 0.26, spark: 0.56 },
   { at: 240, sky: "isha", cloud: 0.05, stars: 0.26, spark: 0.56 },
   { at: 330, sky: "fajr", cloud: 0.095, stars: 0.08, spark: 0.16 },
-  { at: 450, sky: "dhuhr", cloud: 0.16, stars: 0, spark: 0 },
+  { at: 390, sky: "duha", cloud: 0.16, stars: 0, spark: 0 },
+  { at: 660, sky: "duha", cloud: 0.16, stars: 0, spark: 0 },
   { at: 810, sky: "dhuhr", cloud: 0.18, stars: 0, spark: 0 },
   { at: 1040, sky: "asr", cloud: 0.17, stars: 0, spark: 0 },
   { at: 1182, sky: "maghrib", cloud: 0.15, stars: 0.025, spark: 0.03 },
@@ -25,7 +26,7 @@ export function lightAt(minutes, anchors = LIGHT_ANCHORS) {
     to = anchors[Math.max(0, index) + 1];
   const t = (minute - from.at) / (to.at - from.at),
     p = t * t * (3 - 2 * t);
-  const weights = { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 };
+  const weights = { fajr: 0, duha: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 };
   weights[from.sky] += 1 - p;
   weights[to.sky] += p;
   const dawnAnchor = anchors.find((a) => a.sky === "fajr")?.at || 330;
@@ -63,12 +64,12 @@ export function layerOpacities(weights, keys) {
 }
 
 export function createAtmosphere({ root, layers, reduced }) {
-  const keys = ["isha", "fajr", "dhuhr", "asr", "maghrib"];
+  const keys = ["isha", "fajr", "duha", "dhuhr", "asr", "maghrib"];
   const elements = keys.map((key) => {
     const el = document.createElement("div");
     el.className = "sky-layer";
     el.dataset.tone = key;
-    el.style.backgroundImage = `url(sky/${key}.webp)`;
+    el.style.backgroundImage = `url(sky/m/${key}.webp)`;
     layers.append(el);
     return el;
   });
@@ -135,7 +136,7 @@ export function createAtmosphere({ root, layers, reduced }) {
     root.dataset.lightMinute = String(Math.round(target.minute));
     document.documentElement.style.setProperty(
       "--near-sky",
-      `url(sky/${target.phase}.webp)`,
+      `url(sky/m/${target.phase}.webp)`,
     );
     document
       .querySelector("meta[name=theme-color]")
@@ -162,7 +163,7 @@ export function createAtmosphere({ root, layers, reduced }) {
     if (reduced.matches) settle();
   }
   reduced.addEventListener("change", onPreference);
-  // Load the five tiny colour grades together, so a scrub never reveals an
+  // Load the six mobile colour grades together, so a scrub never reveals an
   // unloaded layer. A failing grade leaves the already visible photograph.
   Promise.all(
     elements.map(
@@ -171,14 +172,14 @@ export function createAtmosphere({ root, layers, reduced }) {
           const img = new Image();
           img.onload = () => resolve(true);
           img.onerror = () => resolve(false);
-          img.src = `sky/${keys[i]}.webp`;
+          img.src = `sky/m/${keys[i]}.webp`;
         }),
     ),
   ).then((results) => {
     const fallback = keys[results.findIndex(Boolean)];
     if (fallback)
       elements.forEach((el, i) => {
-        if (!results[i]) el.style.backgroundImage = `url(sky/${fallback}.webp)`;
+        if (!results[i]) el.style.backgroundImage = `url(sky/m/${fallback}.webp)`;
       });
     root.classList.toggle("sky-ready", results.some(Boolean));
   });
@@ -231,10 +232,17 @@ export function lightAnchors(here, date) {
       stars: 0.26,
       spark: 0.56,
     },
-    { at: sunrise, sky: "fajr", cloud: 0.095, stars: 0.04, spark: 0.08 },
+    { at: dawn, sky: "fajr", cloud: 0.095, stars: 0.04, spark: 0.08 },
     {
-      at: Math.min(noon - 1, sunrise + 80),
-      sky: "dhuhr",
+      at: sunrise,
+      sky: "duha",
+      cloud: 0.16,
+      stars: 0,
+      spark: 0,
+    },
+    {
+      at: sunrise + (noon - sunrise) * 0.75,
+      sky: "duha",
       cloud: 0.16,
       stars: 0,
       spark: 0,

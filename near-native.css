@@ -4,7 +4,7 @@
   color-scheme: dark;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --near-sky: url(sky/isha.webp);
+  --near-sky: url(sky/m/isha.webp);
   --visible-height: 100dvh;
   --visible-top: 0px;
 }
@@ -14,7 +14,7 @@ html {
   background-image:
     linear-gradient(180deg, #191b1640, var(--bg) 520px), var(--near-sky);
   background-position: 65% top;
-  background-size: auto 610px;
+  background-size: 100% auto;
   background-repeat: no-repeat;
   overflow-x: clip;
   overscroll-behavior-y: auto;
@@ -164,7 +164,7 @@ html[data-preview] .footer:after {
     height: 660px;
   }
   .sky-layer {
-    background-size: auto 740px;
+    background-size: cover;
   }
   .sky-shade {
     background:
@@ -213,7 +213,7 @@ html[data-preview] .footer:after {
     height: calc(550px + var(--safe-top));
   }
   .sky-layer {
-    background-size: auto calc(610px + var(--safe-top));
+    background-size: cover;
   }
 }
 @media (prefers-reduced-motion: reduce) {

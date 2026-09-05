@@ -2,7 +2,7 @@
 
 // A release is one complete shell. Never refresh HTML or modules separately
 // inside the active cache: that can combine a new view with an old controller.
-const SHELL_FINGERPRINT = 'df54386695d3';
+const SHELL_FINGERPRINT = '88de068f2dc3';
 const VERSION = 'bilal-near-v28';
 const SHELL = VERSION + '-' + SHELL_FINGERPRINT + '-shell';
 const TIMETABLE_CACHE = 'bilal-near-timetables-v1';
@@ -17,6 +17,8 @@ const SHELL_PATHS = [
   '/near-preference.css', '/near.webmanifest', '/near-qr.svg',
   '/diag.js', '/favicon.ico', '/icon-180.png', '/icon-192.png',
   '/icon-512.png', '/icon-1024.png', '/mosques.json',
+  '/sky/m/fajr.webp', '/sky/m/duha.webp', '/sky/m/dhuhr.webp',
+  '/sky/m/asr.webp', '/sky/m/maghrib.webp', '/sky/m/isha.webp',
   '/fonts/prata-latin.woff2', '/fonts/archivo-latin.woff2'
 ];
 const SHELL_VERSIONED = { '/diag.js': '/diag.js?v=2' };
