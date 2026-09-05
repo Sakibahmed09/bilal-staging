@@ -294,3 +294,12 @@ html.sheet-open {
   overflow-y: hidden;
   overscroll-behavior: none;
 }
+
+/* WebKit may pan its visual viewport when a lower input gains focus. Keep
+   the inactive page in place while the sheet follows the visible viewport. */
+html.sheet-open .screen {
+  translate: 0 var(--visible-top);
+}
+html.sheet-open .atmosphere {
+  top: var(--visible-top);
+}

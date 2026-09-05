@@ -121,7 +121,9 @@ function syncMotion() {
   document.body.classList.toggle("motion-paused", paused);
   atmosphere.setPaused(paused);
 }
+let sheetViewportHeight = innerHeight;
 function lockPage() {
+  sheetViewportHeight = window.visualViewport?.height || innerHeight;
   lockedY = window.scrollY;
   document.body.style.position = "fixed";
   document.body.style.top = `${-lockedY}px`;
@@ -145,13 +147,21 @@ function keepFieldVisible() {
   // Standalone iOS can exclude its status area from visualViewport even with
   // no keyboard. That difference must never leave an unpainted sheet footer.
   const view = window.visualViewport;
-  const keyboard = !!view && innerHeight - view.height > 150;
+  const focused = document.activeElement?.matches("input,textarea");
+  const keyboard =
+    !!view &&
+    !$("overlay").hidden &&
+    focused &&
+    (Math.max(sheetViewportHeight, innerHeight) - view.height > 150 ||
+      view.offsetTop > 100);
   const root = document.documentElement;
   root.classList.toggle("keyboard-open", keyboard);
   root.classList.toggle("ios-keyboard", keyboard && ios);
   root.style.setProperty(
     "--visible-height",
-    keyboard ? `${view.height}px` : "100dvh",
+    keyboard
+      ? `${view.height + (nativeIOS ? parseFloat(getComputedStyle(root).getPropertyValue("--safe-top")) || 0 : 0)}px`
+      : "100dvh",
   );
   root.style.setProperty("--visible-top", `${keyboard ? view.offsetTop : 0}px`);
   const field = document.activeElement;
